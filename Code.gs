@@ -115,20 +115,19 @@ function doPost(e) {
     }
 
     // 알림은 Lock 해제 후 발송
-    console.log('doPost action=' + action + ' result=' + JSON.stringify(result));
     if (action === 'submitRequest' && result && !result.error) {
-      console.log('>>> sendNewRequestNotification 호출 시작');
+      debugLog('doPost: submitRequest 성공, 알림 호출 시작');
       try {
         sendNewRequestNotification(body.name, body.phone, body.rackType, body.memo);
-        console.log('>>> sendNewRequestNotification 호출 완료');
+        debugLog('doPost: 알림 호출 완료');
       } catch (notiErr) {
-        console.error('>>> 알림 에러: ' + notiErr.message + '\n' + notiErr.stack);
+        debugLog('doPost: 알림 에러 - ' + notiErr.message);
       }
     }
 
     return jsonResponse(result);
   } catch (err) {
-    console.error('doPost 전체 에러: ' + err.message + '\n' + err.stack);
+    debugLog('doPost 전체 에러: ' + err.message);
     return jsonResponse({ error: err.message });
   }
 }
@@ -472,6 +471,8 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
   if (rackType) message += '\n랙종류: ' + rackType;
   if (memo) message += '\n메모: ' + memo;
 
+  debugLog('ntfy 함수 진입');
+
   // ntfy.sh 푸시 알림
   try {
     var ntfyHeaders = {};
@@ -484,7 +485,8 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
         break;
       }
     }
-    console.log('ntfy 발송 시도 - token: ' + (ntfyToken ? ntfyToken.substring(0, 8) + '...' : 'NONE'));
+    debugLog('ntfy token: ' + (ntfyToken ? ntfyToken.substring(0, 8) + '...' : 'NONE'));
+
     var ntfyResp = UrlFetchApp.fetch('https://ntfy.sh', {
       method: 'post',
       contentType: 'application/json; charset=utf-8',
@@ -498,9 +500,24 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
       }),
       muteHttpExceptions: true
     });
-    console.log('ntfy 응답: ' + ntfyResp.getResponseCode() + ' / ' + ntfyResp.getContentText().substring(0, 200));
+    debugLog('ntfy 응답: ' + ntfyResp.getResponseCode());
   } catch (e) {
-    console.error('ntfy 에러: ' + e.message + '\n' + e.stack);
+    debugLog('ntfy 에러: ' + e.message);
+  }
+}
+
+// 시트 기반 디버그 로그 (Cloud 로그 안 찍힐 때 사용)
+function debugLog(msg) {
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName('디버그');
+    if (!sheet) {
+      sheet = ss.insertSheet('디버그');
+      sheet.appendRow(['시각', '메시지']);
+    }
+    sheet.appendRow([new Date().toLocaleString('ko-KR'), msg]);
+  } catch (e) {
+    // 디버그 로그 실패는 무시
   }
 }
 
