@@ -286,7 +286,7 @@
           } else {
             allEstimates = allEstimates.filter(e => e.estimateId !== estimateId);
             UI.toast('삭제되었습니다', 'success');
-            renderEstimates();
+            renderList();
           }
         } catch (err) {
           console.error('deleteEstimate error:', err);
