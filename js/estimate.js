@@ -126,7 +126,9 @@ const Estimate = (() => {
       : `${items[0]?.type || '랙'} ${totalQty}대`;
 
     const text = `${itemSummary} — ${UI.formatCurrency(data.total)} (부가세 별도)`;
-    const url = data.viewUrl || window.location.href;
+    // 고객에게는 GAS viewEstimate URL 공유 (PIN 불필요)
+    const gasUrl = localStorage.getItem('yr_gas_url') || 'https://script.google.com/macros/s/AKfycbwyNb3no3gaqH6nl7LWgyFme_BKsaBqMEa1MUdYNpq8ZkqOJQHHTWchsZ_HlfCe_rjN/exec';
+    const url = data.estimateId ? `${gasUrl}?action=viewEstimate&id=${data.estimateId}` : window.location.href;
 
     if (navigator.share) {
       try {

@@ -408,6 +408,8 @@
         tagline: document.getElementById('ob-tagline').value.trim(),
       };
       localStorage.setItem('yr_branding', JSON.stringify(branding));
+      // 시트에도 저장
+      API.saveSettings(branding).catch(() => {});
       goStep(4);
     }
 
@@ -421,7 +423,7 @@
     }
 
     // --- 설정 페이지 저장 ---
-    function saveSettingsBranding() {
+    async function saveSettingsBranding() {
       const branding = {
         company: document.getElementById('s-company').value.trim(),
         phone: document.getElementById('s-phone').value.trim(),
@@ -429,7 +431,12 @@
         tagline: document.getElementById('s-tagline').value.trim(),
       };
       localStorage.setItem('yr_branding', JSON.stringify(branding));
-      UI.toast('사업자 정보가 저장되었습니다', 'success');
+      try {
+        await API.saveSettings(branding);
+        UI.toast('사업자 정보가 저장되었습니다', 'success');
+      } catch {
+        UI.toast('로컬에 저장됨 (서버 저장 실패)', 'warning');
+      }
     }
 
     function saveSettingsGasUrl() {

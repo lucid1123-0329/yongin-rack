@@ -412,7 +412,7 @@ function uploadPhoto(body) {
     } catch (shareErr) {
       // 공유 설정 실패해도 업로드는 계속 진행
     }
-    var url = 'https://drive.google.com/uc?id=' + file.getId();
+    var url = 'https://lh3.googleusercontent.com/d/' + file.getId();
 
     var sheet = getSheet('포트폴리오');
     var now = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');

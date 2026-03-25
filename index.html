@@ -221,6 +221,13 @@
     }
   </script>
 
+  <!-- bfcache 복원 시 페이지 새로고침 -->
+  <script>
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) location.reload();
+    });
+  </script>
+
   <!-- Service Worker 등록 -->
   <script>
     if ('serviceWorker' in navigator) {
