@@ -235,10 +235,13 @@ const App = (() => {
       }
       return;
     } else if (presetName === 'D/C') {
-      if (nameEl) nameEl.value = 'D/C(할인)';
-      if (priceEl) { priceEl.value = ''; priceEl.focus(); }
-      if (qtyEl) qtyEl.value = '1';
-      UI.toast('할인 금액을 음수로 입력하세요', 'info');
+      // D/C 전용 입력 UI 토글
+      const dcArea = document.getElementById('dc-area');
+      const dcAmountEl = document.getElementById('dc-amount');
+      if (dcArea) {
+        dcArea.classList.remove('hidden');
+        if (dcAmountEl) { dcAmountEl.value = ''; dcAmountEl.focus(); }
+      }
       return;
     } else {
       if (nameEl) nameEl.value = presetName;
@@ -259,6 +262,28 @@ const App = (() => {
     const amount = Math.round(rackSubtotal * (pct / 100));
     amountEl.textContent = UI.formatCurrency(amount);
     amountEl.dataset.amount = amount;
+  }
+
+  function addDiscount() {
+    const amountEl = document.getElementById('dc-amount');
+    const amount = Math.abs(Number(amountEl?.value) || 0);
+    if (amount <= 0) { UI.toast('할인 금액을 입력하세요', 'warning'); return; }
+
+    items.push({
+      itemType: 'custom',
+      name: 'D/C(할인)',
+      unitPrice: -amount,  // 항상 음수로 저장
+      installFee: 0,
+      quantity: 1,
+    });
+
+    const dcArea = document.getElementById('dc-area');
+    if (dcArea) dcArea.classList.add('hidden');
+
+    renderItems();
+    updateTotal();
+    saveDraft();
+    UI.toast(`D/C -${UI.formatCurrency(amount)} 적용됨`, 'success');
   }
 
   function addMargin() {
@@ -466,7 +491,7 @@ const App = (() => {
   return {
     loadPrices, setQuantity, changeQuantity,
     addItem, addCustomItem, addPresetItem,
-    calcMarginFromPct, addMargin,
+    calcMarginFromPct, addMargin, addDiscount,
     removeItem, renderItems,
     calculate, updateTotal, saveEstimate,
     loadDraft, clearDraft, getCustomerInfo,
