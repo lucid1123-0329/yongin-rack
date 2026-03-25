@@ -111,6 +111,10 @@ const API = (() => {
     return request('GET', { action: 'getPortfolio' });
   }
 
+  async function getBlogPosts() {
+    return request('GET', { action: 'getBlogPosts' });
+  }
+
   // --- 설정 ---
   async function getSettings() {
     return request('GET', { action: 'getSettings' });
@@ -124,7 +128,7 @@ const API = (() => {
     getPrices, addPrice, updatePrice, deletePrice,
     saveEstimate, getEstimate, getEstimates, getDashboard, updateStatus,
     submitRequest, getRequests,
-    uploadPhoto, getPortfolio,
+    uploadPhoto, getPortfolio, getBlogPosts,
     getSettings, saveSettings,
     get baseUrl() { return BASE_URL; },
   };

@@ -3,7 +3,7 @@
  * 정적 자산 캐시 + 단가표 Stale-While-Revalidate
  */
 
-const CACHE_NAME = 'yr-v4';
+const CACHE_NAME = 'yr-v5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

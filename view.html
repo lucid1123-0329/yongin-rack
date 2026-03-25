@@ -83,13 +83,25 @@
         </div>
       </div>
 
-      <!-- 견적 요청 CTA -->
-      <div class="mt-6 bg-white rounded-2xl border border-gray-100 p-5 text-center">
-        <h3 class="text-base font-bold text-gray-800 mb-2">랙 설치가 필요하신가요?</h3>
-        <p class="text-sm text-gray-500 mb-4">무료 견적을 요청하세요.</p>
-        <a href="request.html" class="inline-block bg-accent text-white px-6 py-3 rounded-xl font-bold text-sm active:scale-[0.98] transition-transform">
-          견적 요청하기
+      <!-- 액션 버튼 -->
+      <div class="mt-6 space-y-3">
+        <a href="portfolio-public.html"
+          class="w-full h-12 bg-white border border-gray-200 rounded-xl font-bold text-sm text-gray-700 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          시공 포트폴리오 보기
         </a>
+        <div class="flex gap-3">
+          <a id="btn-call" href="#" onclick="return false;"
+            class="flex-1 h-12 bg-primary text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+            전화 문의
+          </a>
+          <a href="https://pf.kakao.com/_PbpFn" target="_blank"
+            class="flex-1 h-12 bg-[#FEE500] text-[#3C1E1E] rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.477 3 2 6.463 2 10.691c0 2.72 1.8 5.108 4.509 6.457l-.926 3.41a.312.312 0 00.472.334l3.963-2.627c.645.09 1.306.137 1.982.137 5.523 0 10-3.463 10-7.711S17.523 3 12 3z"/></svg>
+            카카오톡
+          </a>
+        </div>
       </div>
     </div>
   </div>
@@ -183,6 +195,21 @@
       document.getElementById('v-total').textContent = fmt(Number(data.total) || (totalSubtotal + totalInstall)) + '원';
 
       document.title = `[용인 랙] 견적서 - ${data.estimateId}`;
+
+      // 전화번호 설정
+      loadPhone();
+    }
+
+    async function loadPhone() {
+      try {
+        const data = await API.getSettings();
+        const phone = data.settings && data.settings.phone;
+        if (phone) {
+          const btn = document.getElementById('btn-call');
+          btn.href = 'tel:' + phone.replace(/-/g, '');
+          btn.onclick = null;
+        }
+      } catch {}
     }
 
     function showError() {

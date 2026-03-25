@@ -33,6 +33,8 @@ function doGet(e) {
         return jsonResponse(getRequests());
       case 'getPortfolio':
         return jsonResponse(getPortfolio());
+      case 'getBlogPosts':
+        return jsonResponse(getBlogPosts());
       case 'getSettings':
         return jsonResponse(getSettings());
       case 'viewEstimate':
@@ -437,6 +439,46 @@ function getPortfolio() {
     });
   }
   return { photos };
+}
+
+// ============================================================
+// 블로그 포스트 (네이버 블로그 RSS)
+// ============================================================
+function getBlogPosts() {
+  try {
+    var response = UrlFetchApp.fetch('https://rss.blog.naver.com/yongin_rack.xml', { muteHttpExceptions: true });
+    if (response.getResponseCode() !== 200) return { posts: [] };
+
+    var xml = XmlService.parse(response.getContentText());
+    var root = xml.getRootElement();
+    var channel = root.getChild('channel');
+    var items = channel.getChildren('item');
+
+    var posts = [];
+    for (var i = 0; i < Math.min(items.length, 20); i++) {
+      var item = items[i];
+      var desc = item.getChildText('description') || '';
+
+      // HTML에서 첫 번째 이미지 추출
+      var imgMatch = desc.match(/<img[^>]+src=["']([^"']+)["']/i);
+      var thumbnail = imgMatch ? imgMatch[1] : '';
+
+      // HTML 태그 제거하여 텍스트 추출
+      var text = desc.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+      if (text.length > 100) text = text.substring(0, 100) + '...';
+
+      posts.push({
+        title: item.getChildText('title') || '',
+        link: item.getChildText('link') || '',
+        description: text,
+        thumbnail: thumbnail,
+        pubDate: item.getChildText('pubDate') || '',
+      });
+    }
+    return { posts: posts };
+  } catch (err) {
+    return { posts: [], error: err.message };
+  }
 }
 
 function getOrCreateFolder(name) {
