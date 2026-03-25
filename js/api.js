@@ -77,6 +77,10 @@ const API = (() => {
     return request('POST', { action: 'saveEstimate', ...data });
   }
 
+  async function getEstimate(estimateId) {
+    return request('GET', { action: 'getEstimate', id: estimateId });
+  }
+
   async function getEstimates() {
     return request('GET', { action: 'getEstimates' });
   }
@@ -118,7 +122,7 @@ const API = (() => {
 
   return {
     getPrices, addPrice, updatePrice, deletePrice,
-    saveEstimate, getEstimates, getDashboard, updateStatus,
+    saveEstimate, getEstimate, getEstimates, getDashboard, updateStatus,
     submitRequest, getRequests,
     uploadPhoto, getPortfolio,
     getSettings, saveSettings,

@@ -130,7 +130,7 @@ const App = (() => {
 
       selTier.onchange = (ev2) => {
         const tier = ev2.target.value;
-        selectedRack = tiers.find(t => t.tier === tier) || null;
+        selectedRack = tiers.find(t => String(t.tier) === String(tier)) || null;
         updateTotal();
         saveDraft();
       };
@@ -161,7 +161,7 @@ const App = (() => {
   function calculate() {
     if (!selectedRack) return { total: 0, breakdown: null };
 
-    const unitPrice = Number(selectedRack.price) || 0;
+    const unitPrice = Number(selectedRack.unitPrice) || 0;
     const installFee = Number(selectedRack.installFee) || 0;
     const subtotal = unitPrice * quantity;
     const totalInstall = installFee * quantity;

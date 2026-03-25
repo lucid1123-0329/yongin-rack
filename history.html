@@ -174,7 +174,7 @@
                 <p class="text-xs text-gray-500">${e.rackType || '랙'} · ${e.quantity || 0}대</p>
               </div>
               <div class="text-right flex-shrink-0 ml-3">
-                <p class="text-base font-extrabold text-primary">${UI.formatCurrency(e.totalAmount || 0)}</p>
+                <p class="text-base font-extrabold text-primary">${UI.formatCurrency(e.total || 0)}</p>
                 <span class="text-gray-300 text-xs">${isExpanded ? '▲' : '▼'}</span>
               </div>
             </div>

@@ -99,16 +99,16 @@
       try {
         const data = await API.getDashboard();
         renderStats(data);
-        renderRecent(data.recentEstimates || []);
+        renderRecent(data.recent || []);
       } catch (err) {
         renderEmpty();
       }
     }
 
     function renderStats(data) {
-      const count = data.monthlyCount || 0;
-      const total = data.monthlyTotal || 0;
-      const conversion = data.conversionRate != null ? data.conversionRate : 0;
+      const count = data.count || 0;
+      const total = data.totalAmount || 0;
+      const conversion = count > 0 ? Math.round((data.contracted || 0) / count * 100) : 0;
 
       document.getElementById('stat-cards').innerHTML = `
         <div class="bg-white rounded-xl border border-gray-100 p-4 text-center">
@@ -156,7 +156,7 @@
               </div>
               <p class="text-xs text-gray-400 mt-0.5">${UI.formatDate(e.date || e.createdAt)} · ${e.rackType || '랙'} · ${e.quantity || 0}대</p>
             </div>
-            <p class="text-sm font-extrabold text-primary flex-shrink-0 ml-3">${UI.formatCurrency(e.totalAmount || 0)}</p>
+            <p class="text-sm font-extrabold text-primary flex-shrink-0 ml-3">${UI.formatCurrency(e.total || 0)}</p>
           </div>
         </a>
       `).join('');

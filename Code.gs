@@ -10,7 +10,7 @@
  *   포트폴리오: [날짜, 견적번호, 설명, 사진URL]
  */
 
-const SPREADSHEET_ID = ''; // 실제 시트 ID로 교체
+const SPREADSHEET_ID = '1azkq97HM29dyI-d4YC3FamsudWhuUC7FSPB_rGH8aZg';
 const API_KEY = 'yr-api-key-2026';
 
 // ============================================================
@@ -23,6 +23,8 @@ function doGet(e) {
     switch (action) {
       case 'getPrices':
         return jsonResponse(getPrices());
+      case 'getEstimate':
+        return jsonResponse(getEstimate(e.parameter.id));
       case 'getEstimates':
         return jsonResponse(getEstimates());
       case 'getDashboard':
@@ -119,7 +121,7 @@ function getPrices() {
   const prices = [];
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    if (row[6] === false || row[6] === '삭제') continue; // 비활성/삭제
+    if (row[6] === '삭제') continue; // 삭제된 항목만 제외
     prices.push({
       rowIndex: i + 1,
       type: row[0],
@@ -216,6 +218,34 @@ function generateEstimateId(sheet, date) {
     }
   }
   return prefix + '-' + String(maxNum + 1).padStart(3, '0');
+}
+
+function getEstimate(estimateId) {
+  if (!estimateId) return { error: 'Missing estimateId' };
+  const sheet = getSheet('견적내역');
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1] === estimateId) {
+      return {
+        estimateId: data[i][1],
+        date: data[i][0],
+        customerName: data[i][2],
+        company: data[i][3],
+        phone: data[i][4],
+        address: data[i][5],
+        rackType: data[i][6],
+        spec: data[i][7],
+        tier: data[i][8],
+        quantity: Number(data[i][9]),
+        unitPrice: Number(data[i][10]),
+        subtotal: Number(data[i][10]) * Number(data[i][9]),
+        totalInstall: Number(data[i][11]),
+        total: Number(data[i][12]),
+        status: data[i][13],
+      };
+    }
+  }
+  return { error: 'Estimate not found' };
 }
 
 function getEstimates() {
@@ -497,6 +527,16 @@ function viewEstimateHtml(estimateId) {
 // ============================================================
 // 헬퍼
 // ============================================================
+/**
+ * GAS 에디터에서 직접 실행 — 모든 시트 탭 초기화
+ */
+function initAllSheets() {
+  ['단가표', '견적내역', '견적요청', '설정', '포트폴리오'].forEach(name => {
+    getSheet(name);
+  });
+  Logger.log('모든 시트가 초기화되었습니다.');
+}
+
 function getSheet(name) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName(name);
