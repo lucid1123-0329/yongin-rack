@@ -110,6 +110,9 @@ function doPost(e) {
         case 'linkEstimateToRequest':
           result = linkEstimateToRequest(body);
           break;
+        case 'deleteEstimate':
+          result = deleteEstimate(body.estimateId);
+          break;
         default:
           result = { error: 'Unknown action' };
       }
@@ -235,6 +238,19 @@ function saveEstimate(body) {
   ]);
 
   return { result: 'success', estimateId: estimateId, row: sheet.getLastRow() };
+}
+
+function deleteEstimate(estimateId) {
+  if (!estimateId) return { error: 'Missing estimateId' };
+  var sheet = getSheet('견적내역');
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][1] === estimateId) {
+      sheet.deleteRow(i + 1);
+      return { result: 'success' };
+    }
+  }
+  return { error: 'Estimate not found' };
 }
 
 function generateEstimateId(sheet, date) {

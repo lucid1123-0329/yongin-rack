@@ -97,6 +97,10 @@ const API = (() => {
     return request('GET', { action: 'getDashboard' });
   }
 
+  async function deleteEstimate(estimateId) {
+    return request('POST', { action: 'deleteEstimate', estimateId });
+  }
+
   async function updateStatus(estimateId, status) {
     return request('POST', { action: 'updateStatus', estimateId, status });
   }
@@ -150,7 +154,7 @@ const API = (() => {
 
   return {
     getPrices, addPrice, updatePrice, deletePrice,
-    saveEstimate, getEstimate, createShareToken, getEstimateByToken, getEstimates, getDashboard, updateStatus,
+    saveEstimate, getEstimate, deleteEstimate, createShareToken, getEstimateByToken, getEstimates, getDashboard, updateStatus,
     submitRequest, getRequests, updateRequestStatus, deleteRequest, linkEstimateToRequest,
     uploadPhoto, getPortfolio, deletePhoto, getBlogPosts,
     getSettings, saveSettings,

@@ -48,12 +48,25 @@
 <body class="bg-[#f7fafc] min-h-screen">
 
   <!-- 로딩 오버레이 -->
-  <div id="page-loading" class="hidden fixed inset-0 bg-white/80 z-50 flex items-center justify-center">
+  <div id="page-loading" class="hidden fixed inset-0 bg-white z-50 flex items-center justify-center">
     <div class="text-center">
       <div class="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
-      <p class="text-sm text-gray-500" id="loading-text">견적 데이터를 불러오는 중...</p>
+      <p class="text-sm text-gray-500" id="loading-text">불러오는 중...</p>
     </div>
   </div>
+  <script>
+    // HTML 파싱 중 즉시 실행 — DOMContentLoaded 기다리지 않음
+    (function(){
+      var p = new URLSearchParams(location.search);
+      var from = p.get('from');
+      if (from === 'edit' || from === 'request') {
+        var el = document.getElementById('page-loading');
+        var txt = document.getElementById('loading-text');
+        if (el) el.classList.remove('hidden');
+        if (txt) txt.textContent = from === 'edit' ? '기존 견적을 불러오는 중...' : '고객 정보를 불러오는 중...';
+      }
+    })();
+  </script>
 
   <!-- 헤더 -->
   <header class="bg-primary text-white px-4 py-4 sticky top-0 z-40">
@@ -230,15 +243,6 @@
   <script src="js/estimate.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      // 로딩 즉시 표시 (init 전에)
-      const fromParam = new URLSearchParams(location.search).get('from');
-      if (fromParam === 'edit' || fromParam === 'request') {
-        const loadingEl = document.getElementById('page-loading');
-        const textEl = document.getElementById('loading-text');
-        loadingEl.classList.remove('hidden');
-        textEl.textContent = fromParam === 'edit' ? '기존 견적을 불러오는 중...' : '고객 정보를 불러오는 중...';
-      }
-
       if (!Auth.guard()) {
         window.addEventListener('yr-authenticated', init);
         return;
