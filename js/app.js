@@ -11,11 +11,26 @@ const App = (() => {
   let currentQuantity = 1;
 
   const DRAFT_KEY = 'yr_draft_estimate';
+  const PRICE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   let draftTimer = null;
+
+  // --- safe localStorage helpers ---
+  function _lsGet(key) {
+    try { return localStorage.getItem(key); } catch(e) { return null; }
+  }
+  function _lsSet(key, value) {
+    try { localStorage.setItem(key, value); } catch(e) {}
+  }
+  function _lsRemove(key) {
+    try { localStorage.removeItem(key); } catch(e) {}
+  }
 
   // --- 단가 데이터 로드 ---
   async function loadPrices() {
-    const cached = localStorage.getItem('yr_prices_cache');
+    const cached = _lsGet('yr_prices_cache');
+    const cacheTs = Number(_lsGet('yr_prices_cache_ts')) || 0;
+    const cacheIsFresh = cached && (Date.now() - cacheTs < PRICE_CACHE_TTL);
+
     if (cached) {
       try {
         priceData = JSON.parse(cached);
@@ -23,11 +38,15 @@ const App = (() => {
       } catch {}
     }
 
+    // Skip network fetch if cache is fresh
+    if (cacheIsFresh) return;
+
     try {
       const data = await API.getPrices();
       if (data && data.prices) {
         priceData = data.prices;
-        localStorage.setItem('yr_prices_cache', JSON.stringify(priceData));
+        _lsSet('yr_prices_cache', JSON.stringify(priceData));
+        _lsSet('yr_prices_cache_ts', String(Date.now()));
         renderRackSelector();
       }
     } catch (err) {
@@ -219,12 +238,19 @@ const App = (() => {
     UI.toast(`'${name}' 추가됨`, 'success');
   }
 
-  function hideAllPresetAreas() {
-    const marginArea = document.getElementById('margin-area');
-    const dcArea = document.getElementById('dc-area');
-    if (marginArea) marginArea.classList.add('hidden');
-    if (dcArea) dcArea.classList.add('hidden');
+  // Hide all preset toggle areas, optionally show one by id
+  function setActivePreset(showId) {
+    const ids = ['margin-area', 'dc-area'];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (id === showId) el.classList.remove('hidden');
+      else el.classList.add('hidden');
+    });
   }
+
+  // Legacy alias
+  function hideAllPresetAreas() { setActivePreset(null); }
 
   function addPresetItem(presetName) {
     const nameEl = document.getElementById('custom-name');
@@ -232,24 +258,18 @@ const App = (() => {
     const qtyEl = document.getElementById('custom-qty');
 
     // 먼저 모든 토글 영역 닫기
-    hideAllPresetAreas();
+    setActivePreset(null);
 
     if (presetName === '마진') {
-      const marginArea = document.getElementById('margin-area');
+      setActivePreset('margin-area');
       const marginPctEl = document.getElementById('margin-pct');
-      if (marginArea) {
-        marginArea.classList.remove('hidden');
-        if (marginPctEl) { marginPctEl.value = '25'; marginPctEl.focus(); }
-        calcMarginFromPct();
-      }
+      if (marginPctEl) { marginPctEl.value = '25'; marginPctEl.focus(); }
+      calcMarginFromPct();
       return;
     } else if (presetName === 'D/C') {
-      const dcArea = document.getElementById('dc-area');
+      setActivePreset('dc-area');
       const dcAmountEl = document.getElementById('dc-amount');
-      if (dcArea) {
-        dcArea.classList.remove('hidden');
-        if (dcAmountEl) { dcAmountEl.value = ''; dcAmountEl.focus(); }
-      }
+      if (dcAmountEl) { dcAmountEl.value = ''; dcAmountEl.focus(); }
       return;
     } else {
       if (nameEl) nameEl.value = presetName;
@@ -437,13 +457,15 @@ const App = (() => {
         customer: getCustomerInfo(),
         timestamp: Date.now(),
       };
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      _lsSet(DRAFT_KEY, JSON.stringify(draft));
     }, 1000);
   }
 
   function loadDraft() {
     try {
-      const data = JSON.parse(localStorage.getItem(DRAFT_KEY));
+      const raw = _lsGet(DRAFT_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
       if (data && Date.now() - data.timestamp < 86400000) {
         return data;
       }
@@ -452,7 +474,7 @@ const App = (() => {
   }
 
   function clearDraft() {
-    localStorage.removeItem(DRAFT_KEY);
+    _lsRemove(DRAFT_KEY);
   }
 
   // --- 고객 정보 ---
@@ -477,7 +499,10 @@ const App = (() => {
     }
 
     const customer = getCustomerInfo();
-    const clientId = 'est-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+    const randomPart = (typeof crypto !== 'undefined' && crypto.getRandomValues)
+      ? Array.from(crypto.getRandomValues(new Uint8Array(4)), b => b.toString(36)).join('').substr(0, 6)
+      : Math.random().toString(36).substr(2, 6);
+    const clientId = 'est-' + Date.now() + '-' + randomPart;
     const data = {
       items: calcItems,
       supplyTotal,
@@ -489,10 +514,12 @@ const App = (() => {
 
     const result = await API.saveEstimate(data);
     if (result && result.estimateId) {
-      sessionStorage.setItem('yr-estimate-' + result.estimateId, JSON.stringify({
-        ...data,
-        estimateId: result.estimateId,
-      }));
+      try {
+        sessionStorage.setItem('yr-estimate-' + result.estimateId, JSON.stringify({
+          ...data,
+          estimateId: result.estimateId,
+        }));
+      } catch(e) {}
       clearDraft();
       items = [];
     }
@@ -501,7 +528,7 @@ const App = (() => {
 
   return {
     loadPrices, setQuantity, changeQuantity,
-    addItem, addCustomItem, addPresetItem,
+    addItem, addCustomItem, addPresetItem, setActivePreset,
     calcMarginFromPct, addMargin, addDiscount,
     removeItem, renderItems,
     calculate, updateTotal, saveEstimate,

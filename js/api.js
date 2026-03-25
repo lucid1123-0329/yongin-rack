@@ -9,6 +9,13 @@ const API = (() => {
   const BASE_URL = localStorage.getItem('yr_gas_url') || DEFAULT_URL;
   const API_KEY = 'yr-api-key-2026'; // admin 요청 인증용
 
+  // Request timeouts (ms)
+  const GET_TIMEOUT = 10000;
+  const POST_TIMEOUT = 20000;
+
+  // GET request deduplication — concurrent identical GET requests share one fetch
+  const _pendingGets = new Map();
+
   async function request(method, params = {}, options = {}) {
     if (!BASE_URL) {
       throw new Error('API URL이 설정되지 않았습니다. 설정에서 GAS URL을 입력하세요.');
@@ -16,13 +23,38 @@ const API = (() => {
 
     const isAdmin = options.admin !== false;
 
+    // Deduplication: if an identical GET is already in-flight, reuse its promise
+    let dedupeKey = null;
+    if (method === 'GET') {
+      dedupeKey = new URLSearchParams(params).toString();
+      const pending = _pendingGets.get(dedupeKey);
+      if (pending) return pending;
+    }
+
+    const promise = _doRequest(method, params, isAdmin, options);
+
+    if (dedupeKey) {
+      _pendingGets.set(dedupeKey, promise);
+      promise.finally(() => _pendingGets.delete(dedupeKey));
+    }
+
+    return promise;
+  }
+
+  async function _doRequest(method, params, isAdmin, options) {
+    const timeout = method === 'GET' ? GET_TIMEOUT : POST_TIMEOUT;
+
     try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeout);
+
       let response;
       if (method === 'GET') {
         const query = new URLSearchParams(params).toString();
         response = await fetch(`${BASE_URL}?${query}`, {
           method: 'GET',
           redirect: 'follow',
+          signal: controller.signal,
         });
       } else {
         // Content-Type: text/plain + no custom headers = no preflight (CORS safe)
@@ -34,8 +66,11 @@ const API = (() => {
           method: 'POST',
           redirect: 'follow',
           body: JSON.stringify(body),
+          signal: controller.signal,
         });
       }
+
+      clearTimeout(timer);
 
       if (!response.ok) {
         throw new Error(`서버 오류 (${response.status})`);
@@ -48,6 +83,11 @@ const API = (() => {
         throw new Error('응답 파싱 실패');
       }
     } catch (err) {
+      if (err.name === 'AbortError') {
+        const errMsg = `요청 시간 초과 (${timeout / 1000}초)`;
+        if (options.silent) { console.warn('API timeout (silent):', errMsg); return null; }
+        throw new Error(errMsg);
+      }
       if (!navigator.onLine) {
         throw new Error('인터넷 연결이 필요합니다');
       }
@@ -159,6 +199,7 @@ const API = (() => {
   }
 
   return {
+    request,
     getPrices, addPrice, updatePrice, deletePrice,
     saveEstimate, updateEstimate, getEstimate, deleteEstimate, createShareToken, getEstimateByToken, getEstimates, getDashboard, updateStatus,
     submitRequest, getRequests, updateRequestStatus, deleteRequest, linkEstimateToRequest,

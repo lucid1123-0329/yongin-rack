@@ -5,28 +5,29 @@
 
 const UI = (() => {
   // --- 토스트 ---
+  const TOAST_ENTER_CLS = ['translate-y-[-1rem]', 'opacity-0'];
+  const TOAST_COLORS = {
+    info: 'bg-gray-800',
+    success: 'bg-green-600',
+    error: 'bg-red-500',
+    warning: 'bg-amber-500',
+  };
+
   function toast(message, type = 'info', duration = 3000) {
     const existing = document.querySelector('.yr-toast');
     if (existing) existing.remove();
 
-    const colors = {
-      info: 'bg-gray-800',
-      success: 'bg-green-600',
-      error: 'bg-red-500',
-      warning: 'bg-amber-500',
-    };
-
     const el = document.createElement('div');
-    el.className = `yr-toast fixed top-4 right-4 max-w-[min(320px,calc(100vw-2rem))] ${colors[type]} text-white px-4 py-3 rounded-lg text-sm font-medium z-[60] text-left shadow-lg transition-all duration-300 translate-y-[-1rem] opacity-0`;
+    el.className = `yr-toast fixed top-4 right-4 max-w-[min(320px,calc(100vw-2rem))] ${TOAST_COLORS[type] || TOAST_COLORS.info} text-white px-4 py-3 rounded-lg text-sm font-medium z-[60] text-left shadow-lg transition-all duration-300 ${TOAST_ENTER_CLS.join(' ')}`;
     el.textContent = message;
     document.body.appendChild(el);
 
     requestAnimationFrame(() => {
-      el.classList.remove('translate-y-[-1rem]', 'opacity-0');
+      el.classList.remove(...TOAST_ENTER_CLS);
     });
 
     setTimeout(() => {
-      el.classList.add('translate-y-[-1rem]', 'opacity-0');
+      el.classList.add(...TOAST_ENTER_CLS);
       setTimeout(() => el.remove(), 300);
     }, duration);
   }
@@ -68,8 +69,12 @@ const UI = (() => {
 
   // --- 확인 모달 ---
   function confirm(title, message, onConfirm) {
+    // Deduplication: remove any existing confirm modal before creating a new one
+    const existingModal = document.querySelector('.yr-confirm-modal');
+    if (existingModal) existingModal.remove();
+
     const modal = document.createElement('div');
-    modal.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center';
+    modal.className = 'yr-confirm-modal fixed inset-0 bg-black/50 z-50 flex items-center justify-center';
     modal.innerHTML = `
       <div class="bg-white rounded-2xl p-6 mx-4 w-full max-w-sm">
         <h3 class="text-lg font-bold text-gray-800 mb-2">${title}</h3>
@@ -159,30 +164,39 @@ const UI = (() => {
   function _fetchRequestBadge() {
     try {
       // 60초 내 재조회 방지
-      var lastFetch = localStorage.getItem('yr_req_fetch_ts');
+      var lastFetch = null;
+      try { lastFetch = localStorage.getItem('yr_req_fetch_ts'); } catch(e) {}
       if (lastFetch && Date.now() - Number(lastFetch) < 60000) {
         // 캐시된 배지 값 표시
-        var cachedBadge = localStorage.getItem('yr_req_badge_count');
-        if (cachedBadge !== null) updateRequestBadge(Number(cachedBadge));
+        try {
+          var cachedBadge = localStorage.getItem('yr_req_badge_count');
+          if (cachedBadge !== null) updateRequestBadge(Number(cachedBadge));
+        } catch(e) {}
         return;
       }
       if (typeof API === 'undefined') return;
-      API.getRequests().then(function(data) {
+      API.getRequests({ silent: true }).then(function(data) {
         if (!data || !data.requests) return;
         var totalCount = data.requests.length;
         // 마지막 확인 시점의 요청 수
-        var seen = localStorage.getItem('yr_req_seen');
         var seenTotal = 0;
-        if (seen) {
-          try { seenTotal = JSON.parse(seen).total || 0; } catch(e) {}
-        }
+        try {
+          var seen = localStorage.getItem('yr_req_seen');
+          if (seen) seenTotal = JSON.parse(seen).total || 0;
+        } catch(e) {}
         // 새 요청 수 = 현재 총 수 - 마지막 확인 시 총 수
         var newCount = Math.max(0, totalCount - seenTotal);
         updateRequestBadge(newCount);
-        localStorage.setItem('yr_req_badge_count', String(newCount));
-        localStorage.setItem('yr_req_fetch_ts', String(Date.now()));
-      }).catch(function(){});
-    } catch(e) {}
+        try {
+          localStorage.setItem('yr_req_badge_count', String(newCount));
+          localStorage.setItem('yr_req_fetch_ts', String(Date.now()));
+        } catch(e) {}
+      }).catch(function(err) {
+        console.warn('Badge fetch failed:', err && err.message);
+      });
+    } catch(e) {
+      console.warn('_fetchRequestBadge error:', e && e.message);
+    }
   }
 
   // --- 헤더 렌더 ---

@@ -4,7 +4,7 @@
  */
 importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
-const CACHE_NAME = 'yr-v43';
+const CACHE_NAME = 'yr-v44';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -12,6 +12,7 @@ const STATIC_ASSETS = [
   '/dashboard.html',
   '/more.html',
   '/admin.html',
+  '/admin-push.html',
   '/settings.html',
   '/estimate-preview.html',
   '/view.html',
@@ -24,6 +25,8 @@ const STATIC_ASSETS = [
   '/js/ui.js',
   '/js/app.js',
   '/js/estimate.js',
+  '/js/onesignal-init.js',
+  '/OneSignalSDKWorker.js',
   '/manifest.json',
 ];
 
@@ -39,12 +42,18 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate — 이전 캐시 제거
+// Activate — 이전 캐시 제거 (with logging)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    caches.keys().then((keys) => {
+      const oldKeys = keys.filter(k => k !== CACHE_NAME);
+      if (oldKeys.length > 0) {
+        console.log(`[SW] Cleaning up ${oldKeys.length} old cache(s):`, oldKeys.join(', '));
+      } else {
+        console.log(`[SW] Activated ${CACHE_NAME}, no old caches to remove.`);
+      }
+      return Promise.all(oldKeys.map(k => caches.delete(k)));
+    })
   );
   self.clients.claim();
 });

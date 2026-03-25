@@ -130,7 +130,6 @@ function doPost(e) {
 
     return jsonResponse(result);
   } catch (err) {
-    debugLog('doPost 전체 에러: ' + err.message);
     return jsonResponse({ error: err.message });
   }
 }
@@ -144,10 +143,23 @@ function jsonResponse(data) {
 }
 
 // ============================================================
+// 견적 행 검색 헬퍼 (getEstimate, updateEstimate, deleteEstimate 공통)
+// ============================================================
+function findEstimateRow(sheet, estimateId) {
+  // NOTE: 대규모 데이터셋에서는 getDataRange 대신 특정 열만 getRange로 읽는 최적화 가능
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][1] === estimateId) return { row: i + 1, data: data[i], allData: data };
+  }
+  return null;
+}
+
+// ============================================================
 // 단가표
 // ============================================================
 function getPrices() {
   const sheet = getSheet('단가표');
+  // NOTE: 대규모 데이터셋에서는 getDataRange 대신 특정 범위만 읽는 최적화 가능
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return { prices: [] };
 
@@ -249,58 +261,49 @@ function saveEstimate(body) {
 function updateEstimate(body) {
   if (!body.estimateId) return { error: 'Missing estimateId' };
   var sheet = getSheet('견적내역');
-  var data = sheet.getDataRange().getValues();
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][1] === body.estimateId) {
-      var row = i + 1;
-      var itemsJson = JSON.stringify(body.items || []);
-      var supplyTotal = Number(body.supplyTotal) || Number(body.total) || 0;
-      var vat = Number(body.vat) || 0;
-      var grandTotal = supplyTotal + vat;
-      var now = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm');
-      // 기존 행 덮어쓰기 (상태와 clientId는 유지)
-      var currentStatus = data[i][8] || '상담완료';
-      var currentClientId = data[i][9] || '';
-      sheet.getRange(row, 1, 1, 15).setValues([[
-        now,
-        body.estimateId,
-        body.name || '',
-        body.company || '',
-        body.phone || '',
-        body.address || '',
-        itemsJson,
-        grandTotal,
-        currentStatus,
-        currentClientId,
-        supplyTotal,
-        vat,
-        body.bizNumber || '',
-        body.bizType || '',
-        body.bizItem || ''
-      ]]);
-      return { result: 'success', estimateId: body.estimateId };
-    }
-  }
-  return { error: 'Estimate not found' };
+  var found = findEstimateRow(sheet, body.estimateId);
+  if (!found) return { error: 'Estimate not found' };
+
+  var itemsJson = JSON.stringify(body.items || []);
+  var supplyTotal = Number(body.supplyTotal) || Number(body.total) || 0;
+  var vat = Number(body.vat) || 0;
+  var grandTotal = supplyTotal + vat;
+  var now = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm');
+  // 기존 행 덮어쓰기 (상태와 clientId는 유지)
+  var currentStatus = found.data[8] || '상담완료';
+  var currentClientId = found.data[9] || '';
+  sheet.getRange(found.row, 1, 1, 15).setValues([[
+    now,
+    body.estimateId,
+    body.name || '',
+    body.company || '',
+    body.phone || '',
+    body.address || '',
+    itemsJson,
+    grandTotal,
+    currentStatus,
+    currentClientId,
+    supplyTotal,
+    vat,
+    body.bizNumber || '',
+    body.bizType || '',
+    body.bizItem || ''
+  ]]);
+  return { result: 'success', estimateId: body.estimateId };
 }
 
 function deleteEstimate(estimateId) {
   if (!estimateId) return { error: 'Missing estimateId' };
   var sheet = getSheet('견적내역');
-  var data = sheet.getDataRange().getValues();
-  var deleted = false;
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][1] === estimateId) {
-      sheet.deleteRow(i + 1);
-      deleted = true;
-      break;
-    }
-  }
-  if (!deleted) return { error: 'Estimate not found' };
+  var found = findEstimateRow(sheet, estimateId);
+  if (!found) return { error: 'Estimate not found' };
+
+  sheet.deleteRow(found.row);
 
   // 견적요청 시트에서 연결된 estimateId 클리어
   try {
     var reqSheet = getSheet('견적요청');
+    // NOTE: 대규모 데이터셋에서는 getDataRange 대신 특정 열만 읽는 최적화 가능
     var reqData = reqSheet.getDataRange().getValues();
     for (var j = 1; j < reqData.length; j++) {
       if (reqData[j][12] === estimateId) {
@@ -345,30 +348,28 @@ function generateEstimateId(sheet, date) {
 function getEstimate(estimateId) {
   if (!estimateId) return { error: 'Missing estimateId' };
   const sheet = getSheet('견적내역');
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][1] === estimateId) {
-      let items = [];
-      try { items = JSON.parse(data[i][6]); } catch {}
-      return {
-        estimateId: data[i][1],
-        date: data[i][0],
-        customerName: data[i][2],
-        company: data[i][3],
-        phone: data[i][4],
-        address: data[i][5],
-        items: items,
-        total: Number(data[i][7]),
-        status: data[i][8],
-        supplyTotal: Number(data[i][10]) || Number(data[i][7]) || 0,
-        vat: Number(data[i][11]) || 0,
-        bizNumber: data[i][12] || '',
-        bizType: data[i][13] || '',
-        bizItem: data[i][14] || '',
-      };
-    }
-  }
-  return { error: 'Estimate not found' };
+  var found = findEstimateRow(sheet, estimateId);
+  if (!found) return { error: 'Estimate not found' };
+
+  var row = found.data;
+  let items = [];
+  try { items = JSON.parse(row[6]); } catch {}
+  return {
+    estimateId: row[1],
+    date: row[0],
+    customerName: row[2],
+    company: row[3],
+    phone: row[4],
+    address: row[5],
+    items: items,
+    total: Number(row[7]),
+    status: row[8],
+    supplyTotal: Number(row[10]) || Number(row[7]) || 0,
+    vat: Number(row[11]) || 0,
+    bizNumber: row[12] || '',
+    bizType: row[13] || '',
+    bizItem: row[14] || '',
+  };
 }
 
 // ============================================================
@@ -429,6 +430,7 @@ function getEstimateByToken(token) {
 
 function getEstimates() {
   const sheet = getSheet('견적내역');
+  // NOTE: 대규모 데이터셋에서는 getDataRange 대신 특정 범위만 읽는 최적화 가능
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return { estimates: [] };
 
@@ -481,6 +483,7 @@ function updateStatus(estimateId, newStatus) {
 // ============================================================
 function getDashboard() {
   const sheet = getSheet('견적내역');
+  // NOTE: 대규모 데이터셋에서는 getDataRange 대신 특정 범위만 읽는 최적화 가능
   const data = sheet.getDataRange().getValues();
   const now = new Date();
   const thisMonth = Utilities.formatDate(now, 'Asia/Seoul', 'yyyy-MM');
@@ -533,6 +536,7 @@ function getDashboard() {
 // ============================================================
 function submitRequest(body) {
   const sheet = getSheet('견적요청');
+  // NOTE: 대규모 데이터셋에서는 getDataRange 대신 특정 범위만 읽는 최적화 가능
   const data = sheet.getDataRange().getValues();
   const oneHourAgo = new Date(Date.now() - 3600000);
   let recentCount = 0;
@@ -560,65 +564,46 @@ function submitRequest(body) {
  * admin-push.html에서 관리자 기기 등록 필요
  */
 function sendNewRequestNotification(name, phone, rackType, memo) {
+  // 설정 시트에서 OneSignal 키를 한 번에 읽기 (GitHub에 노출 방지)
+  var settingsData = getSheet('설정').getDataRange().getValues();
+  var ONESIGNAL_APP_ID = '';
+  var ONESIGNAL_API_KEY = '';
+  for (var s = 1; s < settingsData.length; s++) {
+    var key = settingsData[s][0];
+    if (key === 'onesignalAppId') ONESIGNAL_APP_ID = String(settingsData[s][1]).trim();
+    else if (key === 'onesignalApiKey') ONESIGNAL_API_KEY = String(settingsData[s][1]).trim();
+    if (ONESIGNAL_APP_ID && ONESIGNAL_API_KEY) break; // 두 키 모두 찾으면 조기 종료
+  }
+  if (!ONESIGNAL_APP_ID || !ONESIGNAL_API_KEY) return;
+
   var message = '고객: ' + (name || '미입력') + '\n연락처: ' + (phone || '미입력');
   if (rackType) message += '\n랙종류: ' + rackType;
   if (memo) message += '\n메모: ' + memo;
 
-  // 설정 시트에서 OneSignal 키 읽기 (GitHub에 노출 방지)
-  var ONESIGNAL_APP_ID = '';
-  var ONESIGNAL_API_KEY = '';
-  var settings = getSheet('설정').getDataRange().getValues();
-  for (var s = 1; s < settings.length; s++) {
-    if (settings[s][0] === 'onesignalAppId') ONESIGNAL_APP_ID = String(settings[s][1]).trim();
-    if (settings[s][0] === 'onesignalApiKey') ONESIGNAL_API_KEY = String(settings[s][1]).trim();
-  }
-  if (!ONESIGNAL_APP_ID || !ONESIGNAL_API_KEY) {
-    debugLog('OneSignal 키 미설정 - 설정 시트에 onesignalAppId, onesignalApiKey 추가 필요');
-    return;
-  }
-
   try {
-    var payload = {
-      app_id: ONESIGNAL_APP_ID,
-      filters: [{ field: 'tag', key: 'role', relation: '=', value: 'admin' }],
-      headings: { en: '새 견적 요청이 도착했습니다' },
-      contents: { en: message },
-      url: 'https://yongin-rack.com/requests.html'
-    };
-
-    var resp = UrlFetchApp.fetch('https://onesignal.com/api/v1/notifications', {
+    UrlFetchApp.fetch('https://onesignal.com/api/v1/notifications', {
       method: 'post',
       headers: {
         'Authorization': 'Basic ' + ONESIGNAL_API_KEY,
         'Content-Type': 'application/json; charset=utf-8'
       },
-      payload: JSON.stringify(payload),
+      payload: JSON.stringify({
+        app_id: ONESIGNAL_APP_ID,
+        filters: [{ field: 'tag', key: 'role', relation: '=', value: 'admin' }],
+        headings: { en: '새 견적 요청이 도착했습니다' },
+        contents: { en: message },
+        url: 'https://yongin-rack.com/requests.html'
+      }),
       muteHttpExceptions: true
     });
-
-    debugLog('OneSignal 응답: ' + resp.getResponseCode() + ' / ' + resp.getContentText().substring(0, 200));
   } catch (e) {
-    debugLog('OneSignal 에러: ' + e.message);
-  }
-}
-
-// 시트 기반 디버그 로그 (Cloud 로그 안 찍힐 때 사용)
-function debugLog(msg) {
-  try {
-    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    var sheet = ss.getSheetByName('디버그');
-    if (!sheet) {
-      sheet = ss.insertSheet('디버그');
-      sheet.appendRow(['시각', '메시지']);
-    }
-    sheet.appendRow([new Date().toLocaleString('ko-KR'), msg]);
-  } catch (e) {
-    // 디버그 로그 실패는 무시
+    // OneSignal 전송 실패 시 요청 처리에 영향 없도록 무시
   }
 }
 
 function getRequests() {
   const sheet = getSheet('견적요청');
+  // NOTE: 대규모 데이터셋에서는 getDataRange 대신 특정 범위만 읽는 최적화 가능
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return { requests: [] };
 
@@ -685,6 +670,7 @@ function uploadPhoto(body) {
 
 function getPortfolio() {
   const sheet = getSheet('포트폴리오');
+  // NOTE: 대규모 데이터셋에서는 getDataRange 대신 특정 범위만 읽는 최적화 가능
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return { photos: [] };
 
@@ -794,22 +780,38 @@ function getSettings() {
 
 function saveSettings(body) {
   const sheet = getSheet('설정');
+  // NOTE: 대규모 데이터셋에서는 getDataRange 대신 특정 열만 읽는 최적화 가능
   const data = sheet.getDataRange().getValues();
   const keys = Object.keys(body).filter(k => k !== 'action' && k !== 'apiKey');
+
+  // 메모리에서 업데이트할 행과 새로 추가할 행을 분류
+  var updates = []; // { row, value }
+  var appends = []; // [key, value]
 
   keys.forEach(key => {
     let found = false;
     for (let i = 1; i < data.length; i++) {
       if (data[i][0] === key) {
-        sheet.getRange(i + 1, 2).setValue(body[key]);
+        updates.push({ row: i + 1, value: body[key] });
         found = true;
         break;
       }
     }
     if (!found) {
-      sheet.appendRow([key, body[key]]);
+      appends.push([key, body[key]]);
     }
   });
+
+  // 기존 행 일괄 업데이트
+  updates.forEach(u => {
+    sheet.getRange(u.row, 2).setValue(u.value);
+  });
+
+  // 새 행 일괄 추가
+  if (appends.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, appends.length, 2).setValues(appends);
+  }
+
   return { result: 'success' };
 }
 
@@ -927,17 +929,6 @@ itemsHtml +
 /**
  * GAS 에디터에서 직접 실행 — 모든 시트 탭 초기화
  */
-/**
- * GAS 에디터에서 직접 실행 — ntfy 푸시 테스트
- * 이 함수를 실행하면 권한 승인 팝업이 뜹니다. 반드시 허용하세요.
- * 허용 후 재배포하면 웹 앱에서도 ntfy가 동작합니다.
- */
-function testOneSignalPush() {
-  Logger.log('=== OneSignal 푸시 테스트 시작 ===');
-  sendNewRequestNotification('테스트고객', '010-0000-0000', '경량랙', 'OneSignal 테스트');
-  Logger.log('=== OneSignal 푸시 테스트 완료 ===');
-}
-
 function initAllSheets() {
   ['단가표', '견적내역', '견적요청', '설정', '포트폴리오'].forEach(name => {
     getSheet(name);

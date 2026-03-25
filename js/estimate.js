@@ -7,9 +7,20 @@
 
 const Estimate = (() => {
 
+  let _brandingCache = null;
+  let _brandingCacheTs = 0;
+  const BRANDING_CACHE_TTL = 60000; // 1 minute
+
   function getBranding() {
-    try { return JSON.parse(localStorage.getItem('yr_branding')) || {}; }
-    catch { return {}; }
+    const now = Date.now();
+    if (_brandingCache && (now - _brandingCacheTs < BRANDING_CACHE_TTL)) return _brandingCache;
+    try {
+      _brandingCache = JSON.parse(localStorage.getItem('yr_branding')) || {};
+    } catch {
+      _brandingCache = {};
+    }
+    _brandingCacheTs = now;
+    return _brandingCache;
   }
 
   // ---------- 공통 유틸 ----------
@@ -521,6 +532,24 @@ const Estimate = (() => {
       </div>`;
   }
 
+  // ========== 공유 URL 헬퍼 ==========
+  function _buildFallbackUrl(estimateId, docType) {
+    const docParam = docType === 'transaction' ? '&doc=transaction' : '';
+    return `${location.origin}/view.html?id=${estimateId}${docParam}`;
+  }
+
+  async function _buildShareUrl(data, docType, options) {
+    if (!data.estimateId) return window.location.href;
+    try {
+      const hideMargin = !!(options && options.hideMargin);
+      const tokenRes = await API.createShareToken(data.estimateId, hideMargin, docType || 'formal');
+      if (tokenRes && tokenRes.token) {
+        return `${location.origin}/view.html?token=${tokenRes.token}`;
+      }
+    } catch {}
+    return _buildFallbackUrl(data.estimateId, docType);
+  }
+
   // ========== 공유 ==========
   async function share(data, docType, options) {
     const brand = getBranding();
@@ -538,26 +567,8 @@ const Estimate = (() => {
         : `${items[0]?.name || '견적'}`;
 
     const text = `${itemSummary} — ${fmtW(total)} (VAT포함)`;
-    const siteOrigin = location.origin;
 
-    // 토큰 기반 공유 URL 생성
-    let url = window.location.href;
-    if (data.estimateId) {
-      try {
-        const hideMargin = !!(options && options.hideMargin);
-        const tokenRes = await API.createShareToken(data.estimateId, hideMargin, docType || 'formal');
-        if (tokenRes && tokenRes.token) {
-          url = `${siteOrigin}/view.html?token=${tokenRes.token}`;
-        } else {
-          // 토큰 발급 실패 시 기존 방식 폴백
-          const docParam = docType === 'transaction' ? '&doc=transaction' : '';
-          url = `${siteOrigin}/view.html?id=${data.estimateId}${docParam}`;
-        }
-      } catch {
-        const docParam = docType === 'transaction' ? '&doc=transaction' : '';
-        url = `${siteOrigin}/view.html?id=${data.estimateId}${docParam}`;
-      }
-    }
+    const url = await _buildShareUrl(data, docType, options);
 
     if (navigator.share) {
       try {
@@ -610,13 +621,23 @@ const Estimate = (() => {
 
       await new Promise(r => setTimeout(r, 150));
 
-      const canvas = await html2canvas(a4Wrapper, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        useCORS: true,
-        width: A4_W,
-        windowWidth: A4_W,
-      });
+      // html2canvas with retry (up to 2 attempts)
+      let canvas;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          canvas = await html2canvas(a4Wrapper, {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            width: A4_W,
+            windowWidth: A4_W,
+          });
+          break; // success
+        } catch (canvasErr) {
+          if (attempt === 1) throw canvasErr;
+          await new Promise(r => setTimeout(r, 300)); // wait before retry
+        }
+      }
 
       document.body.removeChild(a4Wrapper);
 
