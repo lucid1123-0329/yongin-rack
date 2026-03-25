@@ -122,7 +122,7 @@ const Estimate = (() => {
     tdR: `border:1px solid #333;padding:7px 8px;text-align:right;${V}`,
     thHeader: `border:1px solid #333;padding:6px 8px;background:#e8e8e8;font-weight:bold;text-align:center;font-size:13px;${V}`,
     infoTd: `border:1px solid #333;padding:6px 8px;font-size:12px;${V}`,
-    infoTh: `border:1px solid #333;padding:6px 8px;background:#f0f0f0;font-weight:bold;font-size:11px;text-align:center;width:60px;${V}`,
+    infoTh: `border:1px solid #333;padding:6px 8px;background:#f0f0f0;font-weight:bold;font-size:11px;text-align:center;width:70px;white-space:nowrap;${V}`,
   };
 
   // ========== 정식 견적서 ==========
