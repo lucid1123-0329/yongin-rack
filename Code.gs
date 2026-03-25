@@ -469,13 +469,15 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
   try {
     var ntfyHeaders = {};
     var settingsForNtfy = getSheet('설정').getDataRange().getValues();
+    var ntfyToken = '';
     for (var j = 1; j < settingsForNtfy.length; j++) {
       if (settingsForNtfy[j][0] === 'ntfyToken' && settingsForNtfy[j][1]) {
-        ntfyHeaders['Authorization'] = 'Bearer ' + settingsForNtfy[j][1];
+        ntfyToken = String(settingsForNtfy[j][1]).trim();
+        ntfyHeaders['Authorization'] = 'Bearer ' + ntfyToken;
         break;
       }
     }
-    UrlFetchApp.fetch('https://ntfy.sh', {
+    var ntfyResp = UrlFetchApp.fetch('https://ntfy.sh', {
       method: 'post',
       contentType: 'application/json; charset=utf-8',
       headers: ntfyHeaders,
@@ -488,7 +490,10 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
       }),
       muteHttpExceptions: true
     });
-  } catch (e) {}
+    Logger.log('ntfy response: ' + ntfyResp.getResponseCode() + ' / ' + ntfyResp.getContentText().substring(0, 200));
+  } catch (e) {
+    Logger.log('ntfy error: ' + e.message);
+  }
 
   // 2) 이메일 알림
   try {
@@ -497,7 +502,7 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
     var adminEmail = '';
     for (var i = 1; i < settingsData.length; i++) {
       if (settingsData[i][0] === 'adminEmail') {
-        adminEmail = settingsData[i][1];
+        adminEmail = String(settingsData[i][1]).trim();
         break;
       }
     }
@@ -507,8 +512,13 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
         subject: '[용인 랙] 새 견적 요청 - ' + (name || '고객'),
         body: message + '\n\n---\n확인: https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID
       });
+      Logger.log('email sent to: ' + adminEmail);
+    } else {
+      Logger.log('email skipped: no adminEmail');
     }
-  } catch (e) {}
+  } catch (e) {
+    Logger.log('email error: ' + e.message);
+  }
 }
 
 function getRequests() {
