@@ -4,8 +4,9 @@
  */
 
 const API = (() => {
-  // GAS 웹 앱 URL — 배포 후 실제 URL로 교체
-  const BASE_URL = localStorage.getItem('yr_gas_url') || '';
+  // GAS 웹 앱 URL
+  const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbwyNb3no3gaqH6nl7LWgyFme_BKsaBqMEa1MUdYNpq8ZkqOJQHHTWchsZ_HlfCe_rjN/exec';
+  const BASE_URL = localStorage.getItem('yr_gas_url') || DEFAULT_URL;
   const API_KEY = 'yr-api-key-2026'; // admin 요청 인증용
 
   async function request(method, params = {}, options = {}) {
