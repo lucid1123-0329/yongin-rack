@@ -9,21 +9,185 @@
   <meta property="og:image" content="assets/og-image.jpg">
   <meta property="og:type" content="website">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { primary: '#1e3a5f', accent: '#f97316' } } }
+    };
+  </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
   <style>body{font-family:'Pretendard',sans-serif}</style>
 </head>
-<body class="bg-[#f7fafc] min-h-screen flex items-center justify-center">
-  <div class="text-center px-6">
-    <div class="animate-spin w-8 h-8 border-4 border-[#1e3a5f] border-t-transparent rounded-full mx-auto mb-4"></div>
-    <p class="text-sm text-gray-500">견적서를 불러오는 중...</p>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- 로딩 -->
+  <div id="loading" class="min-h-screen flex items-center justify-center">
+    <div class="text-center px-6">
+      <div class="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+      <p class="text-sm text-gray-500">견적서를 불러오는 중...</p>
+    </div>
   </div>
+
+  <!-- 견적서 -->
+  <div id="estimate-page" class="hidden py-6">
+    <div class="max-w-md mx-4 sm:mx-auto">
+      <div id="estimate-card" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <!-- 헤더 -->
+        <div class="bg-primary text-white px-5 py-4 text-center">
+          <h1 class="text-xl font-extrabold" id="v-company">용인 랙</h1>
+          <p class="text-xs opacity-80 mt-1">전문 랙 설치 시공</p>
+        </div>
+
+        <div class="p-5">
+          <!-- 견적 정보 -->
+          <div class="flex justify-between text-xs text-gray-500 mb-4">
+            <span id="v-date"></span>
+            <span id="v-id"></span>
+          </div>
+
+          <!-- 고객 정보 -->
+          <div id="v-customer" class="hidden bg-gray-50 rounded-xl p-3 mb-4 text-sm">
+            <p class="font-bold text-gray-800" id="v-name"></p>
+            <p class="text-gray-500 mt-1 hidden" id="v-address"></p>
+          </div>
+
+          <!-- 품목 내역 -->
+          <div class="border-t border-gray-100 pt-3">
+            <p class="text-xs font-bold text-gray-500 mb-2">품목 내역</p>
+            <div id="v-items"></div>
+          </div>
+
+          <!-- 소계 -->
+          <div class="border-t border-gray-200 pt-2 mt-2 text-sm">
+            <div class="flex justify-between py-1">
+              <span class="text-gray-500">제품 소계</span>
+              <span class="text-gray-700" id="v-subtotal"></span>
+            </div>
+            <div class="flex justify-between py-1">
+              <span class="text-gray-500">시공비 합계</span>
+              <span class="text-gray-700" id="v-install"></span>
+            </div>
+          </div>
+
+          <!-- 총액 -->
+          <div class="flex justify-between pt-3 mt-2 border-t-2 border-primary">
+            <span class="text-base font-extrabold text-primary">총 견적액</span>
+            <span class="text-xl font-extrabold text-accent" id="v-total"></span>
+          </div>
+          <p class="text-xs text-gray-400 mt-2 text-right">* 부가세 별도</p>
+        </div>
+
+        <!-- 푸터 -->
+        <div class="bg-gray-50 px-5 py-3 text-center text-xs text-gray-400 border-t border-gray-100" id="v-footer">
+          용인 랙
+        </div>
+      </div>
+
+      <!-- 견적 요청 CTA -->
+      <div class="mt-6 bg-white rounded-2xl border border-gray-100 p-5 text-center">
+        <h3 class="text-base font-bold text-gray-800 mb-2">랙 설치가 필요하신가요?</h3>
+        <p class="text-sm text-gray-500 mb-4">무료 견적을 요청하세요.</p>
+        <a href="request.html" class="inline-block bg-accent text-white px-6 py-3 rounded-xl font-bold text-sm active:scale-[0.98] transition-transform">
+          견적 요청하기
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 에러 -->
+  <div id="error-page" class="hidden min-h-screen flex items-center justify-center">
+    <div class="text-center px-6">
+      <div class="text-5xl mb-4">📋</div>
+      <p class="text-lg font-bold text-gray-700 mb-2">견적서를 찾을 수 없습니다</p>
+      <p class="text-sm text-gray-500 mb-6">링크가 올바른지 확인해주세요.</p>
+      <a href="request.html" class="inline-block bg-primary text-white px-6 py-3 rounded-xl font-bold text-sm">
+        견적 요청하기
+      </a>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
   <script>
-    const id = new URLSearchParams(location.search).get('id');
-    if (id) {
-      const gasUrl = 'https://script.google.com/macros/s/AKfycbwyNb3no3gaqH6nl7LWgyFme_BKsaBqMEa1MUdYNpq8ZkqOJQHHTWchsZ_HlfCe_rjN/exec';
-      location.replace(gasUrl + '?action=viewEstimate&id=' + encodeURIComponent(id));
-    } else {
-      document.body.innerHTML = '<div class="text-center px-6 py-12"><p class="text-lg font-bold text-gray-700">견적서를 찾을 수 없습니다</p><a href="request.html" class="inline-block mt-4 bg-[#1e3a5f] text-white px-6 py-3 rounded-xl font-bold text-sm">견적 요청하기</a></div>';
+    const fmt = (n) => Number(n).toLocaleString('ko-KR');
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const id = new URLSearchParams(location.search).get('id');
+      if (!id) { showError(); return; }
+
+      try {
+        const data = await API.getEstimate(id);
+        if (!data || data.error) { showError(); return; }
+        render(data);
+      } catch {
+        showError();
+      }
+    });
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('estimate-page').classList.remove('hidden');
+
+      // 날짜
+      document.getElementById('v-date').textContent = '견적일: ' + (data.date || '');
+      document.getElementById('v-id').textContent = data.estimateId || '';
+
+      // 고객 정보
+      if (data.customerName) {
+        const customerEl = document.getElementById('v-customer');
+        customerEl.classList.remove('hidden');
+        const nameText = data.customerName + (data.company ? ` (${data.company})` : '');
+        document.getElementById('v-name').textContent = nameText;
+        if (data.address) {
+          const addrEl = document.getElementById('v-address');
+          addrEl.textContent = data.address;
+          addrEl.classList.remove('hidden');
+        }
+      }
+
+      // 품목
+      let items = data.items || [];
+      if (typeof items === 'string') { try { items = JSON.parse(items); } catch { items = []; } }
+
+      let totalSubtotal = 0;
+      let totalInstall = 0;
+
+      document.getElementById('v-items').innerHTML = items.map((item, i) => {
+        const qty = Number(item.quantity) || 0;
+        const uPrice = Number(item.unitPrice) || 0;
+        const iFee = Number(item.installFee) || 0;
+        const sub = uPrice * qty;
+        const inst = iFee * qty;
+        totalSubtotal += sub;
+        totalInstall += inst;
+        return `
+          <div class="${i > 0 ? 'border-t border-dashed border-gray-200 pt-2 mt-2' : ''}">
+            <div class="flex justify-between text-sm">
+              <span class="font-semibold text-gray-800">${item.type || ''} ${item.spec || ''} ${item.tier || ''}단</span>
+              <span class="text-gray-600">${qty}대</span>
+            </div>
+            <div class="flex justify-between text-xs text-gray-500 mt-1">
+              <span class="pl-2">@${fmt(uPrice)}</span>
+              <span>${fmt(sub)}원</span>
+            </div>
+            ${iFee > 0 ? `
+            <div class="flex justify-between text-xs text-gray-500">
+              <span class="pl-2">시공비 @${fmt(iFee)}</span>
+              <span>${fmt(inst)}원</span>
+            </div>` : ''}
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('v-subtotal').textContent = fmt(totalSubtotal) + '원';
+      document.getElementById('v-install').textContent = fmt(totalInstall) + '원';
+      document.getElementById('v-total').textContent = fmt(Number(data.total) || (totalSubtotal + totalInstall)) + '원';
+
+      document.title = `[용인 랙] 견적서 - ${data.estimateId}`;
+    }
+
+    function showError() {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error-page').classList.remove('hidden');
     }
   </script>
 </body>
