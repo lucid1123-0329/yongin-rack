@@ -746,9 +746,10 @@ function testNtfyPush() {
       message: 'GAS에서 보낸 테스트 알림입니다!',
       tags: ['white_check_mark'],
       priority: 4
-    })
+    }),
+    muteHttpExceptions: true
   });
-  Logger.log('ntfy 응답: ' + response.getResponseCode());
+  Logger.log('ntfy 응답: ' + response.getResponseCode() + ' ' + response.getContentText());
 }
 
 function initAllSheets() {
