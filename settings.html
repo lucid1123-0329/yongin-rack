@@ -133,6 +133,11 @@
             <input type="text" id="ob-tagline" placeholder="경량랙~파렛트랙 전문 시공"
               class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
           </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">이메일</label>
+            <input type="email" id="ob-email" placeholder="example@naver.com"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
         </div>
         <button onclick="saveBrandingAndNext()"
           class="w-full max-w-sm mx-auto h-14 bg-primary text-white rounded-2xl font-bold text-lg active:scale-[0.98] transition-transform mt-8">
@@ -218,6 +223,31 @@
           <div>
             <label class="block text-xs font-semibold text-gray-500 mb-1">슬로건</label>
             <input type="text" id="s-tagline"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">이메일</label>
+            <input type="email" id="s-email"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">사업장 주소</label>
+            <input type="text" id="s-address"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">대표자명</label>
+            <input type="text" id="s-representative"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">업태 / 종목</label>
+            <input type="text" id="s-bizType" placeholder="도매 및 소매 / 조립식 진열대"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">계좌정보</label>
+            <input type="text" id="s-bankAccount" placeholder="국민은행 218101-04-044846"
               class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
           </div>
           <button onclick="saveSettingsBranding()"
@@ -320,6 +350,11 @@
         document.getElementById('s-phone').value = b.phone || '';
         document.getElementById('s-biz-number').value = b.bizNumber || '';
         document.getElementById('s-tagline').value = b.tagline || '';
+        document.getElementById('s-email').value = b.adminEmail || '';
+        document.getElementById('s-address').value = b.address || '';
+        document.getElementById('s-representative').value = b.representative || '';
+        document.getElementById('s-bizType').value = b.bizType || '';
+        document.getElementById('s-bankAccount').value = b.bankAccount || '';
       } catch {}
     }
 
@@ -406,6 +441,7 @@
         phone: document.getElementById('ob-phone').value.trim(),
         bizNumber: document.getElementById('ob-biz-number').value.trim(),
         tagline: document.getElementById('ob-tagline').value.trim(),
+        adminEmail: document.getElementById('ob-email').value.trim(),
       };
       localStorage.setItem('yr_branding', JSON.stringify(branding));
       // 시트에도 저장
@@ -429,6 +465,11 @@
         phone: document.getElementById('s-phone').value.trim(),
         bizNumber: document.getElementById('s-biz-number').value.trim(),
         tagline: document.getElementById('s-tagline').value.trim(),
+        adminEmail: document.getElementById('s-email').value.trim(),
+        address: document.getElementById('s-address').value.trim(),
+        representative: document.getElementById('s-representative').value.trim(),
+        bizType: document.getElementById('s-bizType').value.trim(),
+        bankAccount: document.getElementById('s-bankAccount').value.trim(),
       };
       localStorage.setItem('yr_branding', JSON.stringify(branding));
       try {

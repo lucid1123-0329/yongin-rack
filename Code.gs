@@ -395,11 +395,21 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
   if (rackType) message += '\n랙종류: ' + rackType;
   if (memo) message += '\n메모: ' + memo;
 
-  // 1) ntfy.sh 푸시 알림 (JSON 방식 — 한글 제목 지원)
+  // 1) ntfy.sh 푸시 알림
+  // 토큰이 설정 시트에 있으면 토큰 인증, 없으면 익명
   try {
+    var ntfyHeaders = {};
+    var settingsForNtfy = getSheet('설정').getDataRange().getValues();
+    for (var j = 1; j < settingsForNtfy.length; j++) {
+      if (settingsForNtfy[j][0] === 'ntfyToken' && settingsForNtfy[j][1]) {
+        ntfyHeaders['Authorization'] = 'Bearer ' + settingsForNtfy[j][1];
+        break;
+      }
+    }
     UrlFetchApp.fetch('https://ntfy.sh', {
       method: 'post',
       contentType: 'application/json; charset=utf-8',
+      headers: ntfyHeaders,
       payload: JSON.stringify({
         topic: 'yonginrack-noti',
         title: '새 견적 요청이 도착했습니다',

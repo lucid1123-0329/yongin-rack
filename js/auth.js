@@ -72,6 +72,11 @@ const Auth = (() => {
       phone: settings.phone || '',
       bizNumber: settings.bizNumber || '',
       tagline: settings.tagline || '',
+      adminEmail: settings.adminEmail || '',
+      address: settings.address || '',
+      representative: settings.representative || '',
+      bizType: settings.bizType || '',
+      bankAccount: settings.bankAccount || '',
     };
     // 값이 하나라도 있으면 저장
     if (branding.company || branding.phone) {
