@@ -72,6 +72,21 @@
             placeholder="설치 위치, 특수 요구사항 등"></textarea>
         </div>
 
+        <!-- 사업자 정보 (선택) -->
+        <details class="mb-4">
+          <summary class="text-sm font-bold text-gray-600 cursor-pointer">사업자 정보 (선택)</summary>
+          <div class="mt-2 space-y-2">
+            <input id="req-biz-number" type="text" placeholder="사업자등록번호"
+              class="w-full px-3 py-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+            <div class="grid grid-cols-2 gap-2">
+              <input id="req-biz-type" type="text" placeholder="업태"
+                class="w-full px-3 py-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+              <input id="req-biz-item" type="text" placeholder="종목"
+                class="w-full px-3 py-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+            </div>
+          </div>
+        </details>
+
         <!-- 허니팟 (스팸 방지) -->
         <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off">
 
@@ -139,6 +154,9 @@
           rackType: document.getElementById('req-rack').value,
           quantity: document.getElementById('req-qty').value,
           memo: document.getElementById('req-memo').value,
+          bizNumber: (document.getElementById('req-biz-number')?.value || '').trim(),
+          bizType: (document.getElementById('req-biz-type')?.value || '').trim(),
+          bizItem: (document.getElementById('req-biz-item')?.value || '').trim(),
         });
 
         if (result.error) {

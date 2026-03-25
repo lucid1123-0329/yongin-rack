@@ -225,7 +225,10 @@ function saveEstimate(body) {
     '상담완료',
     body.clientId || '',
     supplyTotal,
-    vat
+    vat,
+    body.bizNumber || '',
+    body.bizType || '',
+    body.bizItem || ''
   ]);
 
   return { result: 'success', estimateId: estimateId, row: sheet.getLastRow() };
@@ -265,6 +268,9 @@ function getEstimate(estimateId) {
         status: data[i][8],
         supplyTotal: Number(data[i][10]) || Number(data[i][7]) || 0,
         vat: Number(data[i][11]) || 0,
+        bizNumber: data[i][12] || '',
+        bizType: data[i][13] || '',
+        bizItem: data[i][14] || '',
       };
     }
   }
@@ -447,7 +453,8 @@ function submitRequest(body) {
   sheet.appendRow([
     now, body.name || '', body.phone || '',
     body.rackType || '', Number(body.quantity) || 0,
-    body.memo || '', '미처리'
+    body.memo || '', '미처리',
+    body.bizNumber || '', body.bizType || '', body.bizItem || ''
   ]);
 
   return { result: 'success' };
@@ -538,6 +545,7 @@ function getRequests() {
       date: data[i][0], name: data[i][1], phone: String(data[i][2]),
       rackType: data[i][3], quantity: Number(data[i][4]),
       memo: data[i][5], status: data[i][6],
+      bizNumber: data[i][7] || '', bizType: data[i][8] || '', bizItem: data[i][9] || '',
     });
   }
   return { requests };

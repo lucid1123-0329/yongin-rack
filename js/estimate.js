@@ -346,7 +346,7 @@ const Estimate = (() => {
               <tr><td style="${S.thHeader}" colspan="4">공 급 받 는 자</td></tr>
               <tr>
                 <td style="${S.infoTh}">등록번호</td>
-                <td style="${S.infoTd}" colspan="3"></td>
+                <td style="${S.infoTd}" colspan="3">${data.bizNumber || ''}</td>
               </tr>
               <tr>
                 <td style="${S.infoTh}">상 호</td>
@@ -360,9 +360,9 @@ const Estimate = (() => {
               </tr>
               <tr>
                 <td style="${S.infoTh}">업 태</td>
-                <td style="${S.infoTd}"></td>
+                <td style="${S.infoTd}">${data.bizType || ''}</td>
                 <td style="${S.infoTh}">종 목</td>
-                <td style="${S.infoTd}"></td>
+                <td style="${S.infoTd}">${data.bizItem || ''}</td>
               </tr>
             </table>
           </td>

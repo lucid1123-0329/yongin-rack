@@ -462,6 +462,9 @@ const App = (() => {
       company: document.getElementById('cust-company')?.value || '',
       phone: document.getElementById('cust-phone')?.value || '',
       address: document.getElementById('cust-address')?.value || '',
+      bizNumber: document.getElementById('cust-biz-number')?.value || '',
+      bizType: document.getElementById('cust-biz-type')?.value || '',
+      bizItem: document.getElementById('cust-biz-item')?.value || '',
     };
   }
 
