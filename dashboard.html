@@ -245,6 +245,8 @@
           <div class="flex gap-2 mb-3">
             <a href="estimate-preview.html?id=${e.estimateId}"
               class="flex-1 h-9 bg-primary text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1 active:scale-[0.98] transition-transform">미리보기</a>
+            <a href="index.html?from=edit&editId=${e.estimateId}"
+              class="flex-1 h-9 bg-gray-600 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1 active:scale-[0.98] transition-transform">수정</a>
             <button onclick="shareEstimate('${e.estimateId}')"
               class="flex-1 h-9 bg-accent text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1 active:scale-[0.98] transition-transform">공유하기</button>
           </div>

@@ -107,6 +107,9 @@ function doPost(e) {
         case 'createShareToken':
           result = createShareToken(body);
           break;
+        case 'linkEstimateToRequest':
+          result = linkEstimateToRequest(body);
+          break;
         default:
           result = { error: 'Unknown action' };
       }
@@ -548,6 +551,7 @@ function getRequests() {
       memo: data[i][5], status: data[i][6],
       bizNumber: data[i][7] || '', bizType: data[i][8] || '', bizItem: data[i][9] || '',
       company: data[i][10] || '', address: data[i][11] || '',
+      estimateId: data[i][12] || '',
     });
   }
   return { requests };
@@ -662,6 +666,14 @@ function updateRequestStatus(rowIndex, newStatus) {
   if (row < 2) return { error: 'Invalid row' };
   var sheet = getSheet('견적요청');
   sheet.getRange(row, 7).setValue(newStatus);
+  return { result: 'success' };
+}
+
+function linkEstimateToRequest(body) {
+  var row = Number(body.rowIndex);
+  if (row < 2 || !body.estimateId) return { error: 'Invalid params' };
+  var sheet = getSheet('견적요청');
+  sheet.getRange(row, 13).setValue(body.estimateId); // 13번째 컬럼에 estimateId 저장
   return { result: 'success' };
 }
 

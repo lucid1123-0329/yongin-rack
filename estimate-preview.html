@@ -217,11 +217,13 @@
       const opts = hideMargin ? { hideMargin: true } : undefined;
       await Estimate.share(estimateData, currentDoc, opts);
 
-      // 요청에서 온 견적이면 → 견적발송 상태로 자동 전환
-      const reqRow = new URLSearchParams(location.search).get('requestRowIndex');
-      if (reqRow) {
+      // 요청에서 온 견적이면 → 견적발송 상태 + estimateId 연결
+      const params = new URLSearchParams(location.search);
+      const reqRow = params.get('requestRowIndex');
+      if (reqRow && estimateData && estimateData.estimateId) {
         try {
           await API.updateRequestStatus(Number(reqRow), '견적발송');
+          await API.linkEstimateToRequest(Number(reqRow), estimateData.estimateId);
           UI.toast('요청 상태가 견적발송으로 변경되었습니다', 'info', 3000);
         } catch {}
       }

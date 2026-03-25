@@ -118,6 +118,10 @@ const API = (() => {
     return request('POST', { action: 'deleteRequest', rowIndex });
   }
 
+  async function linkEstimateToRequest(rowIndex, estimateId) {
+    return request('POST', { action: 'linkEstimateToRequest', rowIndex, estimateId });
+  }
+
   // --- 포트폴리오 ---
   async function uploadPhoto(data) {
     return request('POST', { action: 'uploadPhoto', ...data });
@@ -147,7 +151,7 @@ const API = (() => {
   return {
     getPrices, addPrice, updatePrice, deletePrice,
     saveEstimate, getEstimate, createShareToken, getEstimateByToken, getEstimates, getDashboard, updateStatus,
-    submitRequest, getRequests, updateRequestStatus, deleteRequest,
+    submitRequest, getRequests, updateRequestStatus, deleteRequest, linkEstimateToRequest,
     uploadPhoto, getPortfolio, deletePhoto, getBlogPosts,
     getSettings, saveSettings,
     get baseUrl() { return BASE_URL; },

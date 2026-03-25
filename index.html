@@ -257,9 +257,40 @@
       prefillFromUrl();
     }
 
-    function prefillFromUrl() {
+    async function prefillFromUrl() {
       const p = new URLSearchParams(location.search);
-      if (p.get('from') !== 'request') return;
+      const from = p.get('from');
+
+      // 수정 모드: 기존 견적 데이터 로드
+      if (from === 'edit' && p.get('editId')) {
+        try {
+          const data = await API.getEstimate(p.get('editId'));
+          if (data && !data.error) {
+            // 고객 정보 채우기
+            if (data.customerName) document.getElementById('cust-name').value = data.customerName;
+            if (data.company) document.getElementById('cust-company').value = data.company;
+            if (data.phone) document.getElementById('cust-phone').value = data.phone;
+            if (data.address) document.getElementById('cust-address').value = data.address;
+            if (data.bizNumber) document.getElementById('cust-biz-number').value = data.bizNumber;
+            if (data.bizType) document.getElementById('cust-biz-type').value = data.bizType;
+            if (data.bizItem) document.getElementById('cust-biz-item').value = data.bizItem;
+            document.getElementById('customer-form').classList.remove('hidden');
+            // 품목 채우기
+            const items = typeof data.items === 'string' ? JSON.parse(data.items) : (data.items || []);
+            if (items.length > 0) {
+              App.items = items;
+              App.renderItems();
+              App.updateTotal();
+            }
+            UI.toast('기존 견적을 불러왔습니다. 수정 후 저장하세요.', 'info', 3000);
+          }
+        } catch {}
+        history.replaceState(null, '', location.pathname);
+        return;
+      }
+
+      // 요청→견적 프리필
+      if (from !== 'request') return;
       const fields = { name:'cust-name', company:'cust-company', phone:'cust-phone', address:'cust-address',
         bizNumber:'cust-biz-number', bizType:'cust-biz-type', bizItem:'cust-biz-item' };
       let filled = false;
@@ -285,6 +316,10 @@
         if (result && result.estimateId) {
           UI.toast('견적이 저장되었습니다', 'success');
           const reqRow = sessionStorage.getItem('yr_request_row');
+          // 요청에서 온 견적이면 estimateId 연결
+          if (reqRow) {
+            try { await API.linkEstimateToRequest(Number(reqRow), result.estimateId); } catch {}
+          }
           const reqParam = reqRow ? `&requestRowIndex=${reqRow}` : '';
           sessionStorage.removeItem('yr_request_row');
           window.location.href = `estimate-preview.html?id=${result.estimateId}${reqParam}`;
