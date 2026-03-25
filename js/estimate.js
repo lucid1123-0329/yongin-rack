@@ -114,16 +114,18 @@ const Estimate = (() => {
 
   // 테이블 공통 스타일 (인라인 — html2canvas 호환)
   const V = 'vertical-align:middle;';
-  // padding: 상 우 하 좌 — 상단을 1px 줄여 시각적 수직 중앙 보정
+  // height 고정 + line-height=height로 텍스트 강제 수직 중앙
+  const cellH = 'height:32px;line-height:32px;';
+  const cellHsm = 'height:28px;line-height:28px;';
   const S = {
-    table: 'width:100%;border-collapse:collapse;font-size:12px;line-height:1.3;',
-    th: `border:1px solid #333;padding:5px 8px 6px;background:#f5f5f5;font-weight:bold;text-align:center;font-size:11px;${V}`,
-    td: `border:1px solid #333;padding:5px 8px 6px;text-align:center;${V}`,
-    tdL: `border:1px solid #333;padding:5px 8px 6px;text-align:left;${V}`,
-    tdR: `border:1px solid #333;padding:5px 8px 6px;text-align:right;${V}`,
-    thHeader: `border:1px solid #333;padding:5px 8px 6px;background:#e8e8e8;font-weight:bold;text-align:center;font-size:13px;${V}`,
-    infoTd: `border:1px solid #333;padding:5px 8px 6px;font-size:12px;${V}`,
-    infoTh: `border:1px solid #333;padding:5px 8px 6px;background:#f0f0f0;font-weight:bold;font-size:11px;text-align:center;width:70px;white-space:nowrap;${V}`,
+    table: 'width:100%;border-collapse:collapse;font-size:12px;',
+    th: `border:1px solid #333;padding:0 8px;background:#f5f5f5;font-weight:bold;text-align:center;font-size:11px;${V}${cellH}`,
+    td: `border:1px solid #333;padding:0 8px;text-align:center;${V}${cellH}`,
+    tdL: `border:1px solid #333;padding:0 8px;text-align:left;${V}${cellH}`,
+    tdR: `border:1px solid #333;padding:0 8px;text-align:right;${V}${cellH}`,
+    thHeader: `border:1px solid #333;padding:0 8px;background:#e8e8e8;font-weight:bold;text-align:center;font-size:13px;${V}${cellH}`,
+    infoTd: `border:1px solid #333;padding:0 8px;font-size:12px;${V}${cellHsm}`,
+    infoTh: `border:1px solid #333;padding:0 8px;background:#f0f0f0;font-weight:bold;font-size:11px;text-align:center;width:70px;white-space:nowrap;${V}${cellHsm}`,
   };
 
   // ========== 정식 견적서 ==========
