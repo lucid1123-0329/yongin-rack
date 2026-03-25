@@ -142,6 +142,8 @@
 
         // 견적 작성 URL 생성
         const estimateParams = new URLSearchParams({ from: 'request', name: r.name || '', phone: phone, requestRowIndex: r.rowIndex });
+        if (r.company) estimateParams.set('company', r.company);
+        if (r.address) estimateParams.set('address', r.address);
         if (r.bizNumber) estimateParams.set('bizNumber', r.bizNumber);
         if (r.bizType) estimateParams.set('bizType', r.bizType);
         if (r.bizItem) estimateParams.set('bizItem', r.bizItem);
@@ -156,6 +158,8 @@
             <span class="text-xs text-gray-400">${dateStr}</span>
           </div>
           <div class="text-sm text-gray-600 space-y-1 mb-3">
+            ${r.company ? `<p class="text-gray-500">${r.company}</p>` : ''}
+            ${r.address ? `<p class="text-gray-400 text-xs">${r.address}</p>` : ''}
             <p class="text-gray-500">${r.rackType || '-'} · ${r.quantity || 0}대</p>
             ${bizInfo ? `<p class="text-gray-400 text-xs">${bizInfo}</p>` : ''}
             ${r.memo ? `<p class="text-gray-400 text-xs">${r.memo}</p>` : ''}

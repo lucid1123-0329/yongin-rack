@@ -454,7 +454,8 @@ function submitRequest(body) {
     now, body.name || '', body.phone || '',
     body.rackType || '', Number(body.quantity) || 0,
     body.memo || '', '미처리',
-    body.bizNumber || '', body.bizType || '', body.bizItem || ''
+    body.bizNumber || '', body.bizType || '', body.bizItem || '',
+    body.company || '', body.address || ''
   ]);
 
   return { result: 'success' };
@@ -546,6 +547,7 @@ function getRequests() {
       rackType: data[i][3], quantity: Number(data[i][4]),
       memo: data[i][5], status: data[i][6],
       bizNumber: data[i][7] || '', bizType: data[i][8] || '', bizItem: data[i][9] || '',
+      company: data[i][10] || '', address: data[i][11] || '',
     });
   }
   return { requests };

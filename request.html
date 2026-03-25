@@ -46,6 +46,18 @@
             placeholder="010-0000-0000">
         </div>
         <div>
+          <label for="req-company" class="block text-sm font-semibold text-gray-600 mb-1">회사명</label>
+          <input type="text" id="req-company"
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none"
+            placeholder="우리물류 (선택사항)">
+        </div>
+        <div>
+          <label for="req-address" class="block text-sm font-semibold text-gray-600 mb-1">현장 주소</label>
+          <input type="text" id="req-address"
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none"
+            placeholder="용인시 처인구... (선택사항)">
+        </div>
+        <div>
           <label for="req-rack" class="block text-sm font-semibold text-gray-600 mb-1">필요한 랙 종류</label>
           <select id="req-rack"
             class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base bg-white focus:border-primary focus:outline-none">
@@ -151,6 +163,8 @@
         const result = await API.submitRequest({
           name,
           phone,
+          company: (document.getElementById('req-company')?.value || '').trim(),
+          address: (document.getElementById('req-address')?.value || '').trim(),
           rackType: document.getElementById('req-rack').value,
           quantity: document.getElementById('req-qty').value,
           memo: document.getElementById('req-memo').value,
