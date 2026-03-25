@@ -106,13 +106,16 @@
 
       const previewEl = document.getElementById('preview-area');
       const containerEl = document.getElementById('preview-container');
-      const docType = new URLSearchParams(location.search).get('doc');
+      const params = new URLSearchParams(location.search);
+      const docType = params.get('doc');
+      const hideMargin = params.get('hideMargin') === '1';
+      const opts = hideMargin ? { hideMargin: true } : undefined;
 
       if (docType === 'transaction') {
-        previewEl.innerHTML = Estimate.renderTransactionStatement(data);
+        previewEl.innerHTML = Estimate.renderTransactionStatement(data, opts);
         document.title = `[중용] 거래명세표 - ${data.estimateId}`;
       } else {
-        previewEl.innerHTML = Estimate.renderFormalQuotation(data);
+        previewEl.innerHTML = Estimate.renderFormalQuotation(data, opts);
         document.title = `[중용] 견적서 - ${data.estimateId}`;
       }
 

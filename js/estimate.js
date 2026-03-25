@@ -522,7 +522,7 @@ const Estimate = (() => {
   }
 
   // ========== 공유 ==========
-  async function share(data, docType) {
+  async function share(data, docType, options) {
     const brand = getBranding();
     const docName = docType === 'transaction' ? '거래명세표' : '견적서';
     const title = `[${brand.company || '중용'}] ${docName}`;
@@ -540,7 +540,8 @@ const Estimate = (() => {
     const text = `${itemSummary} — ${fmtW(total)} (VAT포함)`;
     const siteOrigin = location.origin;
     const docParam = docType === 'transaction' ? '&doc=transaction' : '';
-    const url = data.estimateId ? `${siteOrigin}/view.html?id=${data.estimateId}${docParam}` : window.location.href;
+    const marginParam = (options && options.hideMargin) ? '&hideMargin=1' : '';
+    const url = data.estimateId ? `${siteOrigin}/view.html?id=${data.estimateId}${docParam}${marginParam}` : window.location.href;
 
     if (navigator.share) {
       try {

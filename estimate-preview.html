@@ -212,7 +212,10 @@
     }
 
     function handleShare() {
-      if (estimateData) Estimate.share(estimateData, currentDoc);
+      if (!estimateData) return;
+      const hideMargin = document.getElementById('chk-hide-margin')?.checked || false;
+      const opts = hideMargin ? { hideMargin: true } : undefined;
+      Estimate.share(estimateData, currentDoc, opts);
     }
 
     function handleDownload() {
