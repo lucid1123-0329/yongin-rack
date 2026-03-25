@@ -129,10 +129,10 @@ const Estimate = (() => {
     td: 'border:1px solid #333;padding:0 8px;',
     tdL: 'border:1px solid #333;padding:0 8px;',
     tdR: 'border:1px solid #333;padding:0 8px;',
-    // info 섹션: padding으로 간격 확보 (flex 래퍼 없음)
-    thHeader: 'border:1px solid #333;padding:6px 8px;background:#e8e8e8;font-weight:bold;text-align:center;font-size:13px;vertical-align:middle;',
-    infoTd: 'border:1px solid #333;padding:6px 8px;font-size:12px;vertical-align:middle;',
-    infoTh: 'border:1px solid #333;padding:6px 8px;background:#f0f0f0;font-weight:bold;font-size:11px;text-align:center;width:70px;white-space:nowrap;vertical-align:middle;',
+    // info 섹션: padding 0 + flex 래퍼(w함수)로 수직 중앙 (html2canvas 호환)
+    thHeader: 'border:1px solid #333;padding:0 8px;background:#e8e8e8;font-weight:bold;text-align:center;font-size:13px;',
+    infoTd: 'border:1px solid #333;padding:0 8px;font-size:12px;',
+    infoTh: 'border:1px solid #333;padding:0 8px;background:#f0f0f0;font-weight:bold;font-size:11px;text-align:center;width:70px;white-space:nowrap;',
   };
 
   // ========== 정식 견적서 ==========
@@ -187,19 +187,19 @@ const Estimate = (() => {
             <p style="font-size:13px;margin:0 0 6px;">${dateKr}</p>
             <table style="${S.table}">
               <tr>
-                <td style="${S.tdL}" colspan="2">
+                <td style="${S.infoTd};padding:8px 10px;" colspan="2">
                   <strong style="font-size:14px;">${data.customerName || data.name || ''}</strong>
                   ${data.company ? ` (${data.company})` : ''} 귀하
                 </td>
               </tr>
-              ${data.address ? `<tr><td style="${S.tdL}" colspan="2" ><span style="font-size:10px;color:#666;">현장: ${data.address}</span></td></tr>` : ''}
+              ${data.address ? `<tr><td style="${S.infoTd};padding:8px 10px;" colspan="2"><span style="font-size:11px;color:#666;">현장: ${data.address}</span></td></tr>` : ''}
             </table>
             <p style="font-size:12px;margin:8px 0 2px;">아래와 같이 견적합니다.</p>
             <table style="${S.table}">
               <tr>
-                <td style="${S.infoTh}">합계금액</td>
-                <td style="${S.infoTd};font-size:14px;font-weight:bold;text-align:right;">
-                  ₩ ${fmt(total)}
+                <td style="${S.infoTh}">${w('합계금액', fcSm)}</td>
+                <td style="${S.infoTd};font-size:14px;font-weight:bold;">
+                  ${w('₩ '+fmt(total), 'display:flex;align-items:center;justify-content:flex-end;min-height:26px;')}
                 </td>
               </tr>
             </table>
@@ -208,30 +208,30 @@ const Estimate = (() => {
           <td style="border:none;vertical-align:top;width:50%;padding:0 0 0 8px;">
             <!-- 공급자 정보 -->
             <table style="${S.table}">
-              <tr><td style="${S.thHeader}" colspan="4">공 급 자</td></tr>
+              <tr><td style="${S.thHeader}" colspan="4">${w('공 급 자', fcSm)}</td></tr>
               <tr>
-                <td style="${S.infoTh}">등록번호</td>
-                <td style="${S.infoTd}" colspan="3">${brand.bizNumber || '135-09-53960'}</td>
+                <td style="${S.infoTh}">${w('등록번호', fcSm)}</td>
+                <td style="${S.infoTd}" colspan="3">${w(brand.bizNumber || '135-09-53960', fcSmL)}</td>
               </tr>
               <tr>
-                <td style="${S.infoTh}">상 호</td>
-                <td style="${S.infoTd}">${brand.company || '중용'}</td>
-                <td style="${S.infoTh}">성 명</td>
-                <td style="${S.infoTd}">${brand.representative || '김영준'}</td>
+                <td style="${S.infoTh}">${w('상 호', fcSm)}</td>
+                <td style="${S.infoTd}">${w(brand.company || '중용', fcSmL)}</td>
+                <td style="${S.infoTh}">${w('성 명', fcSm)}</td>
+                <td style="${S.infoTd}">${w(brand.representative || '김영준', fcSmL)}</td>
               </tr>
               <tr>
-                <td style="${S.infoTh}">주 소</td>
-                <td style="${S.infoTd}" colspan="3">${brand.address || '경기도 용인시 처인구 백옥대로 1117'}</td>
+                <td style="${S.infoTh}">${w('주 소', fcSm)}</td>
+                <td style="${S.infoTd}" colspan="3">${w(brand.address || '경기도 용인시 처인구 백옥대로 1117', fcSmL)}</td>
               </tr>
               <tr>
-                <td style="${S.infoTh}">업 태</td>
-                <td style="${S.infoTd}">${(brand.bizType || '도매 및 소매').split('/')[0] || '도매 및 소매'}</td>
-                <td style="${S.infoTh}">종 목</td>
-                <td style="${S.infoTd}">${(brand.bizType || '/조립식 진열대').split('/')[1] || '조립식 진열대'}</td>
+                <td style="${S.infoTh}">${w('업 태', fcSm)}</td>
+                <td style="${S.infoTd}">${w((brand.bizType || '도매 및 소매').split('/')[0] || '도매 및 소매', fcSmL)}</td>
+                <td style="${S.infoTh}">${w('종 목', fcSm)}</td>
+                <td style="${S.infoTd}">${w((brand.bizType || '/조립식 진열대').split('/')[1] || '조립식 진열대', fcSmL)}</td>
               </tr>
               <tr>
-                <td style="${S.infoTh}">전 화</td>
-                <td style="${S.infoTd}" colspan="3">${brand.phone || '010-3776-1230'}</td>
+                <td style="${S.infoTh}">${w('전 화', fcSm)}</td>
+                <td style="${S.infoTd}" colspan="3">${w(brand.phone || '010-3776-1230', fcSmL)}</td>
               </tr>
             </table>
           </td>
@@ -343,52 +343,52 @@ const Estimate = (() => {
           <!-- 공급받는자 -->
           <td style="border:1px solid #333;vertical-align:top;width:50%;padding:0;">
             <table style="${S.table}">
-              <tr><td style="${S.thHeader}" colspan="4">공 급 받 는 자</td></tr>
+              <tr><td style="${S.thHeader}" colspan="4">${w('공 급 받 는 자', fcSm)}</td></tr>
               <tr>
-                <td style="${S.infoTh}">등록번호</td>
-                <td style="${S.infoTd}" colspan="3"></td>
+                <td style="${S.infoTh}">${w('등록번호', fcSm)}</td>
+                <td style="${S.infoTd}" colspan="3">${w('&nbsp;', fcSmL)}</td>
               </tr>
               <tr>
-                <td style="${S.infoTh}">상 호</td>
-                <td style="${S.infoTd}">${data.company || data.customerName || data.name || ''}</td>
-                <td style="${S.infoTh}">성 명</td>
-                <td style="${S.infoTd}">${data.customerName || data.name || ''}</td>
+                <td style="${S.infoTh}">${w('상 호', fcSm)}</td>
+                <td style="${S.infoTd}">${w(data.company || data.customerName || data.name || '', fcSmL)}</td>
+                <td style="${S.infoTh}">${w('성 명', fcSm)}</td>
+                <td style="${S.infoTd}">${w(data.customerName || data.name || '', fcSmL)}</td>
               </tr>
               <tr>
-                <td style="${S.infoTh}">주 소</td>
-                <td style="${S.infoTd}" colspan="3">${data.address || ''}</td>
+                <td style="${S.infoTh}">${w('주 소', fcSm)}</td>
+                <td style="${S.infoTd}" colspan="3">${w(data.address || '', fcSmL)}</td>
               </tr>
               <tr>
-                <td style="${S.infoTh}">업 태</td>
-                <td style="${S.infoTd}"></td>
-                <td style="${S.infoTh}">종 목</td>
-                <td style="${S.infoTd}"></td>
+                <td style="${S.infoTh}">${w('업 태', fcSm)}</td>
+                <td style="${S.infoTd}">${w('&nbsp;', fcSmL)}</td>
+                <td style="${S.infoTh}">${w('종 목', fcSm)}</td>
+                <td style="${S.infoTd}">${w('&nbsp;', fcSmL)}</td>
               </tr>
             </table>
           </td>
           <!-- 공급자 -->
           <td style="border:1px solid #333;vertical-align:top;width:50%;padding:0;">
             <table style="${S.table}">
-              <tr><td style="${S.thHeader}" colspan="4">공 급 자</td></tr>
+              <tr><td style="${S.thHeader}" colspan="4">${w('공 급 자', fcSm)}</td></tr>
               <tr>
-                <td style="${S.infoTh}">등록번호</td>
-                <td style="${S.infoTd}" colspan="3">${brand.bizNumber || '135-09-53960'}</td>
+                <td style="${S.infoTh}">${w('등록번호', fcSm)}</td>
+                <td style="${S.infoTd}" colspan="3">${w(brand.bizNumber || '135-09-53960', fcSmL)}</td>
               </tr>
               <tr>
-                <td style="${S.infoTh}">상 호</td>
-                <td style="${S.infoTd}">${brand.company || '중용'}</td>
-                <td style="${S.infoTh}">성 명</td>
-                <td style="${S.infoTd}">${brand.representative || '김영준'}</td>
+                <td style="${S.infoTh}">${w('상 호', fcSm)}</td>
+                <td style="${S.infoTd}">${w(brand.company || '중용', fcSmL)}</td>
+                <td style="${S.infoTh}">${w('성 명', fcSm)}</td>
+                <td style="${S.infoTd}">${w(brand.representative || '김영준', fcSmL)}</td>
               </tr>
               <tr>
-                <td style="${S.infoTh}">주 소</td>
-                <td style="${S.infoTd}" colspan="3">${brand.address || '경기도 용인시 처인구 백옥대로 1117'}</td>
+                <td style="${S.infoTh}">${w('주 소', fcSm)}</td>
+                <td style="${S.infoTd}" colspan="3">${w(brand.address || '경기도 용인시 처인구 백옥대로 1117', fcSmL)}</td>
               </tr>
               <tr>
-                <td style="${S.infoTh}">업 태</td>
-                <td style="${S.infoTd}">${(brand.bizType || '도매 및 소매').split('/')[0] || '도매 및 소매'}</td>
-                <td style="${S.infoTh}">종 목</td>
-                <td style="${S.infoTd}">${(brand.bizType || '/조립식 진열대').split('/')[1] || '조립식 진열대'}</td>
+                <td style="${S.infoTh}">${w('업 태', fcSm)}</td>
+                <td style="${S.infoTd}">${w((brand.bizType || '도매 및 소매').split('/')[0] || '도매 및 소매', fcSmL)}</td>
+                <td style="${S.infoTh}">${w('종 목', fcSm)}</td>
+                <td style="${S.infoTd}">${w((brand.bizType || '/조립식 진열대').split('/')[1] || '조립식 진열대', fcSmL)}</td>
               </tr>
             </table>
           </td>
@@ -430,12 +430,12 @@ const Estimate = (() => {
       <!-- 입금/미수 + 인수자 -->
       <table style="${S.table}margin-top:-1px;">
         <tr>
-          <td style="${S.infoTh};width:60px;">입금액</td>
-          <td style="${S.infoTd};text-align:right;width:100px;"></td>
-          <td style="${S.infoTh};width:60px;">미수액</td>
-          <td style="${S.infoTd};text-align:right;width:100px;"></td>
-          <td style="${S.infoTh};width:60px;">인수자</td>
-          <td style="${S.infoTd};text-align:center;width:80px;">(인)</td>
+          <td style="${S.infoTh};width:60px;">${w('입금액', fcSm)}</td>
+          <td style="${S.infoTd};width:100px;">${w('&nbsp;', fcR)}</td>
+          <td style="${S.infoTh};width:60px;">${w('미수액', fcSm)}</td>
+          <td style="${S.infoTd};width:100px;">${w('&nbsp;', fcR)}</td>
+          <td style="${S.infoTh};width:60px;">${w('인수자', fcSm)}</td>
+          <td style="${S.infoTd};width:80px;">${w('(인)', fcSm)}</td>
         </tr>
       </table>
 
