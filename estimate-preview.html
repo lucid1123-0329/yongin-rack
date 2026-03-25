@@ -187,6 +187,10 @@
 
     function handleShare() {
       if (estimateData) {
+        // estimateId가 없으면 URL에서 가져오기
+        if (!estimateData.estimateId) {
+          estimateData.estimateId = new URLSearchParams(window.location.search).get('id');
+        }
         Estimate.share(estimateData);
       }
     }
