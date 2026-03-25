@@ -173,7 +173,7 @@
           document.getElementById('page-title').textContent = '거래명세표';
           break;
         case 'simple':
-          previewEl.innerHTML = Estimate.renderPreview(estimateData);
+          previewEl.innerHTML = Estimate.renderPreview(estimateData, opts);
           document.getElementById('page-title').textContent = '간편 견적서';
           break;
         default:

@@ -131,7 +131,7 @@ const Estimate = (() => {
     tdR: 'border:1px solid #333;padding:0 8px;',
     // info 섹션: padding + vertical-align:middle (html2canvas-pro에서 정상 지원)
     thHeader: 'border:1px solid #333;padding:6px 8px;background:#e8e8e8;font-weight:bold;text-align:center;font-size:13px;vertical-align:middle;',
-    infoTd: 'border:1px solid #333;padding:6px 8px;font-size:12px;vertical-align:middle;',
+    infoTd: 'border:1px solid #333;padding:6px 8px;font-size:12px;vertical-align:middle;word-break:keep-all;',
     infoTh: 'border:1px solid #333;padding:6px 8px;background:#f0f0f0;font-weight:bold;font-size:11px;text-align:center;width:70px;white-space:nowrap;vertical-align:middle;',
   };
 
@@ -448,9 +448,10 @@ const Estimate = (() => {
   }
 
   // ========== 간편 견적서 (기존) ==========
-  function renderPreview(data) {
+  function renderPreview(data, options) {
     const brand = getBranding();
-    const items = parseItems(data);
+    let items = parseItems(data);
+    if (options && options.hideMargin) items = applyMarginToUnitPrices(items);
     const { supplyTotal, vat, total } = calcTotals(items, data);
     const hasVat = Number(data.vat) > 0 || Number(data.supplyTotal) > 0;
 
