@@ -34,7 +34,7 @@
 </head>
 <body class="bg-[#f7fafc] min-h-screen pb-20">
 
-  <header class="bg-primary text-white px-4 py-4 flex items-center gap-3">
+  <header class="bg-primary text-white px-4 py-4 flex items-center gap-3 sticky top-0 z-40">
     <button onclick="history.back()" class="w-8 h-8 flex items-center justify-center rounded-lg active:bg-white/20">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
     </button>
@@ -123,6 +123,7 @@
     });
 
     async function init() {
+      UI.renderTabBar('estimate');
       const params = new URLSearchParams(window.location.search);
       const estimateId = params.get('id');
       if (!estimateId) { showError('견적 ID가 없습니다.'); return; }
