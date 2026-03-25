@@ -106,11 +106,11 @@
     <!-- 추가 항목 (운송비, 설치비, 마진, D/C) -->
     <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 p-4">
       <h3 class="text-sm font-bold text-gray-700 mb-3">추가 항목</h3>
-      <div class="flex flex-wrap gap-2 mb-3">
-        <button onclick="App.addPresetItem('운송비')" class="px-3 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 active:bg-gray-200">+ 운송비</button>
-        <button onclick="App.addPresetItem('설치비')" class="px-3 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 active:bg-gray-200">+ 설치비</button>
-        <button onclick="App.addPresetItem('마진')" class="px-3 py-1.5 rounded-full text-xs font-bold bg-blue-50 text-blue-600 active:bg-blue-100">+ 마진</button>
-        <button onclick="App.addPresetItem('D/C')" class="px-3 py-1.5 rounded-full text-xs font-bold bg-red-50 text-red-500 active:bg-red-100">+ D/C(할인)</button>
+      <div class="grid grid-cols-4 gap-2 mb-3">
+        <button onclick="App.addPresetItem('운송비')" class="py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 active:bg-gray-200">+ 운송비</button>
+        <button onclick="App.addPresetItem('설치비')" class="py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 active:bg-gray-200">+ 설치비</button>
+        <button onclick="App.addPresetItem('마진')" class="py-1.5 rounded-full text-xs font-bold bg-blue-50 text-blue-600 active:bg-blue-100">+ 마진</button>
+        <button onclick="App.addPresetItem('D/C')" class="py-1.5 rounded-full text-xs font-bold bg-red-50 text-red-500 active:bg-red-100">+ D/C</button>
       </div>
 
       <!-- 마진 % 입력 영역 (토글) -->
