@@ -561,24 +561,26 @@ const Estimate = (() => {
         UI.toast('이미지 생성 기능을 로드 중입니다', 'info'); return;
       }
 
-      // CSS transform scale 해제 후 캡쳐 (원본 크기로)
-      const wrapper = card.closest('.a4-wrapper');
-      const container = wrapper ? wrapper.closest('.a4-container') : null;
-      let origTransform = '', origHeight = '';
-      if (wrapper) {
-        origTransform = wrapper.style.transform;
-        wrapper.style.transform = 'none';
-      }
-      if (container) {
-        origHeight = container.style.height;
-        container.style.height = 'auto';
-      }
+      UI.toast('이미지 생성 중...', 'info', 2000);
 
-      const canvas = await html2canvas(card, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+      // 복제본을 화면 밖에 원본 크기(700px)로 배치하여 캡쳐
+      const clone = card.cloneNode(true);
+      clone.id = 'estimate-card-clone';
+      clone.style.cssText = 'position:fixed;left:-9999px;top:0;width:700px;transform:none;z-index:-1;';
+      document.body.appendChild(clone);
 
-      // 복원
-      if (wrapper) wrapper.style.transform = origTransform;
-      if (container) container.style.height = origHeight;
+      // 약간의 딜레이 후 렌더링 안정화
+      await new Promise(r => setTimeout(r, 100));
+
+      const canvas = await html2canvas(clone, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        width: 700,
+        windowWidth: 700,
+      });
+
+      document.body.removeChild(clone);
 
       const link = document.createElement('a');
       const prefix = docType === 'transaction' ? '거래명세표' : '견적서';
