@@ -15,6 +15,8 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     body{font-family:'Pretendard',sans-serif;padding-bottom:80px}
+    .a4-wrapper{width:700px;transform-origin:top left}
+    .a4-container{overflow:hidden}
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -29,8 +31,8 @@
 
   <!-- 견적서 영역 -->
   <div id="estimate-page" class="hidden py-4">
-    <div class="max-w-2xl mx-4 sm:mx-auto" style="overflow-x:auto;">
-      <div id="preview-area"></div>
+    <div class="max-w-2xl mx-4 sm:mx-auto a4-container" id="preview-container">
+      <div id="preview-area" class="a4-wrapper"></div>
 
       <!-- 이미지 저장 버튼 -->
       <div class="mt-4 text-center">
@@ -102,9 +104,19 @@
       document.getElementById('loading').classList.add('hidden');
       document.getElementById('estimate-page').classList.remove('hidden');
 
-      // 정식 견적서로 렌더링
-      document.getElementById('preview-area').innerHTML = Estimate.renderFormalQuotation(data);
+      const previewEl = document.getElementById('preview-area');
+      const containerEl = document.getElementById('preview-container');
+      previewEl.innerHTML = Estimate.renderFormalQuotation(data);
       document.title = `[중용] 견적서 - ${data.estimateId}`;
+
+      // A4 스케일 적용
+      requestAnimationFrame(() => {
+        const containerW = containerEl.clientWidth;
+        const docW = 700;
+        const scale = Math.min(1, containerW / docW);
+        previewEl.style.transform = `scale(${scale})`;
+        containerEl.style.height = (previewEl.scrollHeight * scale) + 'px';
+      });
     }
 
     function showError() {

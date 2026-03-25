@@ -27,6 +27,9 @@
     body { font-family: 'Pretendard', sans-serif; padding-bottom: env(safe-area-inset-bottom, 24px); }
     .doc-tab { padding: 8px 16px; font-size: 13px; font-weight: 600; border-radius: 8px 8px 0 0; cursor: pointer; border: 1px solid #d1d5db; border-bottom: none; background: #f3f4f6; color: #6b7280; }
     .doc-tab.active { background: #fff; color: #1e3a5f; border-color: #1e3a5f; border-bottom: 1px solid #fff; margin-bottom: -1px; z-index: 1; }
+    /* A4 고정 너비 + 모바일 축소 */
+    .a4-wrapper { width: 700px; transform-origin: top left; }
+    .a4-container { overflow: hidden; }
   </style>
 </head>
 <body class="bg-[#f7fafc] min-h-screen pb-20">
@@ -74,7 +77,9 @@
     </div>
 
     <!-- 미리보기 영역 -->
-    <div id="preview-area" class="mx-4 mt-3 hidden" style="overflow-x:auto;"></div>
+    <div id="preview-container" class="mx-4 mt-3 hidden a4-container">
+      <div id="preview-area" class="a4-wrapper"></div>
+    </div>
 
     <!-- 액션 버튼 -->
     <div id="action-buttons" class="mx-4 mt-6 space-y-3 hidden">
@@ -139,8 +144,10 @@
       const buttonsEl = document.getElementById('action-buttons');
       const tabsEl = document.getElementById('doc-tabs');
 
+      const containerEl = document.getElementById('preview-container');
+
       loadingEl.classList.add('hidden');
-      previewEl.classList.remove('hidden');
+      containerEl.classList.remove('hidden');
       buttonsEl.classList.remove('hidden');
       tabsEl.classList.remove('hidden');
 
@@ -172,6 +179,24 @@
         default:
           previewEl.innerHTML = Estimate.renderFormalQuotation(estimateData, opts);
           document.getElementById('page-title').textContent = '정식 견적서';
+      }
+
+      // A4 스케일 적용 (정식/거래명세표만)
+      if (currentDoc === 'simple') {
+        previewEl.style.width = '';
+        previewEl.style.transform = '';
+        previewEl.classList.remove('a4-wrapper');
+        containerEl.style.height = '';
+      } else {
+        previewEl.classList.add('a4-wrapper');
+        requestAnimationFrame(() => {
+          const containerW = containerEl.clientWidth;
+          const docW = 700;
+          const scale = Math.min(1, containerW / docW);
+          previewEl.style.transform = `scale(${scale})`;
+          previewEl.style.width = docW + 'px';
+          containerEl.style.height = (previewEl.scrollHeight * scale) + 'px';
+        });
       }
     }
 
