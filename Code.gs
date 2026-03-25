@@ -587,21 +587,28 @@ function initAllSheets() {
 }
 
 function getSheet(name) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName(name);
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(name);
+  var headers = {
+    '단가표': ['랙종류', '규격', '단수', '기본단가', '추가시공비', 'VAT적용', '활성'],
+    '견적내역': ['견적일시', '견적번호', '고객명', '회사명', '연락처', '주소', '품목상세', '총액', '진행상태', 'clientId'],
+    '견적요청': ['요청일시', '고객명', '연락처', '랙종류', '수량', '메모', '처리상태'],
+    '설정': ['key', 'value'],
+    '포트폴리오': ['날짜', '견적번호', '설명', '사진URL'],
+  };
+
   if (!sheet) {
     sheet = ss.insertSheet(name);
-    const headers = {
-      '단가표': ['랙종류', '규격', '단수', '기본단가', '추가시공비', 'VAT적용', '활성'],
-      '견적내역': ['견적일시', '견적번호', '고객명', '회사명', '연락처', '주소', '품목상세', '총액', '진행상태', 'clientId'],
-      '견적요청': ['요청일시', '고객명', '연락처', '랙종류', '수량', '메모', '처리상태'],
-      '설정': ['key', 'value'],
-      '포트폴리오': ['날짜', '견적번호', '설명', '사진URL'],
-    };
-    if (headers[name]) {
+  }
+
+  // 헤더가 비어있으면 자동 추가
+  if (headers[name]) {
+    var firstCell = sheet.getRange(1, 1).getValue();
+    if (!firstCell || firstCell === '') {
       sheet.getRange(1, 1, 1, headers[name].length).setValues([headers[name]]);
       sheet.getRange(1, 1, 1, headers[name].length).setFontWeight('bold');
     }
   }
+
   return sheet;
 }
