@@ -464,8 +464,7 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
   if (rackType) message += '\n랙종류: ' + rackType;
   if (memo) message += '\n메모: ' + memo;
 
-  // 1) ntfy.sh 푸시 알림
-  // 토큰이 설정 시트에 있으면 토큰 인증, 없으면 익명
+  // ntfy.sh 푸시 알림
   try {
     var ntfyHeaders = {};
     var settingsForNtfy = getSheet('설정').getDataRange().getValues();
@@ -477,6 +476,7 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
         break;
       }
     }
+    console.log('ntfy 발송 시도 - token: ' + (ntfyToken ? ntfyToken.substring(0, 8) + '...' : 'NONE'));
     var ntfyResp = UrlFetchApp.fetch('https://ntfy.sh', {
       method: 'post',
       contentType: 'application/json; charset=utf-8',
@@ -490,34 +490,9 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
       }),
       muteHttpExceptions: true
     });
-    Logger.log('ntfy response: ' + ntfyResp.getResponseCode() + ' / ' + ntfyResp.getContentText().substring(0, 200));
+    console.log('ntfy 응답: ' + ntfyResp.getResponseCode() + ' / ' + ntfyResp.getContentText().substring(0, 200));
   } catch (e) {
-    Logger.log('ntfy error: ' + e.message);
-  }
-
-  // 2) 이메일 알림
-  try {
-    var settingsSheet = getSheet('설정');
-    var settingsData = settingsSheet.getDataRange().getValues();
-    var adminEmail = '';
-    for (var i = 1; i < settingsData.length; i++) {
-      if (settingsData[i][0] === 'adminEmail') {
-        adminEmail = String(settingsData[i][1]).trim();
-        break;
-      }
-    }
-    if (adminEmail) {
-      MailApp.sendEmail({
-        to: adminEmail,
-        subject: '[용인 랙] 새 견적 요청 - ' + (name || '고객'),
-        body: message + '\n\n---\n확인: https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID
-      });
-      Logger.log('email sent to: ' + adminEmail);
-    } else {
-      Logger.log('email skipped: no adminEmail');
-    }
-  } catch (e) {
-    Logger.log('email error: ' + e.message);
+    console.error('ntfy 에러: ' + e.message + '\n' + e.stack);
   }
 }
 
