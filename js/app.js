@@ -220,33 +220,33 @@ const App = (() => {
   }
 
   function addPresetItem(presetName) {
-    if (presetName === '마진(25%)') {
-      // 현재 랙 소계의 25% 자동 계산
+    const nameEl = document.getElementById('custom-name');
+    const priceEl = document.getElementById('custom-price');
+    const qtyEl = document.getElementById('custom-qty');
+
+    if (presetName === '마진') {
+      // 현재 랙 소계의 25% 자동 계산하여 금액 칸에 미리 입력
       const rackSubtotal = items
         .filter(i => i.itemType !== 'custom')
         .reduce((sum, i) => sum + ((Number(i.unitPrice) || 0) + (Number(i.installFee) || 0)) * (Number(i.quantity) || 0), 0);
       const margin = Math.round(rackSubtotal * 0.25);
-      if (margin <= 0) { UI.toast('랙 품목을 먼저 추가하세요', 'warning'); return; }
-      items.push({ itemType: 'custom', name: '마진(25%)', unitPrice: margin, installFee: 0, quantity: 1 });
+      if (nameEl) nameEl.value = '마진(25%)';
+      if (priceEl) { priceEl.value = margin > 0 ? margin : ''; priceEl.focus(); }
+      if (qtyEl) qtyEl.value = '1';
+      UI.toast('마진율을 조정하려면 금액을 수정하세요', 'info');
+      return;
     } else if (presetName === 'D/C') {
-      const nameEl = document.getElementById('custom-name');
-      const priceEl = document.getElementById('custom-price');
       if (nameEl) nameEl.value = 'D/C(할인)';
       if (priceEl) { priceEl.value = ''; priceEl.focus(); }
+      if (qtyEl) qtyEl.value = '1';
       UI.toast('할인 금액을 음수로 입력하세요', 'info');
       return;
     } else {
-      const nameEl = document.getElementById('custom-name');
-      const priceEl = document.getElementById('custom-price');
       if (nameEl) nameEl.value = presetName;
       if (priceEl) { priceEl.value = ''; priceEl.focus(); }
+      if (qtyEl) qtyEl.value = '1';
       return;
     }
-
-    renderItems();
-    updateTotal();
-    saveDraft();
-    UI.toast(`'${presetName}' 추가됨`, 'success');
   }
 
   function removeItem(index) {
