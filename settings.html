@@ -302,11 +302,14 @@
       loadBranding();
       document.getElementById('s-gas-url').value = localStorage.getItem('yr_gas_url') || '';
 
-      // section 파라미터로 특정 섹션 스크롤
+      // section=pin → PIN 변경만 표시, 그 외 → 브랜딩만 표시 (PIN 숨김)
       if (section === 'pin') {
-        setTimeout(() => {
-          document.getElementById('pin-change-section').scrollIntoView({ behavior: 'smooth' });
-        }, 300);
+        document.querySelectorAll('#settings-page main > .mx-4').forEach(el => {
+          el.classList.add('hidden');
+        });
+        document.getElementById('pin-change-section').classList.remove('hidden');
+      } else {
+        document.getElementById('pin-change-section').classList.add('hidden');
       }
     }
 

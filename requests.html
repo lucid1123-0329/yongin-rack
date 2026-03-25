@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>견적 요청 확인 - 용인 랙</title>
+  <meta name="description" content="고객 견적 요청 확인">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1e3a5f',
+            accent: '#f97316',
+          },
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Pretendard Font -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e3a5f">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+
+  <style>
+    body { font-family: 'Pretendard', sans-serif; padding-bottom: 80px; }
+  </style>
+</head>
+<body class="bg-[#f7fafc] min-h-screen">
+
+  <!-- 헤더 -->
+  <header class="bg-primary text-white px-4 py-4 flex items-center gap-3">
+    <a href="more.html" class="w-8 h-8 flex items-center justify-center rounded-lg active:bg-white/20 transition-colors">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </a>
+    <h1 class="text-lg font-bold flex-1">견적 요청 확인</h1>
+  </header>
+
+  <main class="max-w-lg mx-auto">
+    <div class="mx-4 mt-4" id="request-list"></div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!Auth.guard()) {
+        window.addEventListener('yr-authenticated', init);
+        return;
+      }
+      init();
+    });
+
+    async function init() {
+      document.getElementById('request-list').innerHTML = UI.skeleton(3);
+      await loadRequests();
+    }
+
+    async function loadRequests() {
+      try {
+        const data = await API.getRequests();
+        const requests = (data && data.requests) ? data.requests : [];
+        renderRequests(requests);
+      } catch (err) {
+        document.getElementById('request-list').innerHTML = UI.empty(
+          '⚠️', '로딩 실패', err.message || '요청을 불러올 수 없습니다', '다시 시도', 'requests.html'
+        );
+      }
+    }
+
+    function renderRequests(requests) {
+      const container = document.getElementById('request-list');
+
+      if (requests.length === 0) {
+        container.innerHTML = UI.empty(
+          '📩', '요청이 없습니다', '고객의 견적 요청이 여기에 표시됩니다'
+        );
+        return;
+      }
+
+      container.innerHTML = requests.map(r => `
+        <div class="bg-white rounded-xl border border-gray-100 p-4 mb-3">
+          <div class="flex items-start justify-between mb-2">
+            <div>
+              <span class="text-sm font-bold text-gray-800">${r.name || '미지정'}</span>
+              <span class="ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${r.status === '미처리' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}">${r.status || '미처리'}</span>
+            </div>
+            <span class="text-xs text-gray-400">${r.date || ''}</span>
+          </div>
+          <div class="text-sm text-gray-600 space-y-1">
+            <p>📞 ${r.phone || '-'}</p>
+            <p>📦 ${r.rackType || '-'} · ${r.quantity || 0}대</p>
+            ${r.memo ? `<p class="text-gray-500">💬 ${r.memo}</p>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+  </script>
+
+  <!-- Service Worker 등록 -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>
