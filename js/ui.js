@@ -107,19 +107,25 @@ const UI = (() => {
   // --- 하단 탭바 렌더 ---
   function renderTabBar(active) {
     const tabs = [
-      { id: 'estimate', icon: '📝', label: '새 견적', href: 'index.html' },
-      { id: 'history', icon: '📋', label: '이력', href: 'history.html' },
-      { id: 'dashboard', icon: '📊', label: '대시보드', href: 'dashboard.html' },
-      { id: 'more', icon: '⚙️', label: '더보기', href: 'more.html' },
+      { id: 'estimate', label: '견적', href: 'index.html',
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>' },
+      { id: 'dashboard', label: '대시보드', href: 'dashboard.html',
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>' },
+      { id: 'requests', label: '요청', href: 'requests.html',
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>' },
+      { id: 'portfolio', label: '사진', href: 'portfolio.html',
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>' },
+      { id: 'more', label: '더보기', href: 'more.html',
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>' },
     ];
 
     const bar = document.createElement('nav');
     bar.className = 'fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-40';
     bar.style.paddingBottom = 'env(safe-area-inset-bottom)';
     bar.innerHTML = tabs.map(t => `
-      <a href="${t.href}" class="flex-1 py-2 flex flex-col items-center gap-0.5 ${t.id === active ? 'text-[#1e3a5f] font-bold' : 'text-gray-400'}">
-        <span class="text-xl">${t.icon}</span>
-        <span class="text-[11px]">${t.label}</span>
+      <a href="${t.href}" class="flex-1 py-2 flex flex-col items-center gap-0.5 ${t.id === active ? 'text-[#1e3a5f]' : 'text-gray-400'}">
+        ${t.svg}
+        <span class="text-[10px] ${t.id === active ? 'font-bold' : ''}">${t.label}</span>
       </a>
     `).join('');
     document.body.appendChild(bar);
