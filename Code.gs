@@ -206,6 +206,10 @@ function saveEstimate(body) {
   // 품목 배열을 JSON 문자열로 저장
   const itemsJson = JSON.stringify(body.items || []);
 
+  var supplyTotal = Number(body.supplyTotal) || Number(body.total) || 0;
+  var vat = Number(body.vat) || 0;
+  var grandTotal = supplyTotal + vat;
+
   sheet.appendRow([
     dateStr,
     estimateId,
@@ -214,9 +218,11 @@ function saveEstimate(body) {
     body.phone || '',
     body.address || '',
     itemsJson,
-    Number(body.total) || 0,
+    grandTotal,
     '상담완료',
-    body.clientId || ''
+    body.clientId || '',
+    supplyTotal,
+    vat
   ]);
 
   return { result: 'success', estimateId: estimateId, row: sheet.getLastRow() };
@@ -254,6 +260,8 @@ function getEstimate(estimateId) {
         items: items,
         total: Number(data[i][7]),
         status: data[i][8],
+        supplyTotal: Number(data[i][10]) || Number(data[i][7]) || 0,
+        vat: Number(data[i][11]) || 0,
       };
     }
   }
@@ -774,7 +782,7 @@ function getSheet(name) {
   var sheet = ss.getSheetByName(name);
   var headers = {
     '단가표': ['랙종류', '규격', '단수', '기본단가', '추가시공비', 'VAT적용', '활성'],
-    '견적내역': ['견적일시', '견적번호', '고객명', '회사명', '연락처', '주소', '품목상세', '총액', '진행상태', 'clientId'],
+    '견적내역': ['견적일시', '견적번호', '고객명', '회사명', '연락처', '주소', '품목상세', '총액', '진행상태', 'clientId', '공급가액', '세액'],
     '견적요청': ['요청일시', '고객명', '연락처', '랙종류', '수량', '메모', '처리상태'],
     '설정': ['key', 'value'],
     '포트폴리오': ['날짜', '견적번호', '설명', '사진URL', '장소'],

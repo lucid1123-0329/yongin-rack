@@ -5,18 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>견적서 확인 - 중용</title>
   <meta property="og:title" content="[중용] 맞춤형 견적서가 도착했습니다">
-  <meta property="og:description" content="경량랙, 중량랙, 파렛트랙 전문 시공 견적서를 확인하세요.">
+  <meta property="og:description" content="용인 랙(선반) 전문 시공 견적서를 확인하세요.">
   <meta property="og:image" content="assets/og-image.jpg">
   <meta property="og:type" content="website">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: { extend: { colors: { primary: '#1e3a5f', accent: '#f97316' } } }
-    };
-  </script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:'#1e3a5f',accent:'#f97316'}}}}</script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
   <link rel="icon" type="image/png" href="assets/favicon.png">
-  <style>body{font-family:'Pretendard',sans-serif;padding-bottom:80px}</style>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    body{font-family:'Pretendard',sans-serif;padding-bottom:80px}
+  </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 
@@ -28,61 +27,19 @@
     </div>
   </div>
 
-  <!-- 견적서 -->
-  <div id="estimate-page" class="hidden py-6">
-    <div class="max-w-md mx-4 sm:mx-auto">
-      <div id="estimate-card" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <!-- 헤더 -->
-        <div class="bg-primary text-white px-5 py-4 text-center">
-          <h1 class="text-xl font-extrabold" id="v-company">중용</h1>
-          <p class="text-xs opacity-80 mt-1">중용(선반) 전문 시공</p>
-        </div>
+  <!-- 견적서 영역 -->
+  <div id="estimate-page" class="hidden py-4">
+    <div class="max-w-2xl mx-4 sm:mx-auto" style="overflow-x:auto;">
+      <div id="preview-area"></div>
 
-        <div class="p-5">
-          <!-- 견적 정보 -->
-          <div class="flex justify-between text-xs text-gray-500 mb-4">
-            <span id="v-date"></span>
-            <span id="v-id"></span>
-          </div>
-
-          <!-- 고객 정보 -->
-          <div id="v-customer" class="hidden bg-gray-50 rounded-xl p-3 mb-4 text-sm">
-            <p class="font-bold text-gray-800" id="v-name"></p>
-            <p class="text-gray-500 mt-1 hidden" id="v-address"></p>
-          </div>
-
-          <!-- 품목 내역 -->
-          <div class="border-t border-gray-100 pt-3">
-            <p class="text-xs font-bold text-gray-500 mb-2">품목 내역</p>
-            <div id="v-items"></div>
-          </div>
-
-          <!-- 소계 -->
-          <div class="border-t border-gray-200 pt-2 mt-2 text-sm">
-            <div class="flex justify-between py-1">
-              <span class="text-gray-500">제품 소계</span>
-              <span class="text-gray-700" id="v-subtotal"></span>
-            </div>
-            <div class="flex justify-between py-1">
-              <span class="text-gray-500">시공비 합계</span>
-              <span class="text-gray-700" id="v-install"></span>
-            </div>
-          </div>
-
-          <!-- 총액 -->
-          <div class="flex justify-between pt-3 mt-2 border-t-2 border-primary">
-            <span class="text-base font-extrabold text-primary">총 견적액</span>
-            <span class="text-xl font-extrabold text-accent" id="v-total"></span>
-          </div>
-          <p class="text-xs text-gray-400 mt-2 text-right">* 부가세 별도</p>
-        </div>
-
-        <!-- 푸터 -->
-        <div class="bg-gray-50 px-5 py-3 text-center text-xs text-gray-400 border-t border-gray-100" id="v-footer">
-          중용 | 010-3776-1230 | 사업자 135-09-53960
-        </div>
+      <!-- 이미지 저장 버튼 -->
+      <div class="mt-4 text-center">
+        <button onclick="downloadImg()"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 rounded-xl font-bold text-sm text-gray-700 active:scale-[0.98] transition-transform">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3"/></svg>
+          이미지 저장
+        </button>
       </div>
-
     </div>
   </div>
 
@@ -109,6 +66,7 @@
           class="flex-[1.5] h-11 bg-accent rounded-xl text-white font-bold text-sm flex items-center justify-center gap-1.5 active:scale-[0.97] transition-transform">
           견적 요청
         </a>
+      </div>
     </div>
   </div>
 
@@ -118,16 +76,14 @@
       <div class="text-5xl mb-4">📋</div>
       <p class="text-lg font-bold text-gray-700 mb-2">견적서를 찾을 수 없습니다</p>
       <p class="text-sm text-gray-500 mb-6">링크가 올바른지 확인해주세요.</p>
-      <a href="request.html" class="inline-block bg-primary text-white px-6 py-3 rounded-xl font-bold text-sm">
-        견적 요청하기
-      </a>
+      <a href="request.html" class="inline-block bg-primary text-white px-6 py-3 rounded-xl font-bold text-sm">견적 요청하기</a>
     </div>
   </div>
 
   <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/estimate.js"></script>
   <script>
-    const fmt = (n) => Number(n).toLocaleString('ko-KR');
-
     document.addEventListener('DOMContentLoaded', async () => {
       const id = new URLSearchParams(location.search).get('id');
       if (!id) { showError(); return; }
@@ -135,6 +91,7 @@
       try {
         const data = await API.getEstimate(id);
         if (!data || data.error) { showError(); return; }
+        data.estimateId = data.estimateId || id;
         render(data);
       } catch {
         showError();
@@ -145,83 +102,26 @@
       document.getElementById('loading').classList.add('hidden');
       document.getElementById('estimate-page').classList.remove('hidden');
 
-      // 날짜
-      document.getElementById('v-date').textContent = '견적일: ' + (data.date || '');
-      document.getElementById('v-id').textContent = data.estimateId || '';
-
-      // 고객 정보
-      if (data.customerName) {
-        const customerEl = document.getElementById('v-customer');
-        customerEl.classList.remove('hidden');
-        const nameText = data.customerName + (data.company ? ` (${data.company})` : '');
-        document.getElementById('v-name').textContent = nameText;
-        if (data.address) {
-          const addrEl = document.getElementById('v-address');
-          addrEl.textContent = data.address;
-          addrEl.classList.remove('hidden');
-        }
-      }
-
-      // 품목
-      let items = data.items || [];
-      if (typeof items === 'string') { try { items = JSON.parse(items); } catch { items = []; } }
-
-      let totalSubtotal = 0;
-      let totalInstall = 0;
-
-      document.getElementById('v-items').innerHTML = items.map((item, i) => {
-        const qty = Number(item.quantity) || 0;
-        const uPrice = Number(item.unitPrice) || 0;
-        const iFee = Number(item.installFee) || 0;
-        const sub = uPrice * qty;
-        const inst = iFee * qty;
-        totalSubtotal += sub;
-        totalInstall += inst;
-        return `
-          <div class="${i > 0 ? 'border-t border-dashed border-gray-200 pt-2 mt-2' : ''}">
-            <div class="flex justify-between text-sm">
-              <span class="font-semibold text-gray-800">${item.type || ''} ${item.spec || ''} ${item.tier || ''}단</span>
-              <span class="text-gray-600">${qty}대</span>
-            </div>
-            <div class="flex justify-between text-xs text-gray-500 mt-1">
-              <span class="pl-2">@${fmt(uPrice)}</span>
-              <span>${fmt(sub)}원</span>
-            </div>
-            ${iFee > 0 ? `
-            <div class="flex justify-between text-xs text-gray-500">
-              <span class="pl-2">시공비 @${fmt(iFee)}</span>
-              <span>${fmt(inst)}원</span>
-            </div>` : ''}
-          </div>
-        `;
-      }).join('');
-
-      document.getElementById('v-subtotal').textContent = fmt(totalSubtotal) + '원';
-      document.getElementById('v-install').textContent = fmt(totalInstall) + '원';
-      document.getElementById('v-total').textContent = fmt(Number(data.total) || (totalSubtotal + totalInstall)) + '원';
-
+      // 정식 견적서로 렌더링
+      document.getElementById('preview-area').innerHTML = Estimate.renderFormalQuotation(data);
       document.title = `[중용] 견적서 - ${data.estimateId}`;
-
-      // 서버 설정 로드 (상호명, 연락처 등)
-      loadSettings();
-    }
-
-    async function loadSettings() {
-      try {
-        const data = await API.getSettings();
-        if (!data.settings) return;
-        const s = data.settings;
-        if (s.company) document.getElementById('v-company').textContent = s.company;
-        if (s.company || s.phone) {
-          document.getElementById('v-footer').textContent =
-            [s.company, s.phone, s.bizNumber ? '사업자 ' + s.bizNumber : ''].filter(Boolean).join(' | ');
-        }
-      } catch {}
     }
 
     function showError() {
       document.getElementById('loading').classList.add('hidden');
       document.getElementById('error-page').classList.remove('hidden');
+    }
+
+    async function downloadImg() {
+      const card = document.getElementById('estimate-card');
+      if (!card || typeof html2canvas === 'undefined') return;
+      try {
+        const canvas = await html2canvas(card, { scale: 2, backgroundColor: '#fff', useCORS: true });
+        const link = document.createElement('a');
+        link.download = '견적서_' + new Date().toISOString().slice(0,10) + '.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch {}
     }
   </script>
 </body>

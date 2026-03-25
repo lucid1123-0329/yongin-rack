@@ -153,9 +153,41 @@ const UI = (() => {
     return `<span class="px-2 py-0.5 rounded-full text-xs font-bold ${cls}">${status}</span>`;
   }
 
+  // --- 숫자를 한글로 변환 ---
+  function numberToKorean(n) {
+    if (n === 0) return '영';
+    const units = ['', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구'];
+    const positions = ['', '십', '백', '천'];
+    const bigUnits = ['', '만', '억', '조'];
+    const num = Math.abs(Math.floor(n));
+    const str = String(num);
+    const len = str.length;
+    let result = '';
+    let bigIdx = 0;
+
+    for (let i = len; i > 0; i -= 4) {
+      const start = Math.max(0, i - 4);
+      const chunk = str.substring(start, i);
+      let chunkStr = '';
+      for (let j = 0; j < chunk.length; j++) {
+        const digit = Number(chunk[j]);
+        const pos = chunk.length - 1 - j;
+        if (digit === 0) continue;
+        if (digit === 1 && pos > 0) {
+          chunkStr += positions[pos];
+        } else {
+          chunkStr += units[digit] + positions[pos];
+        }
+      }
+      if (chunkStr) result = chunkStr + bigUnits[bigIdx] + result;
+      bigIdx++;
+    }
+    return (n < 0 ? '마이너스 ' : '') + result;
+  }
+
   return {
     toast, setLoading, skeleton, empty, confirm,
     formatNumber, formatCurrency, formatDate,
-    renderTabBar, renderHeader, statusBadge,
+    renderTabBar, renderHeader, statusBadge, numberToKorean,
   };
 })();

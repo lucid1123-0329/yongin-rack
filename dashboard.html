@@ -221,12 +221,15 @@
       if (typeof items === 'string') { try { items = JSON.parse(items); } catch { items = []; } }
 
       const itemsHtml = items.map(item => {
-        const qty = Number(item.quantity) || 0;
+        const isCustom = item.itemType === 'custom';
+        const qty = Number(item.quantity) || (isCustom ? 1 : 0);
         const uPrice = Number(item.unitPrice) || 0;
         const iFee = Number(item.installFee) || 0;
+        const amount = isCustom ? uPrice * qty : (uPrice + iFee) * qty;
+        const name = isCustom ? item.name : `${item.type} ${item.spec} ${item.tier}단 × ${qty}대`;
         return `<div class="flex justify-between text-xs py-1">
-          <span class="text-gray-700">${item.type} ${item.spec} ${item.tier}단 × ${qty}대</span>
-          <span class="text-gray-600 font-medium">${UI.formatCurrency((uPrice + iFee) * qty)}</span>
+          <span class="${amount < 0 ? 'text-red-600' : 'text-gray-700'}">${name}</span>
+          <span class="${amount < 0 ? 'text-red-600' : 'text-gray-600'} font-medium">${UI.formatCurrency(amount)}</span>
         </div>`;
       }).join('');
 
@@ -274,6 +277,17 @@
         if (item) item.status = newStatus;
         UI.toast(`상태가 '${newStatus}'로 변경되었습니다`, 'success');
         renderList();
+
+        // 계약 시 거래명세표 자동 안내
+        if (newStatus === '계약') {
+          setTimeout(() => {
+            UI.confirm(
+              '거래명세표 확인',
+              '계약이 확정되었습니다. 거래명세표를 확인하시겠습니까?',
+              () => { window.location.href = `estimate-preview.html?id=${estimateId}&doc=transaction`; }
+            );
+          }, 300);
+        }
       } catch { UI.toast('상태 변경 실패', 'error'); }
     }
   </script>

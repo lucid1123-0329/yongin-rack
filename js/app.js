@@ -1,12 +1,13 @@
 /**
  * app.js — 견적 계산 핵심 로직
- * 복수 품목 카트 방식: 랙 선택 → 수량 → 추가 → 반복 → 저장
+ * 복수 품목 카트 방식 + 자유 항목(운송비, 설치비, 마진, D/C)
+ * VAT: 공급가액 × 10% = 세액, 총액 = 공급가액 + 세액
  */
 
 const App = (() => {
   let priceData = [];
-  let items = [];           // 추가된 품목 배열
-  let currentSelection = null; // 현재 선택 중인 랙 (추가 전)
+  let items = [];           // 추가된 품목 배열 (rack + custom)
+  let currentSelection = null;
   let currentQuantity = 1;
 
   const DRAFT_KEY = 'yr_draft_estimate';
@@ -152,7 +153,7 @@ const App = (() => {
     setQuantity(currentQuantity + delta);
   }
 
-  // --- 품목 추가/삭제 ---
+  // --- 랙 품목 추가 ---
   function addItem() {
     if (!currentSelection) {
       UI.toast('랙을 선택하세요', 'warning');
@@ -169,7 +170,6 @@ const App = (() => {
       quantity: currentQuantity,
     });
 
-    // 선택 초기화
     currentSelection = null;
     currentQuantity = 1;
     const selType = document.getElementById('sel-type');
@@ -187,6 +187,66 @@ const App = (() => {
     updateTotal();
     saveDraft();
     UI.toast('품목이 추가되었습니다', 'success');
+  }
+
+  // --- 자유 항목 추가 ---
+  function addCustomItem() {
+    const nameEl = document.getElementById('custom-name');
+    const priceEl = document.getElementById('custom-price');
+    const qtyEl = document.getElementById('custom-qty');
+    const name = (nameEl?.value || '').trim();
+    const price = Number(priceEl?.value) || 0;
+    const qty = Number(qtyEl?.value) || 1;
+
+    if (!name) { UI.toast('항목명을 입력하세요', 'warning'); return; }
+    if (price === 0) { UI.toast('금액을 입력하세요', 'warning'); return; }
+
+    items.push({
+      itemType: 'custom',
+      name: name,
+      unitPrice: price,
+      installFee: 0,
+      quantity: qty,
+    });
+
+    if (nameEl) nameEl.value = '';
+    if (priceEl) priceEl.value = '';
+    if (qtyEl) qtyEl.value = '1';
+
+    renderItems();
+    updateTotal();
+    saveDraft();
+    UI.toast(`'${name}' 추가됨`, 'success');
+  }
+
+  function addPresetItem(presetName) {
+    if (presetName === '마진(25%)') {
+      // 현재 랙 소계의 25% 자동 계산
+      const rackSubtotal = items
+        .filter(i => i.itemType !== 'custom')
+        .reduce((sum, i) => sum + ((Number(i.unitPrice) || 0) + (Number(i.installFee) || 0)) * (Number(i.quantity) || 0), 0);
+      const margin = Math.round(rackSubtotal * 0.25);
+      if (margin <= 0) { UI.toast('랙 품목을 먼저 추가하세요', 'warning'); return; }
+      items.push({ itemType: 'custom', name: '마진(25%)', unitPrice: margin, installFee: 0, quantity: 1 });
+    } else if (presetName === 'D/C') {
+      const nameEl = document.getElementById('custom-name');
+      const priceEl = document.getElementById('custom-price');
+      if (nameEl) nameEl.value = 'D/C(할인)';
+      if (priceEl) { priceEl.value = ''; priceEl.focus(); }
+      UI.toast('할인 금액을 음수로 입력하세요', 'info');
+      return;
+    } else {
+      const nameEl = document.getElementById('custom-name');
+      const priceEl = document.getElementById('custom-price');
+      if (nameEl) nameEl.value = presetName;
+      if (priceEl) { priceEl.value = ''; priceEl.focus(); }
+      return;
+    }
+
+    renderItems();
+    updateTotal();
+    saveDraft();
+    UI.toast(`'${presetName}' 추가됨`, 'success');
   }
 
   function removeItem(index) {
@@ -209,12 +269,30 @@ const App = (() => {
       <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         <h3 class="text-sm font-bold text-gray-700 px-4 pt-4 pb-2">추가된 품목 (${items.length}건)</h3>
         ${items.map((item, i) => {
-          const itemTotal = (item.unitPrice + item.installFee) * item.quantity;
+          const isCustom = item.itemType === 'custom';
+          const itemTotal = isCustom
+            ? (Number(item.unitPrice) || 0) * (Number(item.quantity) || 1)
+            : ((Number(item.unitPrice) || 0) + (Number(item.installFee) || 0)) * (Number(item.quantity) || 0);
+          const isNegative = itemTotal < 0;
+
+          if (isCustom) {
+            return `
+              <div class="px-4 py-3 border-t border-gray-100 flex items-center gap-3 ${isNegative ? 'bg-red-50/50' : ''}">
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-bold ${isNegative ? 'text-red-600' : 'text-gray-800'}">${item.name}</p>
+                  <p class="text-xs text-gray-500">${item.quantity > 1 ? `@${UI.formatNumber(item.unitPrice)} × ${item.quantity}` : ''}</p>
+                  <p class="text-sm font-bold ${isNegative ? 'text-red-600' : 'text-[#1e3a5f]'} mt-0.5">${UI.formatCurrency(itemTotal)}</p>
+                </div>
+                <button onclick="App.removeItem(${i})"
+                  class="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 active:bg-red-50 text-lg flex-shrink-0">✕</button>
+              </div>
+            `;
+          }
           return `
             <div class="px-4 py-3 border-t border-gray-100 flex items-center gap-3">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-bold text-gray-800 truncate">${item.type} ${item.spec} ${item.tier}단</p>
-                <p class="text-xs text-gray-500">@${UI.formatNumber(item.unitPrice)} × ${item.quantity}대 + 시공비 ${UI.formatCurrency(item.installFee * item.quantity)}</p>
+                <p class="text-xs text-gray-500">@${UI.formatNumber(item.unitPrice)} × ${item.quantity}대 + 시공비 ${UI.formatCurrency((Number(item.installFee) || 0) * item.quantity)}</p>
                 <p class="text-sm font-bold text-[#1e3a5f] mt-0.5">${UI.formatCurrency(itemTotal)}</p>
               </div>
               <button onclick="App.removeItem(${i})"
@@ -226,38 +304,54 @@ const App = (() => {
     `;
   }
 
-  // --- 계산 ---
+  // --- 계산 (공급가액 + 세액) ---
   function calculate() {
-    if (items.length === 0) return { total: 0, items: null };
+    if (items.length === 0) return { supplyTotal: 0, vat: 0, total: 0, items: null };
 
-    let grandTotal = 0;
+    let supplyTotal = 0;
     const itemDetails = items.map(item => {
-      const subtotal = item.unitPrice * item.quantity;
-      const installTotal = item.installFee * item.quantity;
-      const itemTotal = subtotal + installTotal;
-      grandTotal += itemTotal;
-      return { ...item, subtotal, installTotal, itemTotal };
+      const isCustom = item.itemType === 'custom';
+      if (isCustom) {
+        const amount = (Number(item.unitPrice) || 0) * (Number(item.quantity) || 1);
+        supplyTotal += amount;
+        return { ...item, itemTotal: amount };
+      } else {
+        const subtotal = (Number(item.unitPrice) || 0) * (Number(item.quantity) || 0);
+        const installTotal = (Number(item.installFee) || 0) * (Number(item.quantity) || 0);
+        const itemTotal = subtotal + installTotal;
+        supplyTotal += itemTotal;
+        return { ...item, subtotal, installTotal, itemTotal };
+      }
     });
 
-    return { total: grandTotal, items: itemDetails };
+    const vat = Math.round(supplyTotal * 0.1);
+    const total = supplyTotal + vat;
+    return { supplyTotal, vat, total, items: itemDetails };
   }
 
   // --- 금액 표시 업데이트 ---
   function updateTotal() {
-    const { total, items: calcItems } = calculate();
+    const { supplyTotal, vat, total, items: calcItems } = calculate();
     const totalEl = document.getElementById('total-amount');
     const detailEl = document.getElementById('total-detail');
+    const supplyEl = document.getElementById('supply-amount');
+    const vatEl = document.getElementById('vat-amount');
     const saveBtn = document.getElementById('btn-save');
 
-    if (totalEl) {
-      totalEl.textContent = UI.formatCurrency(total);
-    }
+    if (totalEl) totalEl.textContent = UI.formatCurrency(total);
+    if (supplyEl) supplyEl.textContent = UI.formatCurrency(supplyTotal);
+    if (vatEl) vatEl.textContent = UI.formatCurrency(vat);
+
     if (detailEl) {
       if (calcItems && calcItems.length > 0) {
-        const totalQty = calcItems.reduce((sum, item) => sum + item.quantity, 0);
-        detailEl.textContent = `${calcItems.length}종 ${totalQty}대`;
+        const rackItems = calcItems.filter(i => i.itemType !== 'custom');
+        const totalQty = rackItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+        const customCount = calcItems.length - rackItems.length;
+        let text = rackItems.length > 0 ? `${rackItems.length}종 ${totalQty}대` : '';
+        if (customCount > 0) text += (text ? ' + ' : '') + `추가 ${customCount}건`;
+        detailEl.textContent = text || '항목을 추가하세요';
       } else {
-        detailEl.textContent = '랙을 추가하세요';
+        detailEl.textContent = '항목을 추가하세요';
       }
     }
     if (saveBtn) {
@@ -304,9 +398,9 @@ const App = (() => {
 
   // --- 견적 저장 ---
   async function saveEstimate() {
-    const { total, items: calcItems } = calculate();
+    const { supplyTotal, vat, total, items: calcItems } = calculate();
     if (!calcItems || calcItems.length === 0) {
-      UI.toast('랙을 추가하세요', 'warning');
+      UI.toast('품목을 추가하세요', 'warning');
       return null;
     }
 
@@ -314,6 +408,8 @@ const App = (() => {
     const clientId = 'est-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
     const data = {
       items: calcItems,
+      supplyTotal,
+      vat,
       total,
       ...customer,
       clientId,
@@ -333,7 +429,8 @@ const App = (() => {
 
   return {
     loadPrices, setQuantity, changeQuantity,
-    addItem, removeItem, renderItems,
+    addItem, addCustomItem, addPresetItem,
+    removeItem, renderItems,
     calculate, updateTotal, saveEstimate,
     loadDraft, clearDraft, getCustomerInfo,
     get priceData() { return priceData; },
