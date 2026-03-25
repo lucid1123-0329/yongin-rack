@@ -103,8 +103,8 @@ const API = (() => {
   }
 
   // --- 포트폴리오 ---
-  async function uploadPhoto(base64Data, filename, estimateId) {
-    return request('POST', { action: 'uploadPhoto', base64Data, filename, estimateId });
+  async function uploadPhoto(data) {
+    return request('POST', { action: 'uploadPhoto', ...data });
   }
 
   async function getPortfolio() {

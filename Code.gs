@@ -380,18 +380,31 @@ function getRequests() {
 // 포트폴리오
 // ============================================================
 function uploadPhoto(body) {
-  const folder = DriveApp.getFolderById('1xAU_HedTcFk_HiZiq415a8UzqEXZRwxg');
-  const blob = Utilities.newBlob(
+  var mainFolder = DriveApp.getFolderById('1xAU_HedTcFk_HiZiq415a8UzqEXZRwxg');
+
+  // 폴더명이 지정되면 하위 폴더에 저장
+  var folder = mainFolder;
+  if (body.folderName) {
+    var subFolders = mainFolder.getFoldersByName(body.folderName);
+    if (subFolders.hasNext()) {
+      folder = subFolders.next();
+    } else {
+      folder = mainFolder.createFolder(body.folderName);
+      folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    }
+  }
+
+  var blob = Utilities.newBlob(
     Utilities.base64Decode(body.base64Data),
     'image/jpeg',
     body.filename || 'photo.jpg'
   );
-  const file = folder.createFile(blob);
+  var file = folder.createFile(blob);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  const url = 'https://drive.google.com/uc?id=' + file.getId();
+  var url = 'https://drive.google.com/uc?id=' + file.getId();
 
-  const sheet = getSheet('포트폴리오');
-  const now = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
+  var sheet = getSheet('포트폴리오');
+  var now = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
   sheet.appendRow([now, body.estimateId || '', body.description || '', url]);
 
   return { result: 'success', photoUrl: url };
