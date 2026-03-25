@@ -473,7 +473,7 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
 
   debugLog('ntfy 함수 진입');
 
-  // ntfy.sh 푸시 알림
+  // ntfy.sh 푸시 알림 (429 시 최대 3회 재시도)
   try {
     var ntfyHeaders = {};
     var settingsForNtfy = getSheet('설정').getDataRange().getValues();
@@ -487,20 +487,34 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
     }
     debugLog('ntfy token: ' + (ntfyToken ? ntfyToken.substring(0, 8) + '...' : 'NONE'));
 
-    var ntfyResp = UrlFetchApp.fetch('https://ntfy.sh', {
-      method: 'post',
-      contentType: 'application/json; charset=utf-8',
-      headers: ntfyHeaders,
-      payload: JSON.stringify({
-        topic: 'yonginrack-noti',
-        title: '새 견적 요청이 도착했습니다',
-        message: message,
-        tags: ['incoming_envelope'],
-        priority: 4
-      }),
-      muteHttpExceptions: true
+    var payload = JSON.stringify({
+      topic: 'yonginrack-noti',
+      title: '새 견적 요청이 도착했습니다',
+      message: message,
+      tags: ['incoming_envelope'],
+      priority: 4
     });
-    debugLog('ntfy 응답: ' + ntfyResp.getResponseCode());
+
+    var maxRetries = 3;
+    for (var attempt = 1; attempt <= maxRetries; attempt++) {
+      var ntfyResp = UrlFetchApp.fetch('https://ntfy.sh', {
+        method: 'post',
+        contentType: 'application/json; charset=utf-8',
+        headers: ntfyHeaders,
+        payload: payload,
+        muteHttpExceptions: true
+      });
+      var code = ntfyResp.getResponseCode();
+      debugLog('ntfy 시도 ' + attempt + '/' + maxRetries + ' 응답: ' + code);
+
+      if (code === 200) {
+        break; // 성공
+      } else if (code === 429 && attempt < maxRetries) {
+        Utilities.sleep(2000 * attempt); // 2초, 4초 대기 후 재시도
+      } else {
+        debugLog('ntfy 실패 body: ' + ntfyResp.getContentText().substring(0, 100));
+      }
+    }
   } catch (e) {
     debugLog('ntfy 에러: ' + e.message);
   }
