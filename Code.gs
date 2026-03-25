@@ -312,8 +312,15 @@ function getDashboard() {
 
   for (let i = data.length - 1; i >= 1; i--) {
     const row = data[i];
-    const dateStr = String(row[0]);
-    if (dateStr.startsWith(thisMonth)) {
+    // Date 객체든 문자열이든 yyyy-MM 형식으로 변환
+    var rowMonth;
+    try {
+      var d = row[0] instanceof Date ? row[0] : new Date(row[0]);
+      rowMonth = Utilities.formatDate(d, 'Asia/Seoul', 'yyyy-MM');
+    } catch (e) {
+      rowMonth = String(row[0]).substring(0, 7);
+    }
+    if (rowMonth === thisMonth) {
       count++;
       totalAmount += Number(row[7]) || 0;
       if (row[8] === '계약' || row[8] === '시공중' || row[8] === '시공완료') {
