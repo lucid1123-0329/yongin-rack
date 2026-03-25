@@ -25,6 +25,8 @@ function doGet(e) {
         return jsonResponse(getPrices());
       case 'getEstimate':
         return jsonResponse(getEstimate(e.parameter.id));
+      case 'getEstimateByToken':
+        return jsonResponse(getEstimateByToken(e.parameter.token));
       case 'getEstimates':
         return jsonResponse(getEstimates());
       case 'getDashboard':
@@ -101,6 +103,9 @@ function doPost(e) {
           break;
         case 'deleteRequest':
           result = deleteRequest(body.rowIndex);
+          break;
+        case 'createShareToken':
+          result = createShareToken(body);
           break;
         default:
           result = { error: 'Unknown action' };
@@ -266,6 +271,62 @@ function getEstimate(estimateId) {
     }
   }
   return { error: 'Estimate not found' };
+}
+
+// ============================================================
+// 공유 토큰 (시트: 공유토큰)
+// 열 구조: [token, estimateId, hideMargin, docType, createdAt]
+// ============================================================
+function generateShareToken() {
+  // UUID 기반 URL-safe 랜덤 토큰 (하이픈 제거, 32자)
+  return Utilities.getUuid().replace(/-/g, '');
+}
+
+function createShareToken(body) {
+  if (!body.estimateId) return { error: 'Missing estimateId' };
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('공유토큰');
+  if (!sheet) {
+    sheet = ss.insertSheet('공유토큰');
+    sheet.appendRow(['token', 'estimateId', 'hideMargin', 'docType', 'createdAt']);
+  }
+
+  // 동일 조건 토큰이 이미 있으면 재사용
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][1] === body.estimateId &&
+        String(data[i][2]) === String(!!body.hideMargin) &&
+        String(data[i][3]) === String(body.docType || 'formal')) {
+      return { result: 'success', token: data[i][0] };
+    }
+  }
+
+  var token = generateShareToken();
+  var now = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss');
+  sheet.appendRow([token, body.estimateId, !!body.hideMargin, body.docType || 'formal', now]);
+  return { result: 'success', token: token };
+}
+
+function getEstimateByToken(token) {
+  if (!token) return { error: 'Missing token' };
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('공유토큰');
+  if (!sheet) return { error: 'Token not found' };
+
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === token) {
+      var estimateId = data[i][1];
+      var hideMargin = data[i][2] === true || data[i][2] === 'true';
+      var docType = data[i][3] || 'formal';
+      var estimate = getEstimate(estimateId);
+      if (estimate.error) return estimate;
+      estimate.hideMargin = hideMargin;
+      estimate.docType = docType;
+      return estimate;
+    }
+  }
+  return { error: 'Token not found' };
 }
 
 function getEstimates() {

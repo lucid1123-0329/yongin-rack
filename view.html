@@ -87,11 +87,23 @@
   <script src="js/estimate.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      const id = new URLSearchParams(location.search).get('id');
-      if (!id) { showError(); return; }
+      const params = new URLSearchParams(location.search);
+      const token = params.get('token');
+      const id = params.get('id');
+
+      if (!token && !id) { showError(); return; }
 
       try {
-        const data = await API.getEstimate(id);
+        let data;
+        if (token) {
+          // 토큰 기반 조회 (보안 URL)
+          data = await API.getEstimateByToken(token);
+        } else {
+          // 기존 ID 기반 조회 (하위호환)
+          data = await API.getEstimate(id);
+          data.docType = params.get('doc') || 'formal';
+          data.hideMargin = params.get('hideMargin') === '1';
+        }
         if (!data || data.error) { showError(); return; }
         data.estimateId = data.estimateId || id;
         render(data);
@@ -106,10 +118,8 @@
 
       const previewEl = document.getElementById('preview-area');
       const containerEl = document.getElementById('preview-container');
-      const params = new URLSearchParams(location.search);
-      const docType = params.get('doc');
-      const hideMargin = params.get('hideMargin') === '1';
-      const opts = hideMargin ? { hideMargin: true } : undefined;
+      const docType = data.docType || 'formal';
+      const opts = data.hideMargin ? { hideMargin: true } : undefined;
 
       if (docType === 'transaction') {
         previewEl.innerHTML = Estimate.renderTransactionStatement(data, opts);

@@ -81,6 +81,14 @@ const API = (() => {
     return request('GET', { action: 'getEstimate', id: estimateId });
   }
 
+  async function createShareToken(estimateId, hideMargin, docType) {
+    return request('POST', { action: 'createShareToken', estimateId, hideMargin: !!hideMargin, docType: docType || 'formal' });
+  }
+
+  async function getEstimateByToken(token) {
+    return request('GET', { action: 'getEstimateByToken', token });
+  }
+
   async function getEstimates() {
     return request('GET', { action: 'getEstimates' });
   }
@@ -138,7 +146,7 @@ const API = (() => {
 
   return {
     getPrices, addPrice, updatePrice, deletePrice,
-    saveEstimate, getEstimate, getEstimates, getDashboard, updateStatus,
+    saveEstimate, getEstimate, createShareToken, getEstimateByToken, getEstimates, getDashboard, updateStatus,
     submitRequest, getRequests, updateRequestStatus, deleteRequest,
     uploadPhoto, getPortfolio, deletePhoto, getBlogPosts,
     getSettings, saveSettings,

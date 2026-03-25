@@ -539,9 +539,25 @@ const Estimate = (() => {
 
     const text = `${itemSummary} — ${fmtW(total)} (VAT포함)`;
     const siteOrigin = location.origin;
-    const docParam = docType === 'transaction' ? '&doc=transaction' : '';
-    const marginParam = (options && options.hideMargin) ? '&hideMargin=1' : '';
-    const url = data.estimateId ? `${siteOrigin}/view.html?id=${data.estimateId}${docParam}${marginParam}` : window.location.href;
+
+    // 토큰 기반 공유 URL 생성
+    let url = window.location.href;
+    if (data.estimateId) {
+      try {
+        const hideMargin = !!(options && options.hideMargin);
+        const tokenRes = await API.createShareToken(data.estimateId, hideMargin, docType || 'formal');
+        if (tokenRes && tokenRes.token) {
+          url = `${siteOrigin}/view.html?token=${tokenRes.token}`;
+        } else {
+          // 토큰 발급 실패 시 기존 방식 폴백
+          const docParam = docType === 'transaction' ? '&doc=transaction' : '';
+          url = `${siteOrigin}/view.html?id=${data.estimateId}${docParam}`;
+        }
+      } catch {
+        const docParam = docType === 'transaction' ? '&doc=transaction' : '';
+        url = `${siteOrigin}/view.html?id=${data.estimateId}${docParam}`;
+      }
+    }
 
     if (navigator.share) {
       try {
