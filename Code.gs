@@ -114,16 +114,7 @@ function doPost(e) {
       lock.releaseLock();
     }
 
-    // 알림은 Lock 해제 후 발송
-    if (action === 'submitRequest' && result && !result.error) {
-      debugLog('doPost: submitRequest 성공, 알림 호출 시작');
-      try {
-        sendNewRequestNotification(body.name, body.phone, body.rackType, body.memo);
-        debugLog('doPost: 알림 호출 완료');
-      } catch (notiErr) {
-        debugLog('doPost: 알림 에러 - ' + notiErr.message);
-      }
-    }
+    // 알림은 클라이언트(request.html)에서 직접 ntfy 발송
 
     return jsonResponse(result);
   } catch (err) {
