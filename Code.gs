@@ -307,6 +307,21 @@ function deleteEstimate(estimateId) {
     }
   } catch(e) {}
 
+  // 공유토큰 시트에서 해당 estimateId 토큰 삭제
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var tokenSheet = ss.getSheetByName('공유토큰');
+    if (tokenSheet) {
+      var tokenData = tokenSheet.getDataRange().getValues();
+      // 역순으로 삭제 (행 번호 변동 방지)
+      for (var k = tokenData.length - 1; k >= 1; k--) {
+        if (tokenData[k][1] === estimateId) {
+          tokenSheet.deleteRow(k + 1);
+        }
+      }
+    }
+  } catch(e) {}
+
   return { result: 'success' };
 }
 

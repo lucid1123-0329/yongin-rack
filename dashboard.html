@@ -36,6 +36,13 @@
 </head>
 <body class="bg-[#f7fafc] min-h-screen">
 
+  <div id="page-loading" class="hidden fixed inset-0 bg-white z-50 flex items-center justify-center">
+    <div class="text-center">
+      <div class="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
+      <p class="text-sm text-gray-500" id="loading-text">처리 중...</p>
+    </div>
+  </div>
+
   <!-- 헤더 -->
   <header class="bg-primary text-white px-4 py-4 sticky top-0 z-40">
     <h1 class="text-lg font-bold">대시보드</h1>
@@ -278,9 +285,10 @@
 
     function handleDeleteEstimate(estimateId) {
       UI.confirm('견적 삭제', '이 견적을 삭제하시겠습니까?', async () => {
+        document.getElementById('page-loading').classList.remove('hidden');
+        document.getElementById('loading-text').textContent = '견적 삭제 중...';
         try {
           const res = await API.deleteEstimate(estimateId);
-          console.log('deleteEstimate response:', res);
           if (res && res.error) {
             UI.toast('삭제 실패: ' + res.error, 'error');
           } else {
@@ -289,8 +297,9 @@
             renderList();
           }
         } catch (err) {
-          console.error('deleteEstimate error:', err);
           UI.toast('삭제 실패: ' + (err.message || ''), 'error');
+        } finally {
+          document.getElementById('page-loading').classList.add('hidden');
         }
       });
     }
