@@ -15,10 +15,6 @@ const API = (() => {
     }
 
     const isAdmin = options.admin !== false;
-    const headers = {};
-    if (isAdmin) {
-      headers['X-API-Key'] = API_KEY;
-    }
 
     try {
       let response;
@@ -29,11 +25,15 @@ const API = (() => {
           redirect: 'follow',
         });
       } else {
+        // Content-Type: text/plain + no custom headers = no preflight (CORS safe)
+        // API key is passed in the body, not headers
+        const body = isAdmin
+          ? { ...params, apiKey: API_KEY }
+          : params;
         response = await fetch(BASE_URL, {
           method: 'POST',
           redirect: 'follow',
-          headers: { 'Content-Type': 'text/plain', ...headers },
-          body: JSON.stringify({ ...params, apiKey: API_KEY }),
+          body: JSON.stringify(body),
         });
       }
 
