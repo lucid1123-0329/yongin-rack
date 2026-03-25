@@ -521,6 +521,7 @@ function getBlogPosts() {
         description: text,
         thumbnail: thumbnail,
         pubDate: item.getChildText('pubDate') || '',
+        category: item.getChildText('category') || '',
       });
     }
     return { posts: posts };
