@@ -46,12 +46,6 @@
             placeholder="010-0000-0000">
         </div>
         <div>
-          <label for="req-company" class="block text-sm font-semibold text-gray-600 mb-1">회사명</label>
-          <input type="text" id="req-company"
-            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none"
-            placeholder="우리물류 (선택사항)">
-        </div>
-        <div>
           <label for="req-address" class="block text-sm font-semibold text-gray-600 mb-1">현장 주소</label>
           <input type="text" id="req-address"
             class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none"
@@ -88,6 +82,8 @@
         <details class="mb-4">
           <summary class="text-sm font-bold text-gray-600 cursor-pointer">사업자 정보 (선택)</summary>
           <div class="mt-2 space-y-2">
+            <input id="req-company" type="text" placeholder="회사명/상호"
+              class="w-full px-3 py-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
             <input id="req-biz-number" type="text" placeholder="사업자등록번호"
               class="w-full px-3 py-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
             <div class="grid grid-cols-2 gap-2">

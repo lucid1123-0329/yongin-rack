@@ -47,8 +47,16 @@
 </head>
 <body class="bg-[#f7fafc] min-h-screen">
 
+  <!-- 로딩 오버레이 -->
+  <div id="page-loading" class="hidden fixed inset-0 bg-white/80 z-50 flex items-center justify-center">
+    <div class="text-center">
+      <div class="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
+      <p class="text-sm text-gray-500" id="loading-text">견적 데이터를 불러오는 중...</p>
+    </div>
+  </div>
+
   <!-- 헤더 -->
-  <header class="bg-primary text-white px-4 py-4">
+  <header class="bg-primary text-white px-4 py-4 sticky top-0 z-40">
     <h1 class="text-lg font-bold">새 견적 작성</h1>
   </header>
 
@@ -263,6 +271,8 @@
 
       // 수정 모드: 기존 견적 데이터 로드
       if (from === 'edit' && p.get('editId')) {
+        document.getElementById('page-loading').classList.remove('hidden');
+        document.getElementById('loading-text').textContent = '기존 견적을 불러오는 중...';
         try {
           const data = await API.getEstimate(p.get('editId'));
           if (data && !data.error) {
@@ -285,12 +295,15 @@
             UI.toast('기존 견적을 불러왔습니다. 수정 후 저장하세요.', 'info', 3000);
           }
         } catch {}
+        document.getElementById('page-loading').classList.add('hidden');
         history.replaceState(null, '', location.pathname);
         return;
       }
 
       // 요청→견적 프리필
       if (from !== 'request') return;
+      document.getElementById('page-loading').classList.remove('hidden');
+      document.getElementById('loading-text').textContent = '고객 정보를 불러오는 중...';
       const fields = { name:'cust-name', company:'cust-company', phone:'cust-phone', address:'cust-address',
         bizNumber:'cust-biz-number', bizType:'cust-biz-type', bizItem:'cust-biz-item' };
       let filled = false;
@@ -304,6 +317,7 @@
       // requestRowIndex 저장 (공유 시 자동 상태 전환용)
       const reqRow = p.get('requestRowIndex');
       if (reqRow) sessionStorage.setItem('yr_request_row', reqRow);
+      document.getElementById('page-loading').classList.add('hidden');
       // URL 정리
       history.replaceState(null, '', location.pathname);
     }
