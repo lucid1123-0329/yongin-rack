@@ -62,8 +62,19 @@
       <button class="doc-tab" data-doc="transaction" onclick="switchDoc('transaction')">거래명세표</button>
     </div>
 
+    <!-- 마진 숨기기 토글 -->
+    <div id="margin-toggle" class="mx-4 mt-3 hidden">
+      <label class="flex items-center gap-3 bg-white rounded-xl border border-gray-100 px-4 py-3 cursor-pointer active:bg-gray-50">
+        <input type="checkbox" id="chk-hide-margin" onchange="renderDoc()" class="w-5 h-5 rounded accent-primary">
+        <div>
+          <span class="text-sm font-bold text-gray-700">마진 단가 적용</span>
+          <p class="text-[11px] text-gray-400 mt-0.5">마진을 각 품목 단가에 배분하여 마진 항목을 숨깁니다</p>
+        </div>
+      </label>
+    </div>
+
     <!-- 미리보기 영역 -->
-    <div id="preview-area" class="mx-4 mt-0 hidden" style="overflow-x:auto;"></div>
+    <div id="preview-area" class="mx-4 mt-3 hidden" style="overflow-x:auto;"></div>
 
     <!-- 액션 버튼 -->
     <div id="action-buttons" class="mx-4 mt-6 space-y-3 hidden">
@@ -133,6 +144,17 @@
       buttonsEl.classList.remove('hidden');
       tabsEl.classList.remove('hidden');
 
+      // 마진 토글 표시 (마진 항목이 있을 때만)
+      const marginToggle = document.getElementById('margin-toggle');
+      const items = estimateData.items || [];
+      const parsed = typeof items === 'string' ? JSON.parse(items) : items;
+      const hasMargin = parsed.some(i => i.itemType === 'custom' && (i.name || '').includes('마진'));
+      if (marginToggle) marginToggle.classList.toggle('hidden', !hasMargin);
+
+      // 마진 숨기기 옵션
+      const hideMargin = document.getElementById('chk-hide-margin')?.checked || false;
+      const opts = hideMargin ? { hideMargin: true } : undefined;
+
       // 탭 활성화
       document.querySelectorAll('.doc-tab').forEach(tab => {
         tab.classList.toggle('active', tab.dataset.doc === currentDoc);
@@ -140,7 +162,7 @@
 
       switch (currentDoc) {
         case 'transaction':
-          previewEl.innerHTML = Estimate.renderTransactionStatement(estimateData);
+          previewEl.innerHTML = Estimate.renderTransactionStatement(estimateData, opts);
           document.getElementById('page-title').textContent = '거래명세표';
           break;
         case 'simple':
@@ -148,7 +170,7 @@
           document.getElementById('page-title').textContent = '간편 견적서';
           break;
         default:
-          previewEl.innerHTML = Estimate.renderFormalQuotation(estimateData);
+          previewEl.innerHTML = Estimate.renderFormalQuotation(estimateData, opts);
           document.getElementById('page-title').textContent = '정식 견적서';
       }
     }

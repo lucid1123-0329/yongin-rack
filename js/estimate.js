@@ -64,6 +64,54 @@ const Estimate = (() => {
     return '대';
   }
 
+  // ---------- 마진 단가 배분 ----------
+  // 마진 항목을 제거하고, 마진 금액을 랙 항목 단가에 비례 배분
+  function applyMarginToUnitPrices(items) {
+    // 마진 항목 찾기
+    const marginItems = items.filter(i => i.itemType === 'custom' && (i.name || '').includes('마진'));
+    if (marginItems.length === 0) return items;
+
+    const totalMargin = marginItems.reduce((sum, i) => sum + (Number(i.unitPrice) || 0) * (Number(i.quantity) || 1), 0);
+    if (totalMargin <= 0) return items;
+
+    // 랙 항목만 추출
+    const rackItems = items.filter(i => i.itemType !== 'custom');
+    const otherCustom = items.filter(i => i.itemType === 'custom' && !(i.name || '').includes('마진'));
+
+    // 랙 소계 (배분 비율 기준)
+    const rackTotal = rackItems.reduce((sum, i) => {
+      return sum + ((Number(i.unitPrice) || 0) + (Number(i.installFee) || 0)) * (Number(i.quantity) || 0);
+    }, 0);
+
+    if (rackTotal <= 0) return items;
+
+    // 각 랙 항목에 마진 비례 배분
+    let distributed = 0;
+    const adjustedRacks = rackItems.map((item, idx) => {
+      const itemTotal = ((Number(item.unitPrice) || 0) + (Number(item.installFee) || 0)) * (Number(item.quantity) || 0);
+      const ratio = itemTotal / rackTotal;
+      const qty = Number(item.quantity) || 1;
+
+      // 마지막 항목은 잔여분 할당 (반올림 오차 보정)
+      let marginShare;
+      if (idx === rackItems.length - 1) {
+        marginShare = totalMargin - distributed;
+      } else {
+        marginShare = Math.round(totalMargin * ratio);
+        distributed += marginShare;
+      }
+
+      // 단가에 마진 배분 (대당)
+      const perUnit = Math.round(marginShare / qty);
+      return {
+        ...item,
+        unitPrice: (Number(item.unitPrice) || 0) + perUnit,
+      };
+    });
+
+    return [...adjustedRacks, ...otherCustom];
+  }
+
   // 테이블 공통 스타일 (인라인 — html2canvas 호환)
   const S = {
     table: 'width:100%;border-collapse:collapse;font-size:11px;',
@@ -77,10 +125,11 @@ const Estimate = (() => {
   };
 
   // ========== 정식 견적서 ==========
-  function renderFormalQuotation(data) {
+  function renderFormalQuotation(data, options) {
     const brand = getBranding();
-    const items = parseItems(data);
-    const { supplyTotal, vat, total } = calcTotals(items, data);
+    let items = parseItems(data);
+    if (options && options.hideMargin) items = applyMarginToUnitPrices(items);
+    const { supplyTotal, vat, total } = calcTotals(items, { ...data, supplyTotal: 0, vat: 0, total: 0 });
     const dateKr = formatDateKr(data.date);
     const koreanAmount = UI.numberToKorean ? `일금 ${UI.numberToKorean(total)}원정` : '';
 
@@ -227,10 +276,11 @@ const Estimate = (() => {
   }
 
   // ========== 거래명세표 ==========
-  function renderTransactionStatement(data) {
+  function renderTransactionStatement(data, options) {
     const brand = getBranding();
-    const items = parseItems(data);
-    const { supplyTotal, vat, total } = calcTotals(items, data);
+    let items = parseItems(data);
+    if (options && options.hideMargin) items = applyMarginToUnitPrices(items);
+    const { supplyTotal, vat, total } = calcTotals(items, { ...data, supplyTotal: 0, vat: 0, total: 0 });
     const dateKr = formatDateKr(data.date);
 
     const minRows = 12;
@@ -522,6 +572,6 @@ const Estimate = (() => {
 
   return {
     renderPreview, renderFormalQuotation, renderTransactionStatement,
-    share, downloadImage, getBranding,
+    applyMarginToUnitPrices, share, downloadImage, getBranding,
   };
 })();
