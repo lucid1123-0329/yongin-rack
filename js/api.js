@@ -51,6 +51,8 @@ const API = (() => {
       if (!navigator.onLine) {
         throw new Error('인터넷 연결이 필요합니다');
       }
+      // 백그라운드 요청(배지 등)은 조용히 실패
+      if (options.silent) { console.warn('API silent fail:', err.message); return null; }
       throw err;
     }
   }

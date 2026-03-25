@@ -158,9 +158,9 @@ const UI = (() => {
   // 내부: 배지 조회 — "마지막 확인 이후 새로 들어온 요청 수" 표시
   function _fetchRequestBadge() {
     try {
-      // 30초 내 재조회 방지
+      // 60초 내 재조회 방지
       var lastFetch = localStorage.getItem('yr_req_fetch_ts');
-      if (lastFetch && Date.now() - Number(lastFetch) < 30000) {
+      if (lastFetch && Date.now() - Number(lastFetch) < 60000) {
         // 캐시된 배지 값 표시
         var cachedBadge = localStorage.getItem('yr_req_badge_count');
         if (cachedBadge !== null) updateRequestBadge(Number(cachedBadge));
