@@ -133,8 +133,8 @@ const UI = (() => {
     `).join('');
     document.body.appendChild(bar);
 
-    // 미처리 요청 배지 자동 조회
-    _fetchRequestBadge();
+    // 미처리 요청 배지 자동 조회 (요청 페이지에서는 loadRequests가 직접 갱신)
+    if (active !== 'requests') _fetchRequestBadge();
   }
 
   // 미처리 요청 수 배지 업데이트
