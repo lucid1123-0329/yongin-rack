@@ -74,33 +74,41 @@ const Estimate = (() => {
     `;
   }
 
-  // 카카오톡 공유
-  function shareKakao(data) {
-    if (typeof Kakao === 'undefined' || !Kakao.isInitialized()) {
-      UI.toast('카카오톡 공유를 준비 중입니다', 'warning');
-      return;
+  // 공유 (Web Share API → 스마트폰 기본 공유 시트에서 카카오톡 선택)
+  async function share(data) {
+    const brand = getBranding();
+    const title = `[${brand.companyName || '용인 랙'}] 견적서`;
+    const text = `${data.rackType} ${data.quantity}대 — ${UI.formatCurrency(data.total)} (부가세 별도)`;
+    const url = data.viewUrl || window.location.href;
+
+    // Web Share API 지원 시 (모바일)
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text, url });
+        UI.toast('공유 완료', 'success');
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return; // 사용자가 취소
+      }
     }
 
-    const brand = getBranding();
-    Kakao.Share.sendDefault({
-      objectType: 'feed',
-      content: {
-        title: `[${brand.companyName || '용인 랙'}] 맞춤형 견적서가 도착했습니다`,
-        description: `${data.rackType} ${data.quantity}대 × ${UI.formatNumber(data.unitPrice)}원 + 시공비`,
-        imageUrl: `${window.location.origin}/assets/og-image.jpg`,
-        link: {
-          mobileWebUrl: data.viewUrl || window.location.origin,
-          webUrl: data.viewUrl || window.location.origin,
-        },
-      },
-      buttons: [{
-        title: '견적서 확인하기',
-        link: {
-          mobileWebUrl: data.viewUrl || window.location.origin,
-          webUrl: data.viewUrl || window.location.origin,
-        },
-      }],
-    });
+    // 미지원 시 (데스크톱) → 클립보드 복사
+    const shareText = `${title}\n${text}\n\n견적서 확인: ${url}`;
+    try {
+      await navigator.clipboard.writeText(shareText);
+      UI.toast('견적 정보가 복사되었습니다. 카카오톡에 붙여넣기 하세요.', 'success', 4000);
+    } catch {
+      // clipboard API도 실패 시 textarea fallback
+      const ta = document.createElement('textarea');
+      ta.value = shareText;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      UI.toast('견적 정보가 복사되었습니다. 카카오톡에 붙여넣기 하세요.', 'success', 4000);
+    }
   }
 
   // 이미지 다운로드 (html2canvas)
@@ -128,5 +136,5 @@ const Estimate = (() => {
     }
   }
 
-  return { renderPreview, shareKakao, downloadImage, getBranding };
+  return { renderPreview, share, downloadImage, getBranding };
 })();
