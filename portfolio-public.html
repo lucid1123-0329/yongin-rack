@@ -90,15 +90,16 @@
     </div>
   </div>
 
-  <script src="js/api.js"></script>
   <script>
+    const RSS_URL = 'https://api.rss2json.com/v1/api.json?rss_url=https://rss.blog.naver.com/yongin_rack.xml';
+
     document.addEventListener('DOMContentLoaded', async () => {
-      // 블로그 게시글 로드
       try {
-        const data = await API.getBlogPosts();
+        const res = await fetch(RSS_URL);
+        const data = await res.json();
         document.getElementById('loading').classList.add('hidden');
 
-        if (!data.posts || data.posts.length === 0) {
+        if (data.status !== 'ok' || !data.items || data.items.length === 0) {
           document.getElementById('empty-state').classList.remove('hidden');
           return;
         }
@@ -107,9 +108,14 @@
         list.classList.remove('hidden');
         document.getElementById('blog-link').classList.remove('hidden');
 
-        list.innerHTML = data.posts.map(post => {
+        list.innerHTML = data.items.map(post => {
           const date = post.pubDate ? new Date(post.pubDate).toLocaleDateString('ko-KR') : '';
-          const category = post.category || '';
+          // description에서 HTML 태그 제거
+          const desc = (post.description || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+          const shortDesc = desc.length > 80 ? desc.substring(0, 80) + '...' : desc;
+          // 카테고리 추출 (categories 배열)
+          const category = post.categories && post.categories[0] ? post.categories[0] : '';
+
           return `
             <a href="${post.link}" target="_blank" rel="noopener"
               class="block bg-white rounded-xl border border-gray-100 overflow-hidden active:bg-gray-50 transition-colors">
@@ -119,7 +125,7 @@
               <div class="p-4">
                 ${category ? `<span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-primary mb-2">${category}</span>` : ''}
                 <h3 class="text-sm font-bold text-gray-800 mb-1 line-clamp-2">${post.title}</h3>
-                <p class="text-xs text-gray-500 line-clamp-2 mb-2">${post.description}</p>
+                <p class="text-xs text-gray-500 line-clamp-2 mb-2">${shortDesc}</p>
                 <span class="text-xs text-gray-400">${date}</span>
               </div>
             </a>
