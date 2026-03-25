@@ -1,6 +1,7 @@
 /**
  * auth.js — PIN 인증 모듈
- * SHA-256 해시 기반 클라이언트 인증
+ * SHA-256 해시 기반 인증, PIN은 구글시트 설정에 저장
+ * 새 기기에서 접속 시 서버에서 PIN 해시를 가져와 인증
  */
 
 const Auth = (() => {
@@ -21,19 +22,21 @@ const Auth = (() => {
     return sessionStorage.getItem(SESSION_KEY) === 'true';
   }
 
-  function isOnboardingDone() {
-    return localStorage.getItem(ONBOARDING_KEY) === 'true';
-  }
-
   function hasPinSet() {
     return !!localStorage.getItem(PIN_HASH_KEY);
   }
 
+  // PIN 설정 — localStorage + 서버(구글시트) 동시 저장
   async function setPin(pin) {
     const hash = await sha256(pin);
     localStorage.setItem(PIN_HASH_KEY, hash);
+    localStorage.setItem(ONBOARDING_KEY, 'true');
+    try {
+      await API.saveSettings({ pinHash: hash });
+    } catch {}
   }
 
+  // PIN 검증 — localStorage의 해시와 비교
   async function verifyPin(pin) {
     const hash = await sha256(pin);
     const stored = localStorage.getItem(PIN_HASH_KEY);
@@ -41,6 +44,19 @@ const Auth = (() => {
       sessionStorage.setItem(SESSION_KEY, 'true');
       return true;
     }
+    return false;
+  }
+
+  // 서버에서 PIN 해시를 가져와 localStorage에 동기화
+  async function fetchServerPin() {
+    try {
+      const data = await API.getSettings();
+      if (data.settings && data.settings.pinHash) {
+        localStorage.setItem(PIN_HASH_KEY, data.settings.pinHash);
+        localStorage.setItem(ONBOARDING_KEY, 'true');
+        return true;
+      }
+    } catch {}
     return false;
   }
 
@@ -54,19 +70,30 @@ const Auth = (() => {
 
   /**
    * 페이지 진입 시 호출 — 인증 상태에 따라 리다이렉트
-   * @param {boolean} requireAuth - true면 미인증 시 PIN 화면으로
+   * 로컬에 PIN이 없으면 서버에서 확인 후 처리
    */
   function guard(requireAuth = true) {
     if (!requireAuth) return true;
-    if (!hasPinSet() || !isOnboardingDone()) {
-      window.location.href = 'settings.html?setup=1';
-      return false;
-    }
-    if (!isAuthenticated()) {
+
+    if (isAuthenticated()) return true;
+
+    if (hasPinSet()) {
+      // 로컬에 PIN 있음 → PIN 입력 모달
       showPinModal();
       return false;
     }
-    return true;
+
+    // 로컬에 PIN 없음 → 서버에서 확인
+    fetchServerPin().then(found => {
+      if (found) {
+        // 서버에 PIN 있음 → PIN 입력 모달
+        showPinModal();
+      } else {
+        // 서버에도 PIN 없음 → 최초 설정(온보딩)
+        window.location.href = 'settings.html?setup=1';
+      }
+    });
+    return false;
   }
 
   function showPinModal() {
@@ -145,8 +172,8 @@ const Auth = (() => {
   }
 
   return {
-    isAuthenticated, isOnboardingDone, hasPinSet,
+    isAuthenticated, hasPinSet,
     setPin, verifyPin, completeOnboarding, logout,
-    guard, showPinModal,
+    guard, showPinModal, fetchServerPin,
   };
 })();
