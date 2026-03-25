@@ -380,7 +380,7 @@ function getRequests() {
 // 포트폴리오
 // ============================================================
 function uploadPhoto(body) {
-  const folder = getOrCreateFolder('용인랙_포트폴리오');
+  const folder = DriveApp.getFolderById('1xAU_HedTcFk_HiZiq415a8UzqEXZRwxg');
   const blob = Utilities.newBlob(
     Utilities.base64Decode(body.base64Data),
     'image/jpeg',
