@@ -99,11 +99,19 @@ function doPost(e) {
         case 'updateRequestStatus':
           result = updateRequestStatus(body.rowIndex, body.status);
           break;
+        case 'deleteRequest':
+          result = deleteRequest(body.rowIndex);
+          break;
         default:
           result = { error: 'Unknown action' };
       }
     } finally {
       lock.releaseLock();
+    }
+
+    // 알림은 Lock 해제 후 발송 (외부 HTTP 요청은 Lock 안에서 차단될 수 있음)
+    if (action === 'submitRequest' && result && !result.error) {
+      sendNewRequestNotification(body.name, body.phone, body.rackType, body.memo);
     }
 
     return jsonResponse(result);
@@ -375,9 +383,6 @@ function submitRequest(body) {
     body.memo || '', '미처리'
   ]);
 
-  // 알림 발송
-  sendNewRequestNotification(body.name, body.phone, body.rackType, body.memo);
-
   return { result: 'success' };
 }
 
@@ -553,6 +558,14 @@ function updateRequestStatus(rowIndex, newStatus) {
   if (row < 2) return { error: 'Invalid row' };
   var sheet = getSheet('견적요청');
   sheet.getRange(row, 7).setValue(newStatus);
+  return { result: 'success' };
+}
+
+function deleteRequest(rowIndex) {
+  var row = Number(rowIndex);
+  if (row < 2) return { error: 'Invalid row' };
+  var sheet = getSheet('견적요청');
+  sheet.deleteRow(row);
   return { result: 'success' };
 }
 

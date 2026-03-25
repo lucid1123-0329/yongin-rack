@@ -106,6 +106,10 @@ const API = (() => {
     return request('POST', { action: 'updateRequestStatus', rowIndex, status });
   }
 
+  async function deleteRequest(rowIndex) {
+    return request('POST', { action: 'deleteRequest', rowIndex });
+  }
+
   // --- 포트폴리오 ---
   async function uploadPhoto(data) {
     return request('POST', { action: 'uploadPhoto', ...data });
@@ -135,7 +139,7 @@ const API = (() => {
   return {
     getPrices, addPrice, updatePrice, deletePrice,
     saveEstimate, getEstimate, getEstimates, getDashboard, updateStatus,
-    submitRequest, getRequests, updateRequestStatus,
+    submitRequest, getRequests, updateRequestStatus, deleteRequest,
     uploadPhoto, getPortfolio, deletePhoto, getBlogPosts,
     getSettings, saveSettings,
     get baseUrl() { return BASE_URL; },

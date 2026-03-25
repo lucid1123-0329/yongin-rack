@@ -30,7 +30,21 @@
   </header>
 
   <main class="max-w-lg mx-auto">
-    <div class="mx-4 mt-4" id="request-list"></div>
+    <!-- 상태 필터 -->
+    <div class="mx-4 mt-4 flex gap-2 overflow-x-auto pb-1">
+      <button onclick="setFilter('전체')" data-status="전체"
+        class="req-tab flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold bg-primary text-white">전체</button>
+      <button onclick="setFilter('미처리')" data-status="미처리"
+        class="req-tab flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500">미처리</button>
+      <button onclick="setFilter('연락완료')" data-status="연락완료"
+        class="req-tab flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500">연락완료</button>
+      <button onclick="setFilter('견적발송')" data-status="견적발송"
+        class="req-tab flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500">견적발송</button>
+      <button onclick="setFilter('완료')" data-status="완료"
+        class="req-tab flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500">완료</button>
+    </div>
+
+    <div class="mx-4 mt-3" id="request-list"></div>
   </main>
 
   <script src="js/api.js"></script>
@@ -38,6 +52,7 @@
   <script src="js/ui.js"></script>
   <script>
     let allRequests = [];
+    let currentFilter = '전체';
     const REQ_STATUSES = ['미처리', '연락완료', '견적발송', '완료'];
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -66,15 +81,34 @@
       }
     }
 
+    function setFilter(status) {
+      currentFilter = status;
+      document.querySelectorAll('.req-tab').forEach(btn => {
+        const isActive = btn.dataset.status === status;
+        btn.className = `req-tab flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold ${isActive ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'}`;
+      });
+      renderRequests();
+    }
+
+    function getFiltered() {
+      if (currentFilter === '전체') return allRequests;
+      return allRequests.filter(r => (r.status || '미처리') === currentFilter);
+    }
+
     function renderRequests() {
       const container = document.getElementById('request-list');
+      const filtered = getFiltered();
 
       if (allRequests.length === 0) {
         container.innerHTML = UI.empty('📩', '요청이 없습니다', '고객의 견적 요청이 여기에 표시됩니다');
         return;
       }
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="text-center py-12 text-sm text-gray-400">해당 상태의 요청이 없습니다.</div>';
+        return;
+      }
 
-      container.innerHTML = allRequests.map(r => {
+      container.innerHTML = filtered.map(r => {
         const phone = String(r.phone || '').replace(/^0?(\d+)/, (m, p) => {
           if (m.startsWith('0')) return m;
           return '0' + m;
@@ -102,15 +136,29 @@
             <p class="text-gray-500">${r.rackType || '-'} · ${r.quantity || 0}대</p>
             ${r.memo ? `<p class="text-gray-400 text-xs">${r.memo}</p>` : ''}
           </div>
-          <div class="flex gap-1.5 flex-wrap">
+          <div class="flex items-center gap-1.5 flex-wrap">
             ${REQ_STATUSES.map(s => `
               <button onclick="changeRequestStatus(${r.rowIndex}, '${s}')"
                 class="px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${s === (r.status || '미처리')
                   ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500 active:bg-gray-200'}">${s}</button>
             `).join('')}
+            <button onclick="handleDeleteRequest(${r.rowIndex})"
+              class="ml-auto w-7 h-7 flex items-center justify-center rounded-lg text-red-400 active:bg-red-50">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
           </div>
         </div>`;
       }).join('');
+    }
+
+    function handleDeleteRequest(rowIndex) {
+      UI.confirm('요청 삭제', '이 요청을 삭제하시겠습니까?', async () => {
+        try {
+          await API.deleteRequest(rowIndex);
+          UI.toast('삭제되었습니다', 'success');
+          await loadRequests();
+        } catch { UI.toast('삭제 실패', 'error'); }
+      });
     }
 
     async function changeRequestStatus(rowIndex, newStatus) {
