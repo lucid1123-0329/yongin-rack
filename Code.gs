@@ -583,7 +583,7 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
       filters: [{ field: 'tag', key: 'role', relation: '=', value: 'admin' }],
       headings: { en: '새 견적 요청이 도착했습니다' },
       contents: { en: message },
-      url: 'https://yonginrack.co.kr/requests.html'
+      url: 'https://yongin-rack.com/requests.html'
     };
 
     var resp = UrlFetchApp.fetch('https://onesignal.com/api/v1/notifications', {
