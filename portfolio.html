@@ -81,6 +81,16 @@
             class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
         </div>
         <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">시공 장소</label>
+          <input type="text" id="f-location" placeholder="예: 용인시 기흥구 OO물류센터"
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">시공 날짜</label>
+          <input type="date" id="f-date"
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+        </div>
+        <div>
           <label class="block text-xs font-semibold text-gray-500 mb-1">관련 견적번호 (선택)</label>
           <input type="text" id="f-estimate-id" placeholder="YR-20260325-001"
             class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
@@ -158,13 +168,15 @@
       document.getElementById('upload-modal').classList.add('hidden');
     }
 
-    // 파일 선택 시 개수 표시
+    // 파일 선택 시 개수 표시 + 날짜 기본값
     document.addEventListener('DOMContentLoaded', () => {
       const fi = document.getElementById('f-photo');
       if (fi) fi.addEventListener('change', () => {
         const cnt = fi.files.length;
         document.getElementById('file-count').textContent = cnt > 0 ? `${cnt}장 선택됨` : '';
       });
+      const dateInput = document.getElementById('f-date');
+      if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
     });
 
     async function handleUpload() {
@@ -178,11 +190,15 @@
       const btn = document.getElementById('btn-upload');
       UI.setLoading(btn, true);
       const description = document.getElementById('f-description').value.trim();
+      const location = document.getElementById('f-location').value.trim();
+      const dateVal = document.getElementById('f-date').value || new Date().toISOString().slice(0, 10);
       const estimateId = document.getElementById('f-estimate-id').value.trim();
 
-      // 폴더명: 날짜_설명 (예: 2026-03-25_경량랙 시공)
-      const today = new Date().toISOString().slice(0, 10);
-      const folderName = description ? `${today}_${description}` : `${today}_시공사진`;
+      // 폴더명: 날짜_장소_설명 (예: 2026-03-25_용인시 기흥구_경량랙 시공)
+      const parts = [dateVal];
+      if (location) parts.push(location);
+      if (description) parts.push(description);
+      const folderName = parts.length > 1 ? parts.join('_') : `${dateVal}_시공사진`;
 
       let successCount = 0;
       let failCount = 0;
@@ -197,6 +213,7 @@
               filename: files[i].name,
               estimateId,
               description,
+              location,
               folderName,
             });
             // result가 있고 error가 없으면 성공
@@ -216,6 +233,8 @@
           fileInput.value = '';
           document.getElementById('file-count').textContent = '';
           document.getElementById('f-description').value = '';
+          document.getElementById('f-location').value = '';
+          document.getElementById('f-date').value = '';
           document.getElementById('f-estimate-id').value = '';
           await loadPortfolio();
         } else {

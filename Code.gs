@@ -7,7 +7,7 @@
  *   견적내역: [견적일시, 견적번호, 고객명, 회사명, 연락처, 주소, 품목상세(JSON), 총액, 진행상태, clientId]
  *   견적요청: [요청일시, 고객명, 연락처, 랙종류, 수량, 메모, 처리상태]
  *   설정: [key, value]
- *   포트폴리오: [날짜, 견적번호, 설명, 사진URL]
+ *   포트폴리오: [날짜, 견적번호, 설명, 사진URL, 장소]
  */
 
 const SPREADSHEET_ID = '1azkq97HM29dyI-d4YC3FamsudWhuUC7FSPB_rGH8aZg';
@@ -58,9 +58,14 @@ function doPost(e) {
       return jsonResponse({ error: 'Unauthorized' });
     }
 
-    // LockService로 동시 쓰기 보호
+    // 사진 업로드는 Lock 없이 처리 (Drive 작업이 오래 걸림)
+    if (action === 'uploadPhoto') {
+      return jsonResponse(uploadPhoto(body));
+    }
+
+    // 나머지 쓰기 작업은 LockService로 동시 쓰기 보호
     const lock = LockService.getScriptLock();
-    lock.waitLock(10000);
+    lock.waitLock(15000);
 
     let result;
     try {
@@ -82,9 +87,6 @@ function doPost(e) {
           break;
         case 'submitRequest':
           result = submitRequest(body);
-          break;
-        case 'uploadPhoto':
-          result = uploadPhoto(body);
           break;
         case 'saveSettings':
           result = saveSettings(body);
@@ -380,34 +382,46 @@ function getRequests() {
 // 포트폴리오
 // ============================================================
 function uploadPhoto(body) {
-  var mainFolder = DriveApp.getFolderById('1xAU_HedTcFk_HiZiq415a8UzqEXZRwxg');
+  try {
+    var mainFolder = DriveApp.getFolderById('1xAU_HedTcFk_HiZiq415a8UzqEXZRwxg');
 
-  // 폴더명이 지정되면 하위 폴더에 저장
-  var folder = mainFolder;
-  if (body.folderName) {
-    var subFolders = mainFolder.getFoldersByName(body.folderName);
-    if (subFolders.hasNext()) {
-      folder = subFolders.next();
-    } else {
-      folder = mainFolder.createFolder(body.folderName);
-      folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    // 폴더명이 지정되면 하위 폴더에 저장
+    var folder = mainFolder;
+    if (body.folderName) {
+      var subFolders = mainFolder.getFoldersByName(body.folderName);
+      if (subFolders.hasNext()) {
+        folder = subFolders.next();
+      } else {
+        folder = mainFolder.createFolder(body.folderName);
+        try {
+          folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        } catch (shareErr) {
+          // 공유 설정 실패해도 업로드는 계속 진행
+        }
+      }
     }
+
+    var blob = Utilities.newBlob(
+      Utilities.base64Decode(body.base64Data),
+      'image/jpeg',
+      body.filename || 'photo.jpg'
+    );
+    var file = folder.createFile(blob);
+    try {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (shareErr) {
+      // 공유 설정 실패해도 업로드는 계속 진행
+    }
+    var url = 'https://drive.google.com/uc?id=' + file.getId();
+
+    var sheet = getSheet('포트폴리오');
+    var now = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
+    sheet.appendRow([now, body.estimateId || '', body.description || '', url, body.location || '']);
+
+    return { result: 'success', photoUrl: url };
+  } catch (err) {
+    return { error: err.message || '사진 업로드 실패' };
   }
-
-  var blob = Utilities.newBlob(
-    Utilities.base64Decode(body.base64Data),
-    'image/jpeg',
-    body.filename || 'photo.jpg'
-  );
-  var file = folder.createFile(blob);
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  var url = 'https://drive.google.com/uc?id=' + file.getId();
-
-  var sheet = getSheet('포트폴리오');
-  var now = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
-  sheet.appendRow([now, body.estimateId || '', body.description || '', url]);
-
-  return { result: 'success', photoUrl: url };
 }
 
 function getPortfolio() {
@@ -594,7 +608,7 @@ function getSheet(name) {
     '견적내역': ['견적일시', '견적번호', '고객명', '회사명', '연락처', '주소', '품목상세', '총액', '진행상태', 'clientId'],
     '견적요청': ['요청일시', '고객명', '연락처', '랙종류', '수량', '메모', '처리상태'],
     '설정': ['key', 'value'],
-    '포트폴리오': ['날짜', '견적번호', '설명', '사진URL'],
+    '포트폴리오': ['날짜', '견적번호', '설명', '사진URL', '장소'],
   };
 
   if (!sheet) {
