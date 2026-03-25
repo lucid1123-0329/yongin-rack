@@ -125,7 +125,7 @@ function getPrices() {
       type: row[0],
       spec: row[1],
       tier: row[2],
-      price: Number(row[3]) || 0,
+      unitPrice: Number(row[3]) || 0,
       installFee: Number(row[4]) || 0,
       vat: row[5] || '별도',
     });
@@ -137,7 +137,7 @@ function addPrice(body) {
   const sheet = getSheet('단가표');
   sheet.appendRow([
     body.type, body.spec, body.tier,
-    Number(body.price) || 0, Number(body.installFee) || 0,
+    Number(body.unitPrice) || 0, Number(body.installFee) || 0,
     body.vat || '별도', true
   ]);
   return { result: 'success' };
@@ -149,7 +149,7 @@ function updatePrice(body) {
   if (row < 2) return { error: 'Invalid row' };
   sheet.getRange(row, 1, 1, 6).setValues([[
     body.type, body.spec, body.tier,
-    Number(body.price) || 0, Number(body.installFee) || 0,
+    Number(body.unitPrice) || 0, Number(body.installFee) || 0,
     body.vat || '별도'
   ]]);
   return { result: 'success' };
