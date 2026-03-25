@@ -117,6 +117,7 @@
     });
 
     async function init() {
+      UI.renderTabBar('portfolio');
       document.getElementById('portfolio-list').innerHTML = UI.skeleton(3);
       await loadPortfolio();
     }

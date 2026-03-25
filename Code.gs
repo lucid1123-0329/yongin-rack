@@ -96,6 +96,9 @@ function doPost(e) {
         case 'deletePhoto':
           result = deletePhoto(body.rowIndex);
           break;
+        case 'updateRequestStatus':
+          result = updateRequestStatus(body.rowIndex, body.status);
+          break;
         default:
           result = { error: 'Unknown action' };
       }
@@ -430,7 +433,8 @@ function getRequests() {
   const requests = [];
   for (let i = data.length - 1; i >= 1; i--) {
     requests.push({
-      date: data[i][0], name: data[i][1], phone: data[i][2],
+      rowIndex: i + 1,
+      date: data[i][0], name: data[i][1], phone: String(data[i][2]),
       rackType: data[i][3], quantity: Number(data[i][4]),
       memo: data[i][5], status: data[i][6],
     });
@@ -540,6 +544,14 @@ function getBlogPosts() {
   } catch (err) {
     return { posts: [], error: err.message };
   }
+}
+
+function updateRequestStatus(rowIndex, newStatus) {
+  var row = Number(rowIndex);
+  if (row < 2) return { error: 'Invalid row' };
+  var sheet = getSheet('견적요청');
+  sheet.getRange(row, 7).setValue(newStatus);
+  return { result: 'success' };
 }
 
 function deletePhoto(rowIndex) {
@@ -704,6 +716,24 @@ itemsHtml +
 /**
  * GAS 에디터에서 직접 실행 — 모든 시트 탭 초기화
  */
+/**
+ * GAS 에디터에서 직접 실행 — ntfy 푸시 테스트
+ * 이 함수를 실행하면 권한 승인 팝업이 뜹니다. 반드시 허용하세요.
+ * 허용 후 재배포하면 웹 앱에서도 ntfy가 동작합니다.
+ */
+function testNtfyPush() {
+  var response = UrlFetchApp.fetch('https://ntfy.sh/yonginrack-noti', {
+    method: 'post',
+    payload: 'GAS에서 보낸 테스트 알림입니다!',
+    headers: {
+      'Title': '용인 랙 - ntfy 테스트',
+      'Tags': 'white_check_mark',
+      'Priority': '4'
+    }
+  });
+  Logger.log('ntfy 응답: ' + response.getResponseCode());
+}
+
 function initAllSheets() {
   ['단가표', '견적내역', '견적요청', '설정', '포트폴리오'].forEach(name => {
     getSheet(name);

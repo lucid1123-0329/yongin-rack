@@ -102,6 +102,10 @@ const API = (() => {
     return request('GET', { action: 'getRequests' });
   }
 
+  async function updateRequestStatus(rowIndex, status) {
+    return request('POST', { action: 'updateRequestStatus', rowIndex, status });
+  }
+
   // --- 포트폴리오 ---
   async function uploadPhoto(data) {
     return request('POST', { action: 'uploadPhoto', ...data });
@@ -131,7 +135,7 @@ const API = (() => {
   return {
     getPrices, addPrice, updatePrice, deletePrice,
     saveEstimate, getEstimate, getEstimates, getDashboard, updateStatus,
-    submitRequest, getRequests,
+    submitRequest, getRequests, updateRequestStatus,
     uploadPhoto, getPortfolio, deletePhoto, getBlogPosts,
     getSettings, saveSettings,
     get baseUrl() { return BASE_URL; },
