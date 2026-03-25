@@ -285,13 +285,29 @@ function deleteEstimate(estimateId) {
   if (!estimateId) return { error: 'Missing estimateId' };
   var sheet = getSheet('견적내역');
   var data = sheet.getDataRange().getValues();
+  var deleted = false;
   for (var i = 1; i < data.length; i++) {
     if (data[i][1] === estimateId) {
       sheet.deleteRow(i + 1);
-      return { result: 'success' };
+      deleted = true;
+      break;
     }
   }
-  return { error: 'Estimate not found' };
+  if (!deleted) return { error: 'Estimate not found' };
+
+  // 견적요청 시트에서 연결된 estimateId 클리어
+  try {
+    var reqSheet = getSheet('견적요청');
+    var reqData = reqSheet.getDataRange().getValues();
+    for (var j = 1; j < reqData.length; j++) {
+      if (reqData[j][12] === estimateId) {
+        reqSheet.getRange(j + 1, 13).setValue('');
+        break;
+      }
+    }
+  } catch(e) {}
+
+  return { result: 'success' };
 }
 
 function generateEstimateId(sheet, date) {

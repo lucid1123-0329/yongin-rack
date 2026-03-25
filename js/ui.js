@@ -17,16 +17,16 @@ const UI = (() => {
     };
 
     const el = document.createElement('div');
-    el.className = `yr-toast fixed bottom-20 left-4 right-4 ${colors[type]} text-white px-4 py-3 rounded-lg text-sm font-medium z-50 text-center transition-all duration-300 translate-y-4 opacity-0`;
+    el.className = `yr-toast fixed top-4 right-4 max-w-[min(320px,calc(100vw-2rem))] ${colors[type]} text-white px-4 py-3 rounded-lg text-sm font-medium z-[60] text-left shadow-lg transition-all duration-300 translate-y-[-1rem] opacity-0`;
     el.textContent = message;
     document.body.appendChild(el);
 
     requestAnimationFrame(() => {
-      el.classList.remove('translate-y-4', 'opacity-0');
+      el.classList.remove('translate-y-[-1rem]', 'opacity-0');
     });
 
     setTimeout(() => {
-      el.classList.add('translate-y-4', 'opacity-0');
+      el.classList.add('translate-y-[-1rem]', 'opacity-0');
       setTimeout(() => el.remove(), 300);
     }, duration);
   }
