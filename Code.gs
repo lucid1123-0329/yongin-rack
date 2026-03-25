@@ -93,6 +93,9 @@ function doPost(e) {
         case 'saveSettings':
           result = saveSettings(body);
           break;
+        case 'deletePhoto':
+          result = deletePhoto(body.rowIndex);
+          break;
         default:
           result = { error: 'Unknown action' };
       }
@@ -482,8 +485,10 @@ function getPortfolio() {
   const photos = [];
   for (let i = data.length - 1; i >= 1; i--) {
     photos.push({
+      rowIndex: i + 1,
       date: data[i][0], estimateId: data[i][1],
       description: data[i][2], photoUrl: data[i][3],
+      location: data[i][4] || '',
     });
   }
   return { photos };
@@ -528,6 +533,14 @@ function getBlogPosts() {
   } catch (err) {
     return { posts: [], error: err.message };
   }
+}
+
+function deletePhoto(rowIndex) {
+  var row = Number(rowIndex);
+  if (row < 2) return { error: 'Invalid row' };
+  var sheet = getSheet('포트폴리오');
+  sheet.deleteRow(row);
+  return { result: 'success' };
 }
 
 function getOrCreateFolder(name) {

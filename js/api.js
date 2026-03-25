@@ -111,6 +111,10 @@ const API = (() => {
     return request('GET', { action: 'getPortfolio' });
   }
 
+  async function deletePhoto(rowIndex) {
+    return request('POST', { action: 'deletePhoto', rowIndex });
+  }
+
   async function getBlogPosts() {
     return request('GET', { action: 'getBlogPosts' });
   }
@@ -128,7 +132,7 @@ const API = (() => {
     getPrices, addPrice, updatePrice, deletePrice,
     saveEstimate, getEstimate, getEstimates, getDashboard, updateStatus,
     submitRequest, getRequests,
-    uploadPhoto, getPortfolio, getBlogPosts,
+    uploadPhoto, getPortfolio, deletePhoto, getBlogPosts,
     getSettings, saveSettings,
     get baseUrl() { return BASE_URL; },
   };
