@@ -151,7 +151,8 @@
         renderPrices();
       } catch (err) {
         UI.toast(err.message || '단가 로딩 실패', 'error');
-        document.getElementById('skeleton-area').innerHTML = '';
+        const sk = document.getElementById('skeleton-area');
+        if (sk) sk.innerHTML = '';
         document.getElementById('empty-state').classList.remove('hidden');
         document.getElementById('empty-state').innerHTML = UI.empty(
           '⚠️', '로딩 실패', err.message || '단가를 불러올 수 없습니다', '다시 시도', 'admin.html'
@@ -160,7 +161,8 @@
     }
 
     function renderPrices() {
-      document.getElementById('skeleton-area').innerHTML = '';
+      const sk = document.getElementById('skeleton-area');
+      if (sk) sk.innerHTML = '';
       const list = document.getElementById('price-list');
       const empty = document.getElementById('empty-state');
 
