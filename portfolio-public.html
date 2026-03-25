@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>용인 랙 - 시공 포트폴리오</title>
+  <meta name="description" content="용인 랙의 랙 설치 시공 사례를 확인하세요.">
+  <meta property="og:title" content="용인 랙 - 시공 포트폴리오">
+  <meta property="og:description" content="전문 랙 설치 시공 사례를 확인하세요.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:'#1e3a5f',accent:'#f97316'}}}}</script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e3a5f">
+  <style>body{font-family:'Pretendard',sans-serif}</style>
+</head>
+<body class="bg-[#f7fafc] min-h-screen">
+  <header class="bg-primary text-white px-4 py-4 text-center">
+    <h1 class="text-lg font-bold">용인 랙</h1>
+    <p class="text-xs opacity-80 mt-1">시공 포트폴리오</p>
+  </header>
+
+  <main class="max-w-lg mx-auto px-4 py-6">
+    <div id="portfolio-grid" class="grid grid-cols-2 gap-3">
+      <!-- 로딩 스켈레톤 -->
+      <div class="animate-pulse bg-gray-200 rounded-xl aspect-square"></div>
+      <div class="animate-pulse bg-gray-200 rounded-xl aspect-square"></div>
+      <div class="animate-pulse bg-gray-200 rounded-xl aspect-square"></div>
+      <div class="animate-pulse bg-gray-200 rounded-xl aspect-square"></div>
+    </div>
+
+    <div id="empty-state" class="hidden text-center py-12">
+      <div class="text-5xl mb-4">🏗️</div>
+      <h3 class="text-lg font-bold text-gray-700 mb-2">시공 사례 준비중</h3>
+      <p class="text-sm text-gray-500">곧 시공 사진이 업로드됩니다.</p>
+    </div>
+
+    <!-- 견적 요청 CTA -->
+    <div class="mt-8 bg-white rounded-2xl border border-gray-100 p-5 text-center">
+      <h3 class="text-base font-bold text-gray-800 mb-2">랙 설치가 필요하신가요?</h3>
+      <p class="text-sm text-gray-500 mb-4">무료 견적을 요청하세요.</p>
+      <a href="request.html" class="inline-block bg-accent text-white px-6 py-3 rounded-xl font-bold text-sm">
+        견적 요청하기
+      </a>
+    </div>
+  </main>
+
+  <!-- 이미지 라이트박스 -->
+  <div id="lightbox" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center" onclick="this.classList.add('hidden');this.classList.remove('flex')">
+    <img id="lightbox-img" class="max-w-full max-h-[90vh] rounded-lg" src="" alt="">
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const data = await API.getPortfolio();
+        const grid = document.getElementById('portfolio-grid');
+
+        if (!data.photos || data.photos.length === 0) {
+          grid.classList.add('hidden');
+          document.getElementById('empty-state').classList.remove('hidden');
+          return;
+        }
+
+        grid.innerHTML = data.photos.map(p => `
+          <div class="relative group cursor-pointer" onclick="openLightbox('${p.photoUrl}')">
+            <img src="${p.photoUrl}" alt="${p.description || '시공 사진'}"
+              class="w-full aspect-square object-cover rounded-xl border border-gray-100"
+              loading="lazy">
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent rounded-b-xl px-3 py-2">
+              <p class="text-white text-xs font-medium">${p.date}</p>
+              ${p.description ? `<p class="text-white/80 text-[11px]">${p.description}</p>` : ''}
+            </div>
+          </div>
+        `).join('');
+      } catch {
+        document.getElementById('portfolio-grid').classList.add('hidden');
+        document.getElementById('empty-state').classList.remove('hidden');
+      }
+    });
+
+    function openLightbox(url) {
+      const lb = document.getElementById('lightbox');
+      document.getElementById('lightbox-img').src = url;
+      lb.classList.remove('hidden');
+      lb.classList.add('flex');
+    }
+  </script>
+</body>
+</html>

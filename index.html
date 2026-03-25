@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>용인 랙 - 스마트 견적</title>
+  <meta name="description" content="경량랙, 중량랙, 파렛트랙 맞춤형 최저가 견적을 즉시 확인하세요.">
+
+  <!-- OG Tags -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="용인 랙 - 전문 시공 및 견적 시스템">
+  <meta property="og:description" content="경량랙, 중량랙, 파렛트랙 맞춤형 최저가 견적을 즉시 확인하세요.">
+  <meta property="og:image" content="assets/og-image.jpg">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1e3a5f',
+            accent: '#f97316',
+          },
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Pretendard Font -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e3a5f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+
+  <style>
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+    .animate-shake { animation: shake 0.3s ease-in-out; }
+    body { font-family: 'Pretendard', sans-serif; padding-bottom: 80px; }
+  </style>
+</head>
+<body class="bg-[#f7fafc] min-h-screen">
+
+  <!-- 헤더 -->
+  <header class="bg-primary text-white px-4 py-4">
+    <h1 class="text-lg font-bold">새 견적 작성</h1>
+  </header>
+
+  <main class="max-w-lg mx-auto">
+    <!-- 금액 카드 -->
+    <div class="mx-4 mt-4 bg-gradient-to-br from-primary to-[#2c5282] rounded-2xl p-5 text-center text-white">
+      <p class="text-sm opacity-80">예상 견적액</p>
+      <p class="text-3xl font-extrabold my-2" id="total-amount">0원</p>
+      <p class="text-xs opacity-70" id="total-detail">랙을 선택하세요</p>
+    </div>
+
+    <!-- 랙 선택 -->
+    <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 p-4" id="price-area">
+      <div id="rack-selector">
+        <div class="text-center py-8">
+          <div class="animate-pulse">
+            <div class="h-4 bg-gray-200 rounded w-1/2 mx-auto mb-3"></div>
+            <div class="h-12 bg-gray-200 rounded mb-3"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 수량 -->
+      <div class="mt-4">
+        <label class="block text-sm font-semibold text-gray-600 mb-2">수량</label>
+        <div class="flex items-center">
+          <button onclick="App.changeQuantity(-1)" class="w-12 h-12 bg-gray-100 rounded-l-xl text-xl font-bold text-gray-600 active:bg-gray-200">−</button>
+          <input type="number" id="qty-input" value="1" min="1" max="9999"
+            class="w-20 h-12 text-center text-lg font-bold border-y-2 border-gray-200 focus:outline-none"
+            onchange="App.setQuantity(this.value)">
+          <button onclick="App.changeQuantity(1)" class="w-12 h-12 bg-gray-100 rounded-r-xl text-xl font-bold text-gray-600 active:bg-gray-200">+</button>
+          <span class="ml-3 text-sm text-gray-500">대</span>
+        </div>
+      </div>
+
+      <!-- 추가 옵션 -->
+      <div class="mt-4">
+        <label class="block text-sm font-semibold text-gray-600 mb-2">추가 옵션</label>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="this.classList.toggle('bg-blue-50');this.classList.toggle('border-primary');this.classList.toggle('text-primary');App.toggleOption('delivery')"
+            class="px-4 py-2 border-2 border-gray-200 rounded-full text-sm font-semibold text-gray-500 transition-colors">
+            운반비
+          </button>
+          <button onclick="this.classList.toggle('bg-blue-50');this.classList.toggle('border-primary');this.classList.toggle('text-primary');App.toggleOption('assembly')"
+            class="px-4 py-2 border-2 border-gray-200 rounded-full text-sm font-semibold text-gray-500 transition-colors">
+            조립비
+          </button>
+          <button onclick="this.classList.toggle('bg-blue-50');this.classList.toggle('border-primary');this.classList.toggle('text-primary');App.toggleOption('demolition')"
+            class="px-4 py-2 border-2 border-gray-200 rounded-full text-sm font-semibold text-gray-500 transition-colors">
+            철거비
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 고객 정보 (접이식) -->
+    <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <button onclick="document.getElementById('customer-form').classList.toggle('hidden');this.querySelector('span:last-child').textContent=document.getElementById('customer-form').classList.contains('hidden')?'▼':'▲'"
+        class="w-full px-4 py-3 flex items-center justify-between text-sm font-semibold text-gray-700">
+        <span>👤 고객 정보 (선택)</span>
+        <span class="text-gray-400">▼</span>
+      </button>
+      <div id="customer-form" class="hidden px-4 pb-4 space-y-3">
+        <div>
+          <label for="cust-name" class="block text-xs font-semibold text-gray-500 mb-1">고객명/상호</label>
+          <input type="text" id="cust-name" placeholder="홍길동" autocomplete="off"
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none"
+            list="customer-suggestions">
+          <datalist id="customer-suggestions"></datalist>
+        </div>
+        <div>
+          <label for="cust-company" class="block text-xs font-semibold text-gray-500 mb-1">회사명</label>
+          <input type="text" id="cust-company" placeholder="우리물류"
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+        </div>
+        <div>
+          <label for="cust-phone" class="block text-xs font-semibold text-gray-500 mb-1">연락처</label>
+          <input type="tel" id="cust-phone" placeholder="010-0000-0000"
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+        </div>
+        <div>
+          <label for="cust-address" class="block text-xs font-semibold text-gray-500 mb-1">현장 주소</label>
+          <input type="text" id="cust-address" placeholder="용인시 처인구..."
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+        </div>
+      </div>
+    </div>
+
+    <!-- 저장 버튼 -->
+    <div class="mx-4 mt-4 mb-6">
+      <button id="btn-save" disabled
+        onclick="handleSave()"
+        class="w-full h-14 bg-primary text-white rounded-2xl font-bold text-lg disabled:opacity-40 active:scale-[0.98] transition-transform">
+        💾 견적 저장
+      </button>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/estimate.js"></script>
+  <script>
+    // 앱 초기화
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 인증 체크
+      if (!Auth.guard()) {
+        window.addEventListener('yr-authenticated', init);
+        return;
+      }
+      init();
+    });
+
+    async function init() {
+      UI.renderTabBar('estimate');
+      await App.loadPrices();
+      loadCustomerSuggestions();
+
+      // 임시 저장 복원
+      const draft = App.loadDraft();
+      if (draft && draft.customer) {
+        if (draft.customer.name) document.getElementById('cust-name').value = draft.customer.name;
+        if (draft.customer.company) document.getElementById('cust-company').value = draft.customer.company;
+        if (draft.customer.phone) document.getElementById('cust-phone').value = draft.customer.phone;
+        if (draft.customer.address) document.getElementById('cust-address').value = draft.customer.address;
+      }
+    }
+
+    async function handleSave() {
+      const btn = document.getElementById('btn-save');
+      UI.setLoading(btn, true);
+      try {
+        const result = await App.saveEstimate();
+        if (result && result.estimateId) {
+          UI.toast('견적이 저장되었습니다', 'success');
+          // 미리보기 페이지로 이동
+          window.location.href = `estimate-preview.html?id=${result.estimateId}`;
+        }
+      } catch (err) {
+        UI.toast(err.message || '저장 실패', 'error');
+      } finally {
+        UI.setLoading(btn, false);
+      }
+    }
+
+    // 고객 리피터 자동완성
+    async function loadCustomerSuggestions() {
+      try {
+        const data = await API.getEstimates();
+        if (data && data.estimates) {
+          const seen = new Set();
+          const datalist = document.getElementById('customer-suggestions');
+          data.estimates.forEach(e => {
+            if (e.customerName && !seen.has(e.customerName)) {
+              seen.add(e.customerName);
+              const opt = document.createElement('option');
+              opt.value = e.customerName;
+              datalist.appendChild(opt);
+            }
+          });
+
+          // 고객명 선택 시 자동 채우기
+          document.getElementById('cust-name').addEventListener('change', (ev) => {
+            const match = data.estimates.find(e => e.customerName === ev.target.value);
+            if (match) {
+              document.getElementById('cust-company').value = match.company || '';
+              document.getElementById('cust-phone').value = match.phone || '';
+              document.getElementById('cust-address').value = match.address || '';
+            }
+          });
+        }
+      } catch {}
+    }
+  </script>
+
+  <!-- Service Worker 등록 -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

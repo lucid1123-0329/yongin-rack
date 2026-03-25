@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>용인 랙 - 견적 계산 단위 테스트</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #eee; }
+    .pass { color: #38a169; }
+    .fail { color: #e53e3e; font-weight: bold; }
+    .summary { margin-top: 20px; padding: 10px; border-top: 1px solid #444; }
+  </style>
+</head>
+<body>
+  <h1>견적 계산 단위 테스트</h1>
+  <pre id="output"></pre>
+
+  <script>
+    // 간단한 테스트 프레임워크
+    let passed = 0, failed = 0;
+    const log = (msg) => document.getElementById('output').textContent += msg + '\n';
+
+    function assert(condition, name) {
+      if (condition) {
+        passed++;
+        log(`  ✓ ${name}`);
+      } else {
+        failed++;
+        log(`  ✗ FAIL: ${name}`);
+      }
+    }
+
+    function assertEqual(actual, expected, name) {
+      if (actual === expected) {
+        passed++;
+        log(`  ✓ ${name}`);
+      } else {
+        failed++;
+        log(`  ✗ FAIL: ${name} — expected ${expected}, got ${actual}`);
+      }
+    }
+
+    function suite(name, fn) {
+      log(`\n▶ ${name}`);
+      fn();
+    }
+
+    // ============================================================
+    // 견적 계산 로직 (app.js의 calculate 로직을 독립적으로 테스트)
+    // ============================================================
+    function calculateEstimate(rack, quantity) {
+      if (!rack) return { total: 0, breakdown: null };
+      if (quantity <= 0) return { total: 0, breakdown: null };
+
+      const unitPrice = Number(rack.price) || 0;
+      const installFee = Number(rack.installFee) || 0;
+      const subtotal = unitPrice * quantity;
+      const totalInstall = installFee * quantity;
+      const total = subtotal + totalInstall;
+
+      return {
+        total,
+        breakdown: {
+          rackType: rack.type,
+          spec: rack.spec,
+          tier: rack.tier,
+          unitPrice,
+          quantity,
+          subtotal,
+          installFee,
+          totalInstall,
+        }
+      };
+    }
+
+    // 숫자 포맷 (ui.js)
+    function formatNumber(n) {
+      return Number(n).toLocaleString('ko-KR');
+    }
+    function formatCurrency(n) {
+      return formatNumber(n) + '원';
+    }
+
+    // ============================================================
+    // 테스트 실행
+    // ============================================================
+
+    suite('기본 견적 계산', () => {
+      const rack = { type: '경량랙', spec: '900×450×1800', tier: '4단', price: 85000, installFee: 10000 };
+
+      const r1 = calculateEstimate(rack, 10);
+      assertEqual(r1.total, 950000, '경량랙 10대: 85,000×10 + 10,000×10 = 950,000');
+      assertEqual(r1.breakdown.subtotal, 850000, '소계: 850,000');
+      assertEqual(r1.breakdown.totalInstall, 100000, '시공비: 100,000');
+    });
+
+    suite('중량랙 계산', () => {
+      const rack = { type: '중량랙', spec: '1200×450×2100', tier: '5단', price: 120000, installFee: 15000 };
+
+      const r = calculateEstimate(rack, 5);
+      assertEqual(r.total, 675000, '중량랙 5대: 120,000×5 + 15,000×5 = 675,000');
+    });
+
+    suite('수량 1대', () => {
+      const rack = { type: '경량랙', spec: '900×450×1800', tier: '4단', price: 85000, installFee: 10000 };
+
+      const r = calculateEstimate(rack, 1);
+      assertEqual(r.total, 95000, '1대: 85,000 + 10,000 = 95,000');
+    });
+
+    suite('엣지 케이스: 랙 미선택', () => {
+      const r = calculateEstimate(null, 10);
+      assertEqual(r.total, 0, '랙 미선택 시 0원');
+      assertEqual(r.breakdown, null, 'breakdown은 null');
+    });
+
+    suite('엣지 케이스: 수량 0', () => {
+      const rack = { type: '경량랙', spec: '900×450×1800', tier: '4단', price: 85000, installFee: 10000 };
+      const r = calculateEstimate(rack, 0);
+      assertEqual(r.total, 0, '수량 0일 때 0원');
+    });
+
+    suite('엣지 케이스: 수량 음수', () => {
+      const rack = { type: '경량랙', spec: '900×450×1800', tier: '4단', price: 85000, installFee: 10000 };
+      const r = calculateEstimate(rack, -5);
+      assertEqual(r.total, 0, '수량 음수일 때 0원');
+    });
+
+    suite('엣지 케이스: 큰 수량', () => {
+      const rack = { type: '경량랙', spec: '900×450×1800', tier: '4단', price: 85000, installFee: 10000 };
+      const r = calculateEstimate(rack, 9999);
+      assertEqual(r.total, (85000 + 10000) * 9999, '대량 주문 계산 정확');
+    });
+
+    suite('엣지 케이스: 단가 0원', () => {
+      const rack = { type: '테스트', spec: 'x', tier: '1단', price: 0, installFee: 0 };
+      const r = calculateEstimate(rack, 10);
+      assertEqual(r.total, 0, '단가 0원이면 총액 0원');
+      assert(r.breakdown !== null, 'breakdown은 존재 (선택은 됨)');
+    });
+
+    suite('엣지 케이스: 단가 문자열', () => {
+      const rack = { type: '테스트', spec: 'x', tier: '1단', price: '85000', installFee: '10000' };
+      const r = calculateEstimate(rack, 10);
+      assertEqual(r.total, 950000, '문자열 단가도 숫자로 변환');
+    });
+
+    suite('숫자 포맷', () => {
+      assertEqual(formatNumber(950000), '950,000', '천단위 콤마');
+      assertEqual(formatNumber(0), '0', '0 포맷');
+      assertEqual(formatCurrency(950000), '950,000원', '통화 포맷');
+    });
+
+    // 결과
+    log('\n' + '='.repeat(50));
+    log(`결과: ${passed} passed, ${failed} failed (총 ${passed + failed})`);
+    if (failed === 0) {
+      log('✅ 모든 테스트 통과!');
+    } else {
+      log('❌ 실패한 테스트가 있습니다.');
+    }
+    document.title = failed === 0 ? '✅ 테스트 통과' : `❌ ${failed}개 실패`;
+  </script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>단가 관리 - 용인 랙</title>
+  <meta name="description" content="랙 단가 관리 페이지">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1e3a5f',
+            accent: '#f97316',
+          },
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Pretendard Font -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e3a5f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+
+  <style>
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+    .animate-shake { animation: shake 0.3s ease-in-out; }
+    body { font-family: 'Pretendard', sans-serif; padding-bottom: 100px; }
+  </style>
+</head>
+<body class="bg-[#f7fafc] min-h-screen">
+
+  <!-- 헤더 -->
+  <header class="bg-primary text-white px-4 py-4 flex items-center gap-3">
+    <a href="more.html" class="text-xl">←</a>
+    <h1 class="text-lg font-bold flex-1">단가 관리</h1>
+  </header>
+
+  <main class="max-w-lg mx-auto">
+    <!-- 가격 목록 -->
+    <div class="mx-4 mt-4" id="price-list">
+      <!-- 스켈레톤 로딩 -->
+      <div id="skeleton-area"></div>
+    </div>
+
+    <!-- 빈 상태 -->
+    <div id="empty-state" class="hidden mx-4 mt-4"></div>
+  </main>
+
+  <!-- 랙 추가 FAB -->
+  <button onclick="openAddModal()"
+    class="fixed bottom-24 right-4 w-14 h-14 bg-accent text-white rounded-full shadow-lg flex items-center justify-center text-2xl font-bold active:scale-95 transition-transform z-30">
+    +
+  </button>
+
+  <!-- 추가/수정 모달 -->
+  <div id="price-modal" class="fixed inset-0 bg-black/50 z-50 flex items-end justify-center hidden">
+    <div class="bg-white rounded-t-2xl w-full max-w-lg p-6 pb-8 animate-slide-up">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-bold text-gray-800" id="modal-title">랙 추가</h2>
+        <button onclick="closeModal()" class="text-gray-400 text-2xl">&times;</button>
+      </div>
+      <form id="price-form" class="space-y-4">
+        <input type="hidden" id="edit-row-index" value="">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">랙 종류</label>
+          <select id="f-type" class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+            <option value="경량랙">경량랙</option>
+            <option value="중량랙">중량랙</option>
+            <option value="파렛트랙">파렛트랙</option>
+            <option value="적층랙">적층랙</option>
+            <option value="이동식랙">이동식랙</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">규격</label>
+          <input type="text" id="f-spec" placeholder="예: 1800x600x2100" required
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">단수</label>
+          <input type="number" id="f-tier" placeholder="예: 5" min="1" max="20" required
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">기본 단가 (원)</label>
+            <input type="number" id="f-unit-price" placeholder="150000" required
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">추가 시공비 (원)</label>
+            <input type="number" id="f-install-fee" placeholder="30000"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">VAT 적용</label>
+          <select id="f-vat" class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+            <option value="별도">별도</option>
+            <option value="포함">포함</option>
+          </select>
+        </div>
+        <button type="submit" id="btn-submit"
+          class="w-full h-14 bg-primary text-white rounded-xl font-bold text-lg active:scale-[0.98] transition-transform">
+          저장
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    let prices = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!Auth.guard()) {
+        window.addEventListener('yr-authenticated', init);
+        return;
+      }
+      init();
+    });
+
+    async function init() {
+      document.getElementById('skeleton-area').innerHTML = UI.skeleton(4);
+      await loadPrices();
+
+      document.getElementById('price-form').addEventListener('submit', handleSubmit);
+    }
+
+    async function loadPrices() {
+      try {
+        const data = await API.getPrices();
+        prices = data.prices || [];
+        renderPrices();
+      } catch (err) {
+        UI.toast(err.message || '단가 로딩 실패', 'error');
+        document.getElementById('skeleton-area').innerHTML = '';
+        document.getElementById('empty-state').classList.remove('hidden');
+        document.getElementById('empty-state').innerHTML = UI.empty(
+          '⚠️', '로딩 실패', err.message || '단가를 불러올 수 없습니다', '다시 시도', 'admin.html'
+        );
+      }
+    }
+
+    function renderPrices() {
+      document.getElementById('skeleton-area').innerHTML = '';
+      const list = document.getElementById('price-list');
+      const empty = document.getElementById('empty-state');
+
+      if (prices.length === 0) {
+        list.innerHTML = '';
+        empty.classList.remove('hidden');
+        empty.innerHTML = UI.empty(
+          '📦', '등록된 단가가 없습니다', '랙 단가를 추가하여 견적을 시작하세요', '+ 랙 추가', 'javascript:openAddModal()'
+        );
+        return;
+      }
+
+      empty.classList.add('hidden');
+      list.innerHTML = prices.map((p, i) => `
+        <div class="bg-white rounded-xl border border-gray-100 p-4 mb-3">
+          <div class="flex items-start justify-between mb-2">
+            <div>
+              <span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 mb-1">${p.type || ''}</span>
+              <h3 class="text-base font-bold text-gray-800">${p.spec || ''}</h3>
+            </div>
+            <span class="text-xs text-gray-400">${p.tier || ''}단</span>
+          </div>
+          <div class="flex items-center gap-4 text-sm text-gray-600 mb-3">
+            <span>단가 <b class="text-gray-800">${UI.formatCurrency(p.unitPrice || 0)}</b></span>
+            <span>시공비 <b class="text-gray-800">${UI.formatCurrency(p.installFee || 0)}</b></span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-gray-400">VAT ${p.vat || '별도'}</span>
+            <div class="flex gap-2">
+              <button onclick="openEditModal(${i})"
+                class="px-4 py-2 text-sm font-bold text-primary border border-primary rounded-lg active:bg-blue-50">수정</button>
+              <button onclick="handleDelete(${i})"
+                class="px-4 py-2 text-sm font-bold text-red-500 border border-red-300 rounded-lg active:bg-red-50">삭제</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openAddModal() {
+      document.getElementById('modal-title').textContent = '랙 추가';
+      document.getElementById('edit-row-index').value = '';
+      document.getElementById('price-form').reset();
+      document.getElementById('price-modal').classList.remove('hidden');
+    }
+
+    function openEditModal(index) {
+      const p = prices[index];
+      document.getElementById('modal-title').textContent = '단가 수정';
+      document.getElementById('edit-row-index').value = p.rowIndex ?? index;
+      document.getElementById('f-type').value = p.type || '경량랙';
+      document.getElementById('f-spec').value = p.spec || '';
+      document.getElementById('f-tier').value = p.tier || '';
+      document.getElementById('f-unit-price').value = p.unitPrice || '';
+      document.getElementById('f-install-fee').value = p.installFee || '';
+      document.getElementById('f-vat').value = p.vat || '별도';
+      document.getElementById('price-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('price-modal').classList.add('hidden');
+    }
+
+    async function handleSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-submit');
+      UI.setLoading(btn, true);
+
+      const data = {
+        type: document.getElementById('f-type').value,
+        spec: document.getElementById('f-spec').value,
+        tier: Number(document.getElementById('f-tier').value),
+        unitPrice: Number(document.getElementById('f-unit-price').value),
+        installFee: Number(document.getElementById('f-install-fee').value) || 0,
+        vat: document.getElementById('f-vat').value,
+      };
+
+      const rowIndex = document.getElementById('edit-row-index').value;
+
+      try {
+        if (rowIndex !== '') {
+          await API.updatePrice(Number(rowIndex), data);
+          UI.toast('단가가 수정되었습니다', 'success');
+        } else {
+          await API.addPrice(data);
+          UI.toast('단가가 추가되었습니다', 'success');
+        }
+        closeModal();
+        await loadPrices();
+      } catch (err) {
+        UI.toast(err.message || '저장 실패', 'error');
+      } finally {
+        UI.setLoading(btn, false);
+      }
+    }
+
+    function handleDelete(index) {
+      const p = prices[index];
+      UI.confirm(
+        '단가 삭제',
+        `"${p.type} ${p.spec} ${p.tier}단" 단가를 삭제하시겠습니까?`,
+        async () => {
+          try {
+            await API.deletePrice(p.rowIndex ?? index);
+            UI.toast('삭제되었습니다', 'success');
+            await loadPrices();
+          } catch (err) {
+            UI.toast(err.message || '삭제 실패', 'error');
+          }
+        }
+      );
+    }
+  </script>
+
+  <!-- Service Worker 등록 -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

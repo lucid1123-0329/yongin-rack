@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>용인 랙 - 견적 이력</title>
+  <meta name="description" content="견적 이력 및 CRM 상태 관리">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e3a5f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1e3a5f',
+            accent: '#f97316',
+          },
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Pretendard Font -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+
+  <style>
+    body { font-family: 'Pretendard', sans-serif; padding-bottom: 80px; }
+  </style>
+</head>
+<body class="bg-[#f7fafc] min-h-screen">
+
+  <!-- 헤더 -->
+  <header class="bg-primary text-white px-4 py-4">
+    <h1 class="text-lg font-bold">견적 이력</h1>
+  </header>
+
+  <main class="max-w-lg mx-auto">
+    <!-- 검색 -->
+    <div class="mx-4 mt-4">
+      <input type="text" id="search-input" placeholder="고객명으로 검색..."
+        class="w-full h-12 px-4 border-2 border-gray-200 rounded-xl text-sm focus:border-primary focus:outline-none bg-white"
+        oninput="filterEstimates()">
+    </div>
+
+    <!-- 상태 필터 탭 -->
+    <div class="mx-4 mt-3 flex gap-2 overflow-x-auto pb-1" id="status-tabs">
+      <button onclick="setFilter('전체')" data-status="전체"
+        class="status-tab flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold bg-primary text-white">전체</button>
+      <button onclick="setFilter('상담완료')" data-status="상담완료"
+        class="status-tab flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold bg-gray-100 text-gray-500">상담완료</button>
+      <button onclick="setFilter('계약')" data-status="계약"
+        class="status-tab flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold bg-gray-100 text-gray-500">계약</button>
+      <button onclick="setFilter('시공중')" data-status="시공중"
+        class="status-tab flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold bg-gray-100 text-gray-500">시공중</button>
+      <button onclick="setFilter('시공완료')" data-status="시공완료"
+        class="status-tab flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold bg-gray-100 text-gray-500">시공완료</button>
+    </div>
+
+    <!-- 견적 목록 -->
+    <div class="mx-4 mt-3" id="estimate-list">
+      <!-- 스켈레톤 로딩 -->
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    let allEstimates = [];
+    let currentFilter = '전체';
+    let expandedId = null;
+
+    const STATUSES = ['상담완료', '계약', '시공중', '시공완료'];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!Auth.guard()) {
+        window.addEventListener('yr-authenticated', init);
+        return;
+      }
+      init();
+    });
+
+    async function init() {
+      UI.renderTabBar('history');
+      showSkeleton();
+      await loadEstimates();
+    }
+
+    function showSkeleton() {
+      document.getElementById('estimate-list').innerHTML = UI.skeleton(3);
+    }
+
+    async function loadEstimates() {
+      try {
+        const data = await API.getEstimates();
+        allEstimates = (data && data.estimates) ? data.estimates : [];
+        renderList();
+      } catch (err) {
+        document.getElementById('estimate-list').innerHTML =
+          `<div class="text-center py-8 text-sm text-red-500">데이터를 불러올 수 없습니다.<br><button onclick="loadEstimates()" class="mt-2 text-primary font-bold underline">다시 시도</button></div>`;
+      }
+    }
+
+    function setFilter(status) {
+      currentFilter = status;
+      document.querySelectorAll('.status-tab').forEach(btn => {
+        const isActive = btn.dataset.status === status;
+        btn.className = `status-tab flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold ${isActive ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'}`;
+      });
+      renderList();
+    }
+
+    function filterEstimates() {
+      renderList();
+    }
+
+    function getFiltered() {
+      const query = (document.getElementById('search-input').value || '').trim().toLowerCase();
+      return allEstimates.filter(e => {
+        const matchStatus = currentFilter === '전체' || e.status === currentFilter;
+        const matchSearch = !query || (e.customerName || '').toLowerCase().includes(query);
+        return matchStatus && matchSearch;
+      });
+    }
+
+    function renderList() {
+      const list = getFiltered();
+      const container = document.getElementById('estimate-list');
+
+      if (allEstimates.length === 0) {
+        container.innerHTML = UI.empty(
+          '📋',
+          '아직 견적이 없습니다',
+          '첫 견적을 만들어보세요!',
+          '새 견적 작성',
+          'index.html'
+        );
+        return;
+      }
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="text-center py-12 text-sm text-gray-400">검색 결과가 없습니다.</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(e => renderCard(e)).join('');
+    }
+
+    function renderCard(e) {
+      const isExpanded = expandedId === e.estimateId;
+      return `
+        <div class="bg-white rounded-xl border border-gray-100 mb-3 overflow-hidden transition-all">
+          <div class="p-4 cursor-pointer active:bg-gray-50" onclick="toggleExpand('${e.estimateId}')">
+            <div class="flex items-start justify-between">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-sm font-bold text-gray-800 truncate">${e.customerName || '미지정'}</span>
+                  ${UI.statusBadge(e.status || '상담완료')}
+                </div>
+                <p class="text-xs text-gray-400 mb-1">${UI.formatDate(e.date || e.createdAt)}</p>
+                <p class="text-xs text-gray-500">${e.rackType || '랙'} · ${e.quantity || 0}대</p>
+              </div>
+              <div class="text-right flex-shrink-0 ml-3">
+                <p class="text-base font-extrabold text-primary">${UI.formatCurrency(e.totalAmount || 0)}</p>
+                <span class="text-gray-300 text-xs">${isExpanded ? '▲' : '▼'}</span>
+              </div>
+            </div>
+          </div>
+          ${isExpanded ? renderDetail(e) : ''}
+        </div>
+      `;
+    }
+
+    function renderDetail(e) {
+      const currentStatus = e.status || '상담완료';
+      return `
+        <div class="border-t border-gray-100 px-4 py-3 bg-gray-50">
+          <div class="grid grid-cols-2 gap-2 text-xs mb-3">
+            <div><span class="text-gray-400">회사명</span><br><span class="font-medium text-gray-700">${e.company || '-'}</span></div>
+            <div><span class="text-gray-400">연락처</span><br><span class="font-medium text-gray-700">${e.phone || '-'}</span></div>
+            <div class="col-span-2"><span class="text-gray-400">현장 주소</span><br><span class="font-medium text-gray-700">${e.address || '-'}</span></div>
+            <div><span class="text-gray-400">단가</span><br><span class="font-medium text-gray-700">${UI.formatCurrency(e.unitPrice || 0)}</span></div>
+            <div><span class="text-gray-400">수량</span><br><span class="font-medium text-gray-700">${e.quantity || 0}대</span></div>
+          </div>
+          <div>
+            <p class="text-xs font-bold text-gray-500 mb-2">상태 변경</p>
+            <div class="flex gap-2 flex-wrap">
+              ${STATUSES.map(s => `
+                <button onclick="changeStatus('${e.estimateId}', '${s}')"
+                  class="px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${s === currentStatus
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 text-gray-500 active:bg-gray-200'}">
+                  ${s}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function toggleExpand(id) {
+      expandedId = expandedId === id ? null : id;
+      renderList();
+    }
+
+    async function changeStatus(estimateId, newStatus) {
+      try {
+        await API.updateStatus(estimateId, newStatus);
+        const item = allEstimates.find(e => e.estimateId === estimateId);
+        if (item) item.status = newStatus;
+        UI.toast(`상태가 '${newStatus}'로 변경되었습니다`, 'success');
+        renderList();
+      } catch (err) {
+        UI.toast('상태 변경 실패', 'error');
+      }
+    }
+  </script>
+
+  <!-- Service Worker 등록 -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

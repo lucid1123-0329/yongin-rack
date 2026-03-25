@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>더보기 - 용인 랙</title>
+  <meta name="description" content="더보기 메뉴">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1e3a5f',
+            accent: '#f97316',
+          },
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Pretendard Font -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e3a5f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+
+  <style>
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+    .animate-shake { animation: shake 0.3s ease-in-out; }
+    body { font-family: 'Pretendard', sans-serif; padding-bottom: 80px; }
+  </style>
+</head>
+<body class="bg-[#f7fafc] min-h-screen">
+
+  <!-- 헤더 -->
+  <header class="bg-primary text-white px-4 py-4">
+    <h1 class="text-lg font-bold">더보기</h1>
+  </header>
+
+  <main class="max-w-lg mx-auto">
+    <!-- 브랜딩 요약 -->
+    <div class="mx-4 mt-4 bg-gradient-to-br from-primary to-[#2c5282] rounded-2xl p-5 text-white">
+      <p class="text-lg font-bold" id="brand-name">용인 랙</p>
+      <p class="text-sm opacity-80 mt-1" id="brand-tagline">스마트 견적 시스템</p>
+    </div>
+
+    <!-- 메뉴 목록 -->
+    <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <a href="admin.html"
+        class="flex items-center h-14 px-4 border-b border-gray-100 active:bg-gray-50 transition-colors">
+        <span class="text-xl w-8">💰</span>
+        <span class="flex-1 text-sm font-semibold text-gray-800">단가 관리</span>
+        <span class="text-gray-300 text-sm">›</span>
+      </a>
+      <a href="settings.html"
+        class="flex items-center h-14 px-4 border-b border-gray-100 active:bg-gray-50 transition-colors">
+        <span class="text-xl w-8">🏢</span>
+        <span class="flex-1 text-sm font-semibold text-gray-800">브랜딩 설정</span>
+        <span class="text-gray-300 text-sm">›</span>
+      </a>
+      <a href="portfolio.html"
+        class="flex items-center h-14 px-4 border-b border-gray-100 active:bg-gray-50 transition-colors">
+        <span class="text-xl w-8">📸</span>
+        <span class="flex-1 text-sm font-semibold text-gray-800">포트폴리오 관리</span>
+        <span class="text-gray-300 text-sm">›</span>
+      </a>
+      <a href="requests.html"
+        class="flex items-center h-14 px-4 border-b border-gray-100 active:bg-gray-50 transition-colors">
+        <span class="text-xl w-8">📩</span>
+        <span class="flex-1 text-sm font-semibold text-gray-800">견적 요청 확인</span>
+        <span class="text-gray-300 text-sm">›</span>
+      </a>
+      <a href="settings.html?section=pin"
+        class="flex items-center h-14 px-4 border-b border-gray-100 active:bg-gray-50 transition-colors">
+        <span class="text-xl w-8">🔒</span>
+        <span class="flex-1 text-sm font-semibold text-gray-800">PIN 변경</span>
+        <span class="text-gray-300 text-sm">›</span>
+      </a>
+    </div>
+
+    <!-- 앱 정보 -->
+    <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 p-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-lg text-white">🏗️</div>
+        <div>
+          <p class="text-sm font-bold text-gray-800">용인 랙 스마트 견적</p>
+          <p class="text-xs text-gray-400">버전 1.0.0</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!Auth.guard()) {
+        window.addEventListener('yr-authenticated', init);
+        return;
+      }
+      init();
+    });
+
+    function init() {
+      UI.renderTabBar('more');
+      loadBranding();
+    }
+
+    function loadBranding() {
+      try {
+        const b = JSON.parse(localStorage.getItem('yr_branding') || '{}');
+        if (b.company) document.getElementById('brand-name').textContent = b.company;
+        if (b.tagline) document.getElementById('brand-tagline').textContent = b.tagline;
+      } catch {}
+    }
+  </script>
+
+  <!-- Service Worker 등록 -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

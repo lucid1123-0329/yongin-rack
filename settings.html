@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>설정 - 용인 랙</title>
+  <meta name="description" content="설정 및 온보딩">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1e3a5f',
+            accent: '#f97316',
+          },
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Pretendard Font -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e3a5f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+
+  <style>
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+    .animate-shake { animation: shake 0.3s ease-in-out; }
+    body { font-family: 'Pretendard', sans-serif; }
+    .step { display: none; }
+    .step.active { display: block; }
+  </style>
+</head>
+<body class="bg-[#f7fafc] min-h-screen">
+
+  <!-- 온보딩 위저드 -->
+  <div id="onboarding" class="hidden min-h-screen">
+    <!-- Step 1: Welcome -->
+    <div class="step active" data-step="1">
+      <div class="min-h-screen flex flex-col items-center justify-center px-6 text-center">
+        <div class="w-20 h-20 bg-primary rounded-2xl flex items-center justify-center text-3xl text-white mb-6">
+          🏗️
+        </div>
+        <h1 class="text-2xl font-extrabold text-gray-800 mb-2">용인 랙 스마트 견적</h1>
+        <p class="text-sm text-gray-500 mb-8">현장에서 바로 견적하고<br>카카오톡으로 공유하세요</p>
+        <button onclick="goStep(2)"
+          class="w-full max-w-sm h-14 bg-primary text-white rounded-2xl font-bold text-lg active:scale-[0.98] transition-transform">
+          시작하기
+        </button>
+        <div class="flex gap-2 mt-8">
+          <div class="w-8 h-1 rounded-full bg-primary"></div>
+          <div class="w-8 h-1 rounded-full bg-gray-200"></div>
+          <div class="w-8 h-1 rounded-full bg-gray-200"></div>
+          <div class="w-8 h-1 rounded-full bg-gray-200"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: PIN 설정 -->
+    <div class="step" data-step="2">
+      <div class="min-h-screen flex flex-col items-center justify-center px-6 text-center">
+        <div class="text-4xl mb-4">🔒</div>
+        <h2 class="text-xl font-bold text-gray-800 mb-1" id="pin-title">비밀번호 설정</h2>
+        <p class="text-sm text-gray-500 mb-6" id="pin-subtitle">PIN 4자리를 입력하세요</p>
+        <div class="flex justify-center gap-3 mb-6" id="setup-pin-dots">
+          <div class="w-12 h-12 border-2 border-gray-300 rounded-xl flex items-center justify-center text-2xl setup-dot"></div>
+          <div class="w-12 h-12 border-2 border-gray-300 rounded-xl flex items-center justify-center text-2xl setup-dot"></div>
+          <div class="w-12 h-12 border-2 border-gray-300 rounded-xl flex items-center justify-center text-2xl setup-dot"></div>
+          <div class="w-12 h-12 border-2 border-gray-300 rounded-xl flex items-center justify-center text-2xl setup-dot"></div>
+        </div>
+        <p class="text-sm text-red-500 hidden mb-4" id="setup-pin-error">PIN이 일치하지 않습니다. 다시 입력하세요.</p>
+        <div class="grid grid-cols-3 gap-3 w-full max-w-xs" id="setup-pin-pad">
+          <button class="h-14 rounded-xl text-xl font-bold bg-gray-50 text-gray-800 active:bg-primary active:text-white transition-colors" data-key="1">1</button>
+          <button class="h-14 rounded-xl text-xl font-bold bg-gray-50 text-gray-800 active:bg-primary active:text-white transition-colors" data-key="2">2</button>
+          <button class="h-14 rounded-xl text-xl font-bold bg-gray-50 text-gray-800 active:bg-primary active:text-white transition-colors" data-key="3">3</button>
+          <button class="h-14 rounded-xl text-xl font-bold bg-gray-50 text-gray-800 active:bg-primary active:text-white transition-colors" data-key="4">4</button>
+          <button class="h-14 rounded-xl text-xl font-bold bg-gray-50 text-gray-800 active:bg-primary active:text-white transition-colors" data-key="5">5</button>
+          <button class="h-14 rounded-xl text-xl font-bold bg-gray-50 text-gray-800 active:bg-primary active:text-white transition-colors" data-key="6">6</button>
+          <button class="h-14 rounded-xl text-xl font-bold bg-gray-50 text-gray-800 active:bg-primary active:text-white transition-colors" data-key="7">7</button>
+          <button class="h-14 rounded-xl text-xl font-bold bg-gray-50 text-gray-800 active:bg-primary active:text-white transition-colors" data-key="8">8</button>
+          <button class="h-14 rounded-xl text-xl font-bold bg-gray-50 text-gray-800 active:bg-primary active:text-white transition-colors" data-key="9">9</button>
+          <div></div>
+          <button class="h-14 rounded-xl text-xl font-bold bg-gray-50 text-gray-800 active:bg-primary active:text-white transition-colors" data-key="0">0</button>
+          <button class="h-14 rounded-xl text-xl font-bold bg-gray-100 text-gray-600 transition-colors" data-key="⌫">⌫</button>
+        </div>
+        <div class="flex gap-2 mt-8">
+          <div class="w-8 h-1 rounded-full bg-primary"></div>
+          <div class="w-8 h-1 rounded-full bg-primary"></div>
+          <div class="w-8 h-1 rounded-full bg-gray-200"></div>
+          <div class="w-8 h-1 rounded-full bg-gray-200"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: 사업자 정보 -->
+    <div class="step" data-step="3">
+      <div class="min-h-screen flex flex-col px-6 py-12">
+        <div class="text-center mb-8">
+          <div class="text-4xl mb-4">🏢</div>
+          <h2 class="text-xl font-bold text-gray-800 mb-1">사업자 정보</h2>
+          <p class="text-sm text-gray-500">견적서에 표시될 정보를 입력하세요</p>
+        </div>
+        <div class="space-y-4 flex-1 max-w-sm mx-auto w-full">
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">상호명</label>
+            <input type="text" id="ob-company" placeholder="용인 랙"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">연락처</label>
+            <input type="tel" id="ob-phone" placeholder="010-0000-0000"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">사업자번호</label>
+            <input type="text" id="ob-biz-number" placeholder="000-00-00000"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">슬로건 / 태그라인</label>
+            <input type="text" id="ob-tagline" placeholder="경량랙~파렛트랙 전문 시공"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+        </div>
+        <button onclick="saveBrandingAndNext()"
+          class="w-full max-w-sm mx-auto h-14 bg-primary text-white rounded-2xl font-bold text-lg active:scale-[0.98] transition-transform mt-8">
+          다음
+        </button>
+        <div class="flex gap-2 justify-center mt-6">
+          <div class="w-8 h-1 rounded-full bg-primary"></div>
+          <div class="w-8 h-1 rounded-full bg-primary"></div>
+          <div class="w-8 h-1 rounded-full bg-primary"></div>
+          <div class="w-8 h-1 rounded-full bg-gray-200"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: GAS URL -->
+    <div class="step" data-step="4">
+      <div class="min-h-screen flex flex-col px-6 py-12">
+        <div class="text-center mb-8">
+          <div class="text-4xl mb-4">🔗</div>
+          <h2 class="text-xl font-bold text-gray-800 mb-1">서버 연결</h2>
+          <p class="text-sm text-gray-500">Google Apps Script 웹 앱 URL을 입력하세요</p>
+        </div>
+        <div class="flex-1 max-w-sm mx-auto w-full">
+          <label class="block text-xs font-semibold text-gray-500 mb-1">GAS 웹 앱 URL</label>
+          <input type="url" id="ob-gas-url" placeholder="https://script.google.com/macros/s/..."
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none">
+          <p class="text-xs text-gray-400 mt-2">Google Sheets에서 배포한 웹 앱 URL을 붙여넣으세요.</p>
+        </div>
+        <button onclick="saveGasUrlAndFinish()"
+          class="w-full max-w-sm mx-auto h-14 bg-primary text-white rounded-2xl font-bold text-lg active:scale-[0.98] transition-transform mt-8">
+          완료
+        </button>
+        <div class="flex gap-2 justify-center mt-6">
+          <div class="w-8 h-1 rounded-full bg-primary"></div>
+          <div class="w-8 h-1 rounded-full bg-primary"></div>
+          <div class="w-8 h-1 rounded-full bg-primary"></div>
+          <div class="w-8 h-1 rounded-full bg-primary"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: 완료 -->
+    <div class="step" data-step="5">
+      <div class="min-h-screen flex flex-col items-center justify-center px-6 text-center">
+        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-4xl mb-6">✅</div>
+        <h2 class="text-2xl font-extrabold text-gray-800 mb-2">설정 완료!</h2>
+        <p class="text-sm text-gray-500 mb-8">첫 견적을 만들어보세요</p>
+        <a href="index.html"
+          class="w-full max-w-sm h-14 bg-accent text-white rounded-2xl font-bold text-lg flex items-center justify-center active:scale-[0.98] transition-transform">
+          견적 작성하기
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 설정 페이지 (온보딩 아닐 때) -->
+  <div id="settings-page" class="hidden">
+    <header class="bg-primary text-white px-4 py-4 flex items-center gap-3">
+      <a href="more.html" class="text-xl">←</a>
+      <h1 class="text-lg font-bold flex-1">설정</h1>
+    </header>
+
+    <main class="max-w-lg mx-auto pb-24">
+      <!-- 사업자 정보 -->
+      <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 p-4">
+        <h3 class="text-sm font-bold text-gray-700 mb-3">사업자 정보</h3>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">상호명</label>
+            <input type="text" id="s-company"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">연락처</label>
+            <input type="tel" id="s-phone"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">사업자번호</label>
+            <input type="text" id="s-biz-number"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">슬로건</label>
+            <input type="text" id="s-tagline"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+          <button onclick="saveSettingsBranding()"
+            class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm active:scale-[0.98] transition-transform">
+            저장
+          </button>
+        </div>
+      </div>
+
+      <!-- GAS URL -->
+      <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 p-4">
+        <h3 class="text-sm font-bold text-gray-700 mb-3">서버 연결 (GAS URL)</h3>
+        <input type="url" id="s-gas-url" placeholder="https://script.google.com/macros/s/..."
+          class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none mb-3">
+        <button onclick="saveSettingsGasUrl()"
+          class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm active:scale-[0.98] transition-transform">
+          저장
+        </button>
+      </div>
+
+      <!-- PIN 변경 -->
+      <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 p-4" id="pin-change-section">
+        <h3 class="text-sm font-bold text-gray-700 mb-3">PIN 변경</h3>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">현재 PIN</label>
+            <input type="password" id="s-pin-current" maxlength="4" inputmode="numeric" pattern="[0-9]*"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base text-center tracking-widest focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">새 PIN</label>
+            <input type="password" id="s-pin-new" maxlength="4" inputmode="numeric" pattern="[0-9]*"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base text-center tracking-widest focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">새 PIN 확인</label>
+            <input type="password" id="s-pin-confirm" maxlength="4" inputmode="numeric" pattern="[0-9]*"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base text-center tracking-widest focus:border-primary focus:outline-none">
+          </div>
+          <button onclick="changePin()"
+            class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm active:scale-[0.98] transition-transform">
+            PIN 변경
+          </button>
+        </div>
+      </div>
+
+      <!-- 앱 정보 -->
+      <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 p-4">
+        <h3 class="text-sm font-bold text-gray-700 mb-3">앱 정보</h3>
+        <div class="text-sm text-gray-600 space-y-1">
+          <p>용인 랙 스마트 견적 시스템</p>
+          <p class="text-gray-400">버전 1.0.0</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    const isSetup = new URLSearchParams(location.search).get('setup') === '1';
+    const section = new URLSearchParams(location.search).get('section');
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (isSetup) {
+        document.getElementById('onboarding').classList.remove('hidden');
+        initPinSetup();
+      } else {
+        // 설정 페이지 모드 — 인증 필요
+        if (!Auth.guard()) {
+          window.addEventListener('yr-authenticated', showSettings);
+          return;
+        }
+        showSettings();
+      }
+    });
+
+    function showSettings() {
+      document.getElementById('settings-page').classList.remove('hidden');
+      loadBranding();
+      document.getElementById('s-gas-url').value = localStorage.getItem('yr_gas_url') || '';
+
+      // section 파라미터로 특정 섹션 스크롤
+      if (section === 'pin') {
+        setTimeout(() => {
+          document.getElementById('pin-change-section').scrollIntoView({ behavior: 'smooth' });
+        }, 300);
+      }
+    }
+
+    function loadBranding() {
+      try {
+        const b = JSON.parse(localStorage.getItem('yr_branding') || '{}');
+        document.getElementById('s-company').value = b.company || '';
+        document.getElementById('s-phone').value = b.phone || '';
+        document.getElementById('s-biz-number').value = b.bizNumber || '';
+        document.getElementById('s-tagline').value = b.tagline || '';
+      } catch {}
+    }
+
+    // --- 온보딩 ---
+    function goStep(n) {
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.querySelector(`[data-step="${n}"]`).classList.add('active');
+    }
+
+    // PIN 설정
+    let setupPin = '';
+    let confirmPin = '';
+    let isConfirmPhase = false;
+
+    function initPinSetup() {
+      const pad = document.getElementById('setup-pin-pad');
+      pad.addEventListener('click', handlePinKey);
+    }
+
+    function handlePinKey(e) {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const key = btn.dataset.key;
+      const dots = document.querySelectorAll('.setup-dot');
+      const error = document.getElementById('setup-pin-error');
+      error.classList.add('hidden');
+
+      if (!isConfirmPhase) {
+        if (key === '⌫') {
+          setupPin = setupPin.slice(0, -1);
+        } else if (setupPin.length < 4) {
+          setupPin += key;
+        }
+        updateDots(dots, setupPin.length);
+
+        if (setupPin.length === 4) {
+          setTimeout(() => {
+            isConfirmPhase = true;
+            confirmPin = '';
+            document.getElementById('pin-title').textContent = 'PIN 확인';
+            document.getElementById('pin-subtitle').textContent = '같은 PIN을 다시 입력하세요';
+            updateDots(dots, 0);
+          }, 200);
+        }
+      } else {
+        if (key === '⌫') {
+          confirmPin = confirmPin.slice(0, -1);
+        } else if (confirmPin.length < 4) {
+          confirmPin += key;
+        }
+        updateDots(dots, confirmPin.length);
+
+        if (confirmPin.length === 4) {
+          if (setupPin === confirmPin) {
+            Auth.setPin(setupPin).then(() => goStep(3));
+          } else {
+            error.classList.remove('hidden');
+            isConfirmPhase = false;
+            setupPin = '';
+            confirmPin = '';
+            document.getElementById('pin-title').textContent = '비밀번호 설정';
+            document.getElementById('pin-subtitle').textContent = 'PIN 4자리를 입력하세요';
+            updateDots(dots, 0);
+          }
+        }
+      }
+    }
+
+    function updateDots(dots, count) {
+      dots.forEach((dot, i) => {
+        if (i < count) {
+          dot.textContent = '●';
+          dot.classList.add('border-primary', 'bg-blue-50');
+        } else {
+          dot.textContent = '';
+          dot.classList.remove('border-primary', 'bg-blue-50');
+        }
+      });
+    }
+
+    function saveBrandingAndNext() {
+      const branding = {
+        company: document.getElementById('ob-company').value.trim(),
+        phone: document.getElementById('ob-phone').value.trim(),
+        bizNumber: document.getElementById('ob-biz-number').value.trim(),
+        tagline: document.getElementById('ob-tagline').value.trim(),
+      };
+      localStorage.setItem('yr_branding', JSON.stringify(branding));
+      goStep(4);
+    }
+
+    function saveGasUrlAndFinish() {
+      const url = document.getElementById('ob-gas-url').value.trim();
+      if (url) {
+        localStorage.setItem('yr_gas_url', url);
+      }
+      Auth.completeOnboarding();
+      goStep(5);
+    }
+
+    // --- 설정 페이지 저장 ---
+    function saveSettingsBranding() {
+      const branding = {
+        company: document.getElementById('s-company').value.trim(),
+        phone: document.getElementById('s-phone').value.trim(),
+        bizNumber: document.getElementById('s-biz-number').value.trim(),
+        tagline: document.getElementById('s-tagline').value.trim(),
+      };
+      localStorage.setItem('yr_branding', JSON.stringify(branding));
+      UI.toast('사업자 정보가 저장되었습니다', 'success');
+    }
+
+    function saveSettingsGasUrl() {
+      const url = document.getElementById('s-gas-url').value.trim();
+      localStorage.setItem('yr_gas_url', url);
+      UI.toast('GAS URL이 저장되었습니다', 'success');
+    }
+
+    async function changePin() {
+      const current = document.getElementById('s-pin-current').value;
+      const newPin = document.getElementById('s-pin-new').value;
+      const confirm = document.getElementById('s-pin-confirm').value;
+
+      if (!current || !newPin || !confirm) {
+        UI.toast('모든 항목을 입력하세요', 'warning');
+        return;
+      }
+      if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+        UI.toast('PIN은 숫자 4자리여야 합니다', 'warning');
+        return;
+      }
+      if (newPin !== confirm) {
+        UI.toast('새 PIN이 일치하지 않습니다', 'error');
+        return;
+      }
+
+      const ok = await Auth.verifyPin(current);
+      if (!ok) {
+        UI.toast('현재 PIN이 틀립니다', 'error');
+        return;
+      }
+
+      await Auth.setPin(newPin);
+      document.getElementById('s-pin-current').value = '';
+      document.getElementById('s-pin-new').value = '';
+      document.getElementById('s-pin-confirm').value = '';
+      UI.toast('PIN이 변경되었습니다', 'success');
+    }
+  </script>
+
+  <!-- Service Worker 등록 -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

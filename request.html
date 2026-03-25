@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>용인 랙 - 견적 요청</title>
+  <meta name="description" content="경량랙, 중량랙 설치 견적을 무료로 요청하세요.">
+  <meta property="og:title" content="용인 랙 - 무료 견적 요청">
+  <meta property="og:description" content="랙 설치 전문업체 용인 랙에 견적을 요청하세요.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{primary:'#1e3a5f',accent:'#f97316'}}}}</script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e3a5f">
+  <style>body{font-family:'Pretendard',sans-serif}</style>
+</head>
+<body class="bg-[#f7fafc] min-h-screen">
+  <header class="bg-primary text-white px-4 py-4 text-center">
+    <h1 class="text-lg font-bold">용인 랙</h1>
+    <p class="text-xs opacity-80 mt-1">전문 랙 설치 시공</p>
+  </header>
+
+  <main class="max-w-lg mx-auto px-4 py-6">
+    <div class="bg-white rounded-2xl border border-gray-100 p-5">
+      <h2 class="text-xl font-bold text-gray-800 mb-1">견적 요청</h2>
+      <p class="text-sm text-gray-500 mb-6">아래 정보를 입력하시면 담당자가 확인 후 연락드리겠습니다.</p>
+
+      <form id="request-form" class="space-y-4">
+        <div>
+          <label for="req-name" class="block text-sm font-semibold text-gray-600 mb-1">이름/상호 *</label>
+          <input type="text" id="req-name" required
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none"
+            placeholder="홍길동">
+        </div>
+        <div>
+          <label for="req-phone" class="block text-sm font-semibold text-gray-600 mb-1">연락처 *</label>
+          <input type="tel" id="req-phone" required
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none"
+            placeholder="010-0000-0000">
+        </div>
+        <div>
+          <label for="req-rack" class="block text-sm font-semibold text-gray-600 mb-1">필요한 랙 종류</label>
+          <select id="req-rack"
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base bg-white focus:border-primary focus:outline-none">
+            <option value="">선택하세요 (선택사항)</option>
+            <option>경량랙</option>
+            <option>중량랙</option>
+            <option>파렛트랙</option>
+            <option>앵글랙</option>
+            <option>기타</option>
+          </select>
+        </div>
+        <div>
+          <label for="req-qty" class="block text-sm font-semibold text-gray-600 mb-1">예상 수량</label>
+          <input type="number" id="req-qty" min="1"
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none"
+            placeholder="10">
+        </div>
+        <div>
+          <label for="req-memo" class="block text-sm font-semibold text-gray-600 mb-1">추가 요청사항</label>
+          <textarea id="req-memo" rows="3"
+            class="w-full px-3 py-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none resize-none"
+            placeholder="설치 위치, 특수 요구사항 등"></textarea>
+        </div>
+
+        <!-- 허니팟 (스팸 방지) -->
+        <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off">
+
+        <button type="submit" id="btn-submit"
+          class="w-full h-14 bg-primary text-white rounded-2xl font-bold text-lg active:scale-[0.98] transition-transform">
+          견적 요청하기
+        </button>
+      </form>
+
+      <!-- 성공 메시지 -->
+      <div id="success-msg" class="hidden text-center py-8">
+        <div class="text-5xl mb-4">✅</div>
+        <h3 class="text-lg font-bold text-gray-800 mb-2">요청이 접수되었습니다!</h3>
+        <p class="text-sm text-gray-500">담당자가 확인 후 연락드리겠습니다.</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    document.getElementById('request-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // 허니팟 체크
+      if (document.querySelector('[name="website"]').value) return;
+
+      const btn = document.getElementById('btn-submit');
+      const name = document.getElementById('req-name').value.trim();
+      const phone = document.getElementById('req-phone').value.trim();
+
+      if (!name || !phone) {
+        UI.toast('이름과 연락처를 입력하세요', 'warning');
+        return;
+      }
+
+      UI.setLoading(btn, true);
+      try {
+        const result = await API.submitRequest({
+          name,
+          phone,
+          rackType: document.getElementById('req-rack').value,
+          quantity: document.getElementById('req-qty').value,
+          memo: document.getElementById('req-memo').value,
+        });
+
+        if (result.error) {
+          UI.toast(result.error, 'error');
+        } else {
+          document.getElementById('request-form').classList.add('hidden');
+          document.getElementById('success-msg').classList.remove('hidden');
+        }
+      } catch (err) {
+        UI.toast(err.message || '요청 실패', 'error');
+      } finally {
+        UI.setLoading(btn, false);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>용인 랙 - 대시보드</title>
+  <meta name="description" content="견적 대시보드 및 월별 통계">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e3a5f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1e3a5f',
+            accent: '#f97316',
+          },
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Pretendard Font -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+
+  <style>
+    body { font-family: 'Pretendard', sans-serif; padding-bottom: 80px; }
+  </style>
+</head>
+<body class="bg-[#f7fafc] min-h-screen">
+
+  <!-- 헤더 -->
+  <header class="bg-primary text-white px-4 py-4">
+    <h1 class="text-lg font-bold">대시보드</h1>
+  </header>
+
+  <main class="max-w-lg mx-auto">
+    <!-- 통계 카드 -->
+    <div class="mx-4 mt-4 grid grid-cols-3 gap-3" id="stat-cards">
+      <!-- 스켈레톤 -->
+      <div class="animate-pulse bg-white rounded-xl border border-gray-100 p-4">
+        <div class="h-3 bg-gray-200 rounded w-2/3 mb-3"></div>
+        <div class="h-6 bg-gray-200 rounded w-1/2"></div>
+      </div>
+      <div class="animate-pulse bg-white rounded-xl border border-gray-100 p-4">
+        <div class="h-3 bg-gray-200 rounded w-2/3 mb-3"></div>
+        <div class="h-6 bg-gray-200 rounded w-1/2"></div>
+      </div>
+      <div class="animate-pulse bg-white rounded-xl border border-gray-100 p-4">
+        <div class="h-3 bg-gray-200 rounded w-2/3 mb-3"></div>
+        <div class="h-6 bg-gray-200 rounded w-1/2"></div>
+      </div>
+    </div>
+
+    <!-- 최근 견적 -->
+    <div class="mx-4 mt-6">
+      <h2 class="text-sm font-bold text-gray-700 mb-3">최근 견적</h2>
+      <div id="recent-list">
+        <div class="animate-pulse space-y-3">
+          <div class="bg-white rounded-xl border border-gray-100 p-3"><div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div><div class="h-3 bg-gray-200 rounded w-1/2"></div></div>
+          <div class="bg-white rounded-xl border border-gray-100 p-3"><div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div><div class="h-3 bg-gray-200 rounded w-1/2"></div></div>
+          <div class="bg-white rounded-xl border border-gray-100 p-3"><div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div><div class="h-3 bg-gray-200 rounded w-1/2"></div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!Auth.guard()) {
+        window.addEventListener('yr-authenticated', init);
+        return;
+      }
+      init();
+    });
+
+    async function init() {
+      UI.renderTabBar('dashboard');
+      await loadDashboard();
+    }
+
+    async function loadDashboard() {
+      try {
+        const data = await API.getDashboard();
+        renderStats(data);
+        renderRecent(data.recentEstimates || []);
+      } catch (err) {
+        renderEmpty();
+      }
+    }
+
+    function renderStats(data) {
+      const count = data.monthlyCount || 0;
+      const total = data.monthlyTotal || 0;
+      const conversion = data.conversionRate != null ? data.conversionRate : 0;
+
+      document.getElementById('stat-cards').innerHTML = `
+        <div class="bg-white rounded-xl border border-gray-100 p-4 text-center">
+          <p class="text-xs text-gray-400 mb-1">이번 달 견적</p>
+          <p class="text-2xl font-extrabold text-primary">${count}<span class="text-sm font-bold">건</span></p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4 text-center">
+          <p class="text-xs text-gray-400 mb-1">이번 달 총액</p>
+          <p class="text-xl font-extrabold text-accent">${formatCompact(total)}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4 text-center">
+          <p class="text-xs text-gray-400 mb-1">계약 전환</p>
+          <p class="text-2xl font-extrabold text-primary">${conversion}<span class="text-sm font-bold">%</span></p>
+        </div>
+      `;
+    }
+
+    function formatCompact(n) {
+      if (n >= 100000000) return (n / 100000000).toFixed(1) + '억';
+      if (n >= 10000) return (n / 10000).toFixed(0) + '만';
+      return UI.formatCurrency(n);
+    }
+
+    function renderRecent(estimates) {
+      const container = document.getElementById('recent-list');
+
+      if (!estimates || estimates.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-sm text-gray-400">
+            이번 달 견적: 0건. 견적을 시작해보세요!
+            <br><a href="index.html" class="inline-block mt-3 text-primary font-bold underline">새 견적 작성</a>
+          </div>
+        `;
+        return;
+      }
+
+      const recent = estimates.slice(0, 5);
+      container.innerHTML = recent.map(e => `
+        <a href="history.html" class="block bg-white rounded-xl border border-gray-100 p-3 mb-2 active:bg-gray-50">
+          <div class="flex items-center justify-between">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-bold text-gray-800 truncate">${e.customerName || '미지정'}</span>
+                ${UI.statusBadge(e.status || '상담완료')}
+              </div>
+              <p class="text-xs text-gray-400 mt-0.5">${UI.formatDate(e.date || e.createdAt)} · ${e.rackType || '랙'} · ${e.quantity || 0}대</p>
+            </div>
+            <p class="text-sm font-extrabold text-primary flex-shrink-0 ml-3">${UI.formatCurrency(e.totalAmount || 0)}</p>
+          </div>
+        </a>
+      `).join('');
+    }
+
+    function renderEmpty() {
+      document.getElementById('stat-cards').innerHTML = `
+        <div class="col-span-3 bg-white rounded-xl border border-gray-100 p-4 text-center">
+          <p class="text-xs text-gray-400 mb-1">이번 달 견적</p>
+          <p class="text-2xl font-extrabold text-primary">0<span class="text-sm font-bold">건</span></p>
+        </div>
+      `;
+      document.getElementById('recent-list').innerHTML = UI.empty(
+        '📊',
+        '이번 달 견적: 0건',
+        '견적을 시작해보세요!',
+        '새 견적 작성',
+        'index.html'
+      );
+    }
+  </script>
+
+  <!-- Service Worker 등록 -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>
