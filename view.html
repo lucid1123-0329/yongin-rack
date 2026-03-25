@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>견적서 확인 - 용인 랙</title>
+  <meta property="og:title" content="[용인 랙] 맞춤형 견적서가 도착했습니다">
+  <meta property="og:description" content="경량랙, 중량랙, 파렛트랙 전문 시공 견적서를 확인하세요.">
+  <meta property="og:image" content="assets/og-image.jpg">
+  <meta property="og:type" content="website">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <style>body{font-family:'Pretendard',sans-serif}</style>
+</head>
+<body class="bg-[#f7fafc] min-h-screen flex items-center justify-center">
+  <div class="text-center px-6">
+    <div class="animate-spin w-8 h-8 border-4 border-[#1e3a5f] border-t-transparent rounded-full mx-auto mb-4"></div>
+    <p class="text-sm text-gray-500">견적서를 불러오는 중...</p>
+  </div>
+  <script>
+    const id = new URLSearchParams(location.search).get('id');
+    if (id) {
+      const gasUrl = 'https://script.google.com/macros/s/AKfycbwyNb3no3gaqH6nl7LWgyFme_BKsaBqMEa1MUdYNpq8ZkqOJQHHTWchsZ_HlfCe_rjN/exec';
+      location.replace(gasUrl + '?action=viewEstimate&id=' + encodeURIComponent(id));
+    } else {
+      document.body.innerHTML = '<div class="text-center px-6 py-12"><p class="text-lg font-bold text-gray-700">견적서를 찾을 수 없습니다</p><a href="request.html" class="inline-block mt-4 bg-[#1e3a5f] text-white px-6 py-3 rounded-xl font-bold text-sm">견적 요청하기</a></div>';
+    }
+  </script>
+</body>
+</html>
