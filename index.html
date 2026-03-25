@@ -44,6 +44,13 @@
   <style>
     body { font-family: 'Pretendard', sans-serif; padding-bottom: 80px; }
   </style>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({ appId: "8b75a514-0f7a-4a3f-bc61-859724940bcd" });
+    });
+  </script>
 </head>
 <body class="bg-[#f7fafc] min-h-screen">
 

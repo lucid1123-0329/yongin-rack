@@ -1,9 +1,10 @@
 /**
  * sw.js — Service Worker
- * 정적 자산 캐시 + 단가표 Stale-While-Revalidate
+ * 정적 자산 캐시 + 단가표 Stale-While-Revalidate + OneSignal 푸시
  */
+importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
-const CACHE_NAME = 'yr-v35';
+const CACHE_NAME = 'yr-v36';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

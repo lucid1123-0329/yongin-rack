@@ -123,7 +123,10 @@ function doPost(e) {
       lock.releaseLock();
     }
 
-    // 알림은 클라이언트(request.html)에서 직접 ntfy 발송
+    // OneSignal 푸시 알림 발송 (서버에서 직접)
+    if (action === 'submitRequest' && result && !result.error) {
+      sendNewRequestNotification(body.name, body.phone, body.rackType, body.memo);
+    }
 
     return jsonResponse(result);
   } catch (err) {
@@ -553,60 +556,39 @@ function submitRequest(body) {
 }
 
 /**
- * 새 견적 요청 알림 (ntfy.sh 푸시 + 이메일)
- * ntfy.sh 앱 설치 후 'yonginrack-noti' 토픽 구독 필요
+ * 새 견적 요청 알림 (OneSignal 푸시)
+ * admin-push.html에서 관리자 기기 등록 필요
  */
 function sendNewRequestNotification(name, phone, rackType, memo) {
   var message = '고객: ' + (name || '미입력') + '\n연락처: ' + (phone || '미입력');
   if (rackType) message += '\n랙종류: ' + rackType;
   if (memo) message += '\n메모: ' + memo;
 
-  debugLog('ntfy 함수 진입');
+  var ONESIGNAL_APP_ID = '8b75a514-0f7a-4a3f-bc61-859724940bcd';
+  var ONESIGNAL_API_KEY = 'os_v2_app_rn22kfappjfd7pdbqwlsjfalzwrfw6shgy2e4mmby66btkfhx7djogmbfeixsulelyuc2q2k6nuqqui57kbkygexy43zyazmet4edlq';
 
-  // ntfy.sh 푸시 알림 (429 시 최대 3회 재시도)
   try {
-    var ntfyHeaders = {};
-    var settingsForNtfy = getSheet('설정').getDataRange().getValues();
-    var ntfyToken = '';
-    for (var j = 1; j < settingsForNtfy.length; j++) {
-      if (settingsForNtfy[j][0] === 'ntfyToken' && settingsForNtfy[j][1]) {
-        ntfyToken = String(settingsForNtfy[j][1]).trim();
-        ntfyHeaders['Authorization'] = 'Bearer ' + ntfyToken;
-        break;
-      }
-    }
-    debugLog('ntfy token: ' + (ntfyToken ? ntfyToken.substring(0, 8) + '...' : 'NONE'));
+    var payload = {
+      app_id: ONESIGNAL_APP_ID,
+      filters: [{ field: 'tag', key: 'role', relation: '=', value: 'admin' }],
+      headings: { en: '새 견적 요청이 도착했습니다' },
+      contents: { en: message },
+      url: 'https://yonginrack.co.kr/requests.html'
+    };
 
-    var payload = JSON.stringify({
-      topic: 'yonginrack-noti',
-      title: '새 견적 요청이 도착했습니다',
-      message: message,
-      tags: ['incoming_envelope'],
-      priority: 4
+    var resp = UrlFetchApp.fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'post',
+      headers: {
+        'Authorization': 'Basic ' + ONESIGNAL_API_KEY,
+        'Content-Type': 'application/json; charset=utf-8'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
     });
 
-    var maxRetries = 3;
-    for (var attempt = 1; attempt <= maxRetries; attempt++) {
-      var ntfyResp = UrlFetchApp.fetch('https://ntfy.sh', {
-        method: 'post',
-        contentType: 'application/json; charset=utf-8',
-        headers: ntfyHeaders,
-        payload: payload,
-        muteHttpExceptions: true
-      });
-      var code = ntfyResp.getResponseCode();
-      debugLog('ntfy 시도 ' + attempt + '/' + maxRetries + ' 응답: ' + code);
-
-      if (code === 200) {
-        break; // 성공
-      } else if (code === 429 && attempt < maxRetries) {
-        Utilities.sleep(2000 * attempt); // 2초, 4초 대기 후 재시도
-      } else {
-        debugLog('ntfy 실패 body: ' + ntfyResp.getContentText().substring(0, 100));
-      }
-    }
+    debugLog('OneSignal 응답: ' + resp.getResponseCode() + ' / ' + resp.getContentText().substring(0, 200));
   } catch (e) {
-    debugLog('ntfy 에러: ' + e.message);
+    debugLog('OneSignal 에러: ' + e.message);
   }
 }
 
@@ -940,65 +922,10 @@ itemsHtml +
  * 이 함수를 실행하면 권한 승인 팝업이 뜹니다. 반드시 허용하세요.
  * 허용 후 재배포하면 웹 앱에서도 ntfy가 동작합니다.
  */
-function testNtfyPush() {
-  // 설정 시트에서 토큰 읽기
-  var headers = {};
-  var settings = getSheet('설정').getDataRange().getValues();
-  for (var i = 1; i < settings.length; i++) {
-    if (settings[i][0] === 'ntfyToken' && settings[i][1]) {
-      var token = String(settings[i][1]).trim();
-      headers['Authorization'] = 'Bearer ' + token;
-      Logger.log('ntfyToken 발견: ' + token.substring(0, 8) + '...');
-      break;
-    }
-  }
-  if (!headers['Authorization']) {
-    Logger.log('⚠️ ntfyToken이 설정 시트에 없습니다!');
-  }
-
-  var response = UrlFetchApp.fetch('https://ntfy.sh', {
-    method: 'post',
-    contentType: 'application/json; charset=utf-8',
-    headers: headers,
-    payload: JSON.stringify({
-      topic: 'yonginrack-noti',
-      title: '중용 - ntfy 테스트 성공',
-      message: 'GAS에서 보낸 테스트 알림입니다!\n시각: ' + new Date().toLocaleString('ko-KR'),
-      tags: ['white_check_mark'],
-      priority: 4
-    }),
-    muteHttpExceptions: true
-  });
-  Logger.log('ntfy 응답코드: ' + response.getResponseCode());
-  Logger.log('ntfy 응답내용: ' + response.getContentText().substring(0, 300));
-}
-
-function testEmailNotification() {
-  var settings = getSheet('설정').getDataRange().getValues();
-  var adminEmail = '';
-  for (var i = 1; i < settings.length; i++) {
-    if (settings[i][0] === 'adminEmail') {
-      adminEmail = String(settings[i][1]).trim();
-      break;
-    }
-  }
-  if (!adminEmail) {
-    Logger.log('⚠️ adminEmail이 설정 시트에 없습니다!');
-    return;
-  }
-  Logger.log('이메일 발송 대상: ' + adminEmail);
-  MailApp.sendEmail({
-    to: adminEmail,
-    subject: '[용인 랙] 이메일 알림 테스트',
-    body: '이메일 알림 테스트입니다.\n시각: ' + new Date().toLocaleString('ko-KR')
-  });
-  Logger.log('이메일 발송 완료!');
-}
-
-function testFullNotification() {
-  Logger.log('=== 전체 알림 테스트 시작 ===');
-  sendNewRequestNotification('테스트고객', '010-0000-0000', '경량랙', '알림 테스트');
-  Logger.log('=== 전체 알림 테스트 완료 ===');
+function testOneSignalPush() {
+  Logger.log('=== OneSignal 푸시 테스트 시작 ===');
+  sendNewRequestNotification('테스트고객', '010-0000-0000', '경량랙', 'OneSignal 테스트');
+  Logger.log('=== OneSignal 푸시 테스트 완료 ===');
 }
 
 function initAllSheets() {
