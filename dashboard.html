@@ -279,11 +279,19 @@
     function handleDeleteEstimate(estimateId) {
       UI.confirm('견적 삭제', '이 견적을 삭제하시겠습니까?', async () => {
         try {
-          await API.deleteEstimate(estimateId);
-          allEstimates = allEstimates.filter(e => e.estimateId !== estimateId);
-          UI.toast('삭제되었습니다', 'success');
-          renderEstimates();
-        } catch { UI.toast('삭제 실패', 'error'); }
+          const res = await API.deleteEstimate(estimateId);
+          console.log('deleteEstimate response:', res);
+          if (res && res.error) {
+            UI.toast('삭제 실패: ' + res.error, 'error');
+          } else {
+            allEstimates = allEstimates.filter(e => e.estimateId !== estimateId);
+            UI.toast('삭제되었습니다', 'success');
+            renderEstimates();
+          }
+        } catch (err) {
+          console.error('deleteEstimate error:', err);
+          UI.toast('삭제 실패: ' + (err.message || ''), 'error');
+        }
       });
     }
 

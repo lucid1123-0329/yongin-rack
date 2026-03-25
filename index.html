@@ -275,7 +275,7 @@
       }
 
       // URL 파라미터로 고객정보 프리필 (요청→견적)
-      prefillFromUrl();
+      await prefillFromUrl();
     }
 
     async function prefillFromUrl() {
@@ -284,6 +284,7 @@
 
       // 수정 모드: 기존 견적 데이터 로드
       if (from === 'edit' && p.get('editId')) {
+        sessionStorage.setItem('yr_edit_id', p.get('editId'));
         try {
           const data = await API.getEstimate(p.get('editId'));
           if (data && !data.error) {
@@ -303,8 +304,6 @@
               App.renderItems();
               App.updateTotal();
             }
-            // 수정 모드 표시
-            sessionStorage.setItem('yr_edit_id', p.get('editId'));
             document.getElementById('btn-save').textContent = '견적 수정 저장';
             UI.toast('기존 견적을 불러왔습니다. 수정 후 저장하세요.', 'info', 3000);
           }
@@ -339,6 +338,7 @@
       UI.setLoading(btn, true);
       try {
         const editId = sessionStorage.getItem('yr_edit_id');
+        console.log('handleSave mode:', editId ? 'UPDATE ' + editId : 'NEW');
 
         if (editId) {
           // 수정 모드: 기존 견적 업데이트
@@ -354,12 +354,14 @@
             supplyTotal, vat, total,
             ...customer,
           });
-          if (result && result.estimateId) {
+          console.log('updateEstimate result:', result);
+          if (result && (result.estimateId || result.result === 'success')) {
             sessionStorage.removeItem('yr_edit_id');
-            // sessionStorage 캐시도 삭제 (미리보기에서 최신 데이터 로드하도록)
             sessionStorage.removeItem('yr-estimate-' + editId);
             UI.toast('견적이 수정되었습니다', 'success');
-            window.location.href = `estimate-preview.html?id=${result.estimateId}`;
+            window.location.href = `estimate-preview.html?id=${result.estimateId || editId}`;
+          } else {
+            UI.toast('수정 실패: ' + (result?.error || '알 수 없는 오류'), 'error');
           }
         } else {
           // 신규 저장
