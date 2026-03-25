@@ -114,14 +114,14 @@ const Estimate = (() => {
 
   // 테이블 공통 스타일 (인라인 — html2canvas 호환)
   const S = {
-    table: 'width:100%;border-collapse:collapse;font-size:11px;',
-    th: 'border:1px solid #333;padding:4px 6px;background:#f5f5f5;font-weight:bold;text-align:center;font-size:10px;',
-    td: 'border:1px solid #333;padding:4px 6px;text-align:center;',
-    tdL: 'border:1px solid #333;padding:4px 6px;text-align:left;',
-    tdR: 'border:1px solid #333;padding:4px 6px;text-align:right;',
-    thHeader: 'border:1px solid #333;padding:3px 6px;background:#e8e8e8;font-weight:bold;text-align:center;font-size:12px;',
-    infoTd: 'border:1px solid #333;padding:3px 6px;font-size:11px;',
-    infoTh: 'border:1px solid #333;padding:3px 6px;background:#f0f0f0;font-weight:bold;font-size:10px;text-align:center;width:60px;',
+    table: 'width:100%;border-collapse:collapse;font-size:12px;line-height:1.6;',
+    th: 'border:1px solid #333;padding:6px 8px;background:#f5f5f5;font-weight:bold;text-align:center;font-size:11px;',
+    td: 'border:1px solid #333;padding:6px 8px;text-align:center;',
+    tdL: 'border:1px solid #333;padding:6px 8px;text-align:left;',
+    tdR: 'border:1px solid #333;padding:6px 8px;text-align:right;',
+    thHeader: 'border:1px solid #333;padding:5px 8px;background:#e8e8e8;font-weight:bold;text-align:center;font-size:13px;',
+    infoTd: 'border:1px solid #333;padding:5px 8px;font-size:12px;',
+    infoTh: 'border:1px solid #333;padding:5px 8px;background:#f0f0f0;font-weight:bold;font-size:11px;text-align:center;width:60px;',
   };
 
   // ========== 정식 견적서 ==========
@@ -563,24 +563,33 @@ const Estimate = (() => {
 
       UI.toast('이미지 생성 중...', 'info', 2000);
 
-      // 복제본을 화면 밖에 원본 크기(700px)로 배치하여 캡쳐
+      // A4 비율: 210mm × 297mm → 794px × 1123px @96dpi
+      const A4_W = 794;
+      const A4_H = 1123;
+      const MARGIN = 48; // 상하좌우 여백
+      const CONTENT_W = A4_W - MARGIN * 2; // 698px
+
+      // A4 래퍼 생성 (여백 포함)
+      const a4Wrapper = document.createElement('div');
+      a4Wrapper.style.cssText = `position:fixed;left:-9999px;top:0;width:${A4_W}px;min-height:${A4_H}px;background:#fff;padding:${MARGIN}px;box-sizing:border-box;z-index:-1;`;
+
       const clone = card.cloneNode(true);
       clone.id = 'estimate-card-clone';
-      clone.style.cssText = 'position:fixed;left:-9999px;top:0;width:700px;transform:none;z-index:-1;';
-      document.body.appendChild(clone);
+      clone.style.cssText = `width:100%;max-width:${CONTENT_W}px;transform:none;margin:0;padding:16px;box-sizing:border-box;`;
+      a4Wrapper.appendChild(clone);
+      document.body.appendChild(a4Wrapper);
 
-      // 약간의 딜레이 후 렌더링 안정화
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise(r => setTimeout(r, 150));
 
-      const canvas = await html2canvas(clone, {
+      const canvas = await html2canvas(a4Wrapper, {
         scale: 2,
         backgroundColor: '#ffffff',
         useCORS: true,
-        width: 700,
-        windowWidth: 700,
+        width: A4_W,
+        windowWidth: A4_W,
       });
 
-      document.body.removeChild(clone);
+      document.body.removeChild(a4Wrapper);
 
       const link = document.createElement('a');
       const prefix = docType === 'transaction' ? '거래명세표' : '견적서';
