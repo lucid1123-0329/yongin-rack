@@ -394,11 +394,13 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
   try {
     UrlFetchApp.fetch('https://ntfy.sh/yonginrack-noti', {
       method: 'post',
+      contentType: 'text/plain; charset=utf-8',
       payload: message,
       headers: {
-        'Title': '새 견적 요청이 도착했습니다',
+        'Title': encodeURIComponent('새 견적 요청이 도착했습니다'),
         'Tags': 'incoming_envelope',
-        'Priority': '4'
+        'Priority': '4',
+        'Encoding': 'no'
       },
       muteHttpExceptions: true
     });
@@ -724,11 +726,13 @@ itemsHtml +
 function testNtfyPush() {
   var response = UrlFetchApp.fetch('https://ntfy.sh/yonginrack-noti', {
     method: 'post',
+    contentType: 'text/plain; charset=utf-8',
     payload: 'GAS에서 보낸 테스트 알림입니다!',
     headers: {
-      'Title': '용인 랙 - ntfy 테스트',
+      'Title': encodeURIComponent('중용 - ntfy 테스트 성공'),
       'Tags': 'white_check_mark',
-      'Priority': '4'
+      'Priority': '4',
+      'Encoding': 'no'
     }
   });
   Logger.log('ntfy 응답: ' + response.getResponseCode());
