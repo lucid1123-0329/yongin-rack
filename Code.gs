@@ -395,18 +395,18 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
   if (rackType) message += '\n랙종류: ' + rackType;
   if (memo) message += '\n메모: ' + memo;
 
-  // 1) ntfy.sh 푸시 알림 (무료, 앱 설치 필요)
+  // 1) ntfy.sh 푸시 알림 (JSON 방식 — 한글 제목 지원)
   try {
-    UrlFetchApp.fetch('https://ntfy.sh/yonginrack-noti', {
+    UrlFetchApp.fetch('https://ntfy.sh', {
       method: 'post',
-      contentType: 'text/plain; charset=utf-8',
-      payload: message,
-      headers: {
-        'Title': encodeURIComponent('새 견적 요청이 도착했습니다'),
-        'Tags': 'incoming_envelope',
-        'Priority': '4',
-        'Encoding': 'no'
-      },
+      contentType: 'application/json; charset=utf-8',
+      payload: JSON.stringify({
+        topic: 'yonginrack-noti',
+        title: '새 견적 요청이 도착했습니다',
+        message: message,
+        tags: ['incoming_envelope'],
+        priority: 4
+      }),
       muteHttpExceptions: true
     });
   } catch (e) {}
@@ -737,16 +737,16 @@ itemsHtml +
  * 허용 후 재배포하면 웹 앱에서도 ntfy가 동작합니다.
  */
 function testNtfyPush() {
-  var response = UrlFetchApp.fetch('https://ntfy.sh/yonginrack-noti', {
+  var response = UrlFetchApp.fetch('https://ntfy.sh', {
     method: 'post',
-    contentType: 'text/plain; charset=utf-8',
-    payload: 'GAS에서 보낸 테스트 알림입니다!',
-    headers: {
-      'Title': encodeURIComponent('중용 - ntfy 테스트 성공'),
-      'Tags': 'white_check_mark',
-      'Priority': '4',
-      'Encoding': 'no'
-    }
+    contentType: 'application/json; charset=utf-8',
+    payload: JSON.stringify({
+      topic: 'yonginrack-noti',
+      title: '중용 - ntfy 테스트 성공',
+      message: 'GAS에서 보낸 테스트 알림입니다!',
+      tags: ['white_check_mark'],
+      priority: 4
+    })
   });
   Logger.log('ntfy 응답: ' + response.getResponseCode());
 }
