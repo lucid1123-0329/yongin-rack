@@ -303,6 +303,9 @@
               App.renderItems();
               App.updateTotal();
             }
+            // 수정 모드 표시
+            sessionStorage.setItem('yr_edit_id', p.get('editId'));
+            document.getElementById('btn-save').textContent = '견적 수정 저장';
             UI.toast('기존 견적을 불러왔습니다. 수정 후 저장하세요.', 'info', 3000);
           }
         } catch {}
@@ -335,17 +338,42 @@
       const btn = document.getElementById('btn-save');
       UI.setLoading(btn, true);
       try {
-        const result = await App.saveEstimate();
-        if (result && result.estimateId) {
-          UI.toast('견적이 저장되었습니다', 'success');
-          const reqRow = sessionStorage.getItem('yr_request_row');
-          // 요청에서 온 견적이면 estimateId 연결
-          if (reqRow) {
-            try { await API.linkEstimateToRequest(Number(reqRow), result.estimateId); } catch {}
+        const editId = sessionStorage.getItem('yr_edit_id');
+
+        if (editId) {
+          // 수정 모드: 기존 견적 업데이트
+          const { supplyTotal, vat, total, items: calcItems } = App.calculate();
+          if (!calcItems || calcItems.length === 0) {
+            UI.toast('품목을 추가하세요', 'warning');
+            return;
           }
-          const reqParam = reqRow ? `&requestRowIndex=${reqRow}` : '';
-          sessionStorage.removeItem('yr_request_row');
-          window.location.href = `estimate-preview.html?id=${result.estimateId}${reqParam}`;
+          const customer = App.getCustomerInfo();
+          const result = await API.updateEstimate({
+            estimateId: editId,
+            items: calcItems,
+            supplyTotal, vat, total,
+            ...customer,
+          });
+          if (result && result.estimateId) {
+            sessionStorage.removeItem('yr_edit_id');
+            // sessionStorage 캐시도 삭제 (미리보기에서 최신 데이터 로드하도록)
+            sessionStorage.removeItem('yr-estimate-' + editId);
+            UI.toast('견적이 수정되었습니다', 'success');
+            window.location.href = `estimate-preview.html?id=${result.estimateId}`;
+          }
+        } else {
+          // 신규 저장
+          const result = await App.saveEstimate();
+          if (result && result.estimateId) {
+            UI.toast('견적이 저장되었습니다', 'success');
+            const reqRow = sessionStorage.getItem('yr_request_row');
+            if (reqRow) {
+              try { await API.linkEstimateToRequest(Number(reqRow), result.estimateId); } catch {}
+            }
+            const reqParam = reqRow ? `&requestRowIndex=${reqRow}` : '';
+            sessionStorage.removeItem('yr_request_row');
+            window.location.href = `estimate-preview.html?id=${result.estimateId}${reqParam}`;
+          }
         }
       } catch (err) {
         UI.toast(err.message || '저장 실패', 'error');

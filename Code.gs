@@ -110,6 +110,9 @@ function doPost(e) {
         case 'linkEstimateToRequest':
           result = linkEstimateToRequest(body);
           break;
+        case 'updateEstimate':
+          result = updateEstimate(body);
+          break;
         case 'deleteEstimate':
           result = deleteEstimate(body.estimateId);
           break;
@@ -238,6 +241,44 @@ function saveEstimate(body) {
   ]);
 
   return { result: 'success', estimateId: estimateId, row: sheet.getLastRow() };
+}
+
+function updateEstimate(body) {
+  if (!body.estimateId) return { error: 'Missing estimateId' };
+  var sheet = getSheet('견적내역');
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][1] === body.estimateId) {
+      var row = i + 1;
+      var itemsJson = JSON.stringify(body.items || []);
+      var supplyTotal = Number(body.supplyTotal) || Number(body.total) || 0;
+      var vat = Number(body.vat) || 0;
+      var grandTotal = supplyTotal + vat;
+      var now = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm');
+      // 기존 행 덮어쓰기 (상태와 clientId는 유지)
+      var currentStatus = data[i][8] || '상담완료';
+      var currentClientId = data[i][9] || '';
+      sheet.getRange(row, 1, 1, 15).setValues([[
+        now,
+        body.estimateId,
+        body.name || '',
+        body.company || '',
+        body.phone || '',
+        body.address || '',
+        itemsJson,
+        grandTotal,
+        currentStatus,
+        currentClientId,
+        supplyTotal,
+        vat,
+        body.bizNumber || '',
+        body.bizType || '',
+        body.bizItem || ''
+      ]]);
+      return { result: 'success', estimateId: body.estimateId };
+    }
+  }
+  return { error: 'Estimate not found' };
 }
 
 function deleteEstimate(estimateId) {
