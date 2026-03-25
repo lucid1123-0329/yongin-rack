@@ -106,8 +106,15 @@
 
       const previewEl = document.getElementById('preview-area');
       const containerEl = document.getElementById('preview-container');
-      previewEl.innerHTML = Estimate.renderFormalQuotation(data);
-      document.title = `[중용] 견적서 - ${data.estimateId}`;
+      const docType = new URLSearchParams(location.search).get('doc');
+
+      if (docType === 'transaction') {
+        previewEl.innerHTML = Estimate.renderTransactionStatement(data);
+        document.title = `[중용] 거래명세표 - ${data.estimateId}`;
+      } else {
+        previewEl.innerHTML = Estimate.renderFormalQuotation(data);
+        document.title = `[중용] 견적서 - ${data.estimateId}`;
+      }
 
       // A4 스케일 적용
       requestAnimationFrame(() => {

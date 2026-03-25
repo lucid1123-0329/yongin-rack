@@ -510,9 +510,10 @@ const Estimate = (() => {
   }
 
   // ========== 공유 ==========
-  async function share(data) {
+  async function share(data, docType) {
     const brand = getBranding();
-    const title = `[${brand.company || '중용'}] 견적서`;
+    const docName = docType === 'transaction' ? '거래명세표' : '견적서';
+    const title = `[${brand.company || '중용'}] ${docName}`;
     const items = parseItems(data);
     const { total } = calcTotals(items, data);
 
@@ -526,7 +527,8 @@ const Estimate = (() => {
 
     const text = `${itemSummary} — ${fmtW(total)} (VAT포함)`;
     const siteOrigin = location.origin;
-    const url = data.estimateId ? `${siteOrigin}/view.html?id=${data.estimateId}` : window.location.href;
+    const docParam = docType === 'transaction' ? '&doc=transaction' : '';
+    const url = data.estimateId ? `${siteOrigin}/view.html?id=${data.estimateId}${docParam}` : window.location.href;
 
     if (navigator.share) {
       try {
@@ -558,7 +560,26 @@ const Estimate = (() => {
       if (typeof html2canvas === 'undefined') {
         UI.toast('이미지 생성 기능을 로드 중입니다', 'info'); return;
       }
+
+      // CSS transform scale 해제 후 캡쳐 (원본 크기로)
+      const wrapper = card.closest('.a4-wrapper');
+      const container = wrapper ? wrapper.closest('.a4-container') : null;
+      let origTransform = '', origHeight = '';
+      if (wrapper) {
+        origTransform = wrapper.style.transform;
+        wrapper.style.transform = 'none';
+      }
+      if (container) {
+        origHeight = container.style.height;
+        container.style.height = 'auto';
+      }
+
       const canvas = await html2canvas(card, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+
+      // 복원
+      if (wrapper) wrapper.style.transform = origTransform;
+      if (container) container.style.height = origHeight;
+
       const link = document.createElement('a');
       const prefix = docType === 'transaction' ? '거래명세표' : '견적서';
       link.download = `${prefix}_${new Date().toISOString().slice(0,10)}.png`;

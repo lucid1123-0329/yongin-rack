@@ -219,13 +219,22 @@ const App = (() => {
     UI.toast(`'${name}' 추가됨`, 'success');
   }
 
+  function hideAllPresetAreas() {
+    const marginArea = document.getElementById('margin-area');
+    const dcArea = document.getElementById('dc-area');
+    if (marginArea) marginArea.classList.add('hidden');
+    if (dcArea) dcArea.classList.add('hidden');
+  }
+
   function addPresetItem(presetName) {
     const nameEl = document.getElementById('custom-name');
     const priceEl = document.getElementById('custom-price');
     const qtyEl = document.getElementById('custom-qty');
 
+    // 먼저 모든 토글 영역 닫기
+    hideAllPresetAreas();
+
     if (presetName === '마진') {
-      // 마진 % 입력 UI 토글
       const marginArea = document.getElementById('margin-area');
       const marginPctEl = document.getElementById('margin-pct');
       if (marginArea) {
@@ -235,7 +244,6 @@ const App = (() => {
       }
       return;
     } else if (presetName === 'D/C') {
-      // D/C 전용 입력 UI 토글
       const dcArea = document.getElementById('dc-area');
       const dcAmountEl = document.getElementById('dc-amount');
       if (dcArea) {
