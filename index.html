@@ -42,8 +42,6 @@
   <link rel="apple-touch-icon" href="assets/icon-192.png">
 
   <style>
-    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
-    .animate-shake { animation: shake 0.3s ease-in-out; }
     body { font-family: 'Pretendard', sans-serif; padding-bottom: 80px; }
   </style>
 </head>
@@ -59,11 +57,12 @@
     <div class="mx-4 mt-4 bg-gradient-to-br from-primary to-[#2c5282] rounded-2xl p-5 text-center text-white">
       <p class="text-sm opacity-80">예상 견적액</p>
       <p class="text-3xl font-extrabold my-2" id="total-amount">0원</p>
-      <p class="text-xs opacity-70" id="total-detail">랙을 선택하세요</p>
+      <p class="text-xs opacity-70" id="total-detail">랙을 추가하세요</p>
     </div>
 
-    <!-- 랙 선택 -->
+    <!-- 랙 추가 영역 -->
     <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 p-4" id="price-area">
+      <h3 class="text-sm font-bold text-gray-700 mb-3">랙 추가</h3>
       <div id="rack-selector">
         <div class="text-center py-8">
           <div class="animate-pulse">
@@ -73,44 +72,36 @@
         </div>
       </div>
 
-      <!-- 수량 -->
-      <div class="mt-4">
-        <label class="block text-sm font-semibold text-gray-600 mb-2">수량</label>
-        <div class="flex items-center">
-          <button onclick="App.changeQuantity(-1)" class="w-12 h-12 bg-gray-100 rounded-l-xl text-xl font-bold text-gray-600 active:bg-gray-200">−</button>
-          <input type="number" id="qty-input" value="1" min="1" max="9999"
-            class="w-20 h-12 text-center text-lg font-bold border-y-2 border-gray-200 focus:outline-none"
-            onchange="App.setQuantity(this.value)">
-          <button onclick="App.changeQuantity(1)" class="w-12 h-12 bg-gray-100 rounded-r-xl text-xl font-bold text-gray-600 active:bg-gray-200">+</button>
-          <span class="ml-3 text-sm text-gray-500">대</span>
-        </div>
-      </div>
-
-      <!-- 추가 옵션 -->
-      <div class="mt-4">
-        <label class="block text-sm font-semibold text-gray-600 mb-2">추가 옵션</label>
-        <div class="flex flex-wrap gap-2">
-          <button onclick="this.classList.toggle('bg-blue-50');this.classList.toggle('border-primary');this.classList.toggle('text-primary');App.toggleOption('delivery')"
-            class="px-4 py-2 border-2 border-gray-200 rounded-full text-sm font-semibold text-gray-500 transition-colors">
-            운반비
-          </button>
-          <button onclick="this.classList.toggle('bg-blue-50');this.classList.toggle('border-primary');this.classList.toggle('text-primary');App.toggleOption('assembly')"
-            class="px-4 py-2 border-2 border-gray-200 rounded-full text-sm font-semibold text-gray-500 transition-colors">
-            조립비
-          </button>
-          <button onclick="this.classList.toggle('bg-blue-50');this.classList.toggle('border-primary');this.classList.toggle('text-primary');App.toggleOption('demolition')"
-            class="px-4 py-2 border-2 border-gray-200 rounded-full text-sm font-semibold text-gray-500 transition-colors">
-            철거비
+      <!-- 수량 + 추가 버튼 (랙 선택 완료 시 표시) -->
+      <div class="mt-3 hidden" id="add-section">
+        <div class="flex items-end gap-3">
+          <div class="flex-1">
+            <label class="block text-sm font-semibold text-gray-600 mb-2">수량</label>
+            <div class="flex items-center">
+              <button onclick="App.changeQuantity(-1)" class="w-10 h-10 bg-gray-100 rounded-l-xl text-lg font-bold text-gray-600 active:bg-gray-200">−</button>
+              <input type="number" id="qty-input" value="1" min="1" max="9999"
+                class="w-16 h-10 text-center text-base font-bold border-y-2 border-gray-200 focus:outline-none"
+                onchange="App.setQuantity(this.value)">
+              <button onclick="App.changeQuantity(1)" class="w-10 h-10 bg-gray-100 rounded-r-xl text-lg font-bold text-gray-600 active:bg-gray-200">+</button>
+              <span class="ml-2 text-sm text-gray-500">대</span>
+            </div>
+          </div>
+          <button onclick="App.addItem()"
+            class="h-10 px-5 bg-accent text-white rounded-xl font-bold text-sm active:scale-[0.98] transition-transform flex-shrink-0">
+            + 추가
           </button>
         </div>
       </div>
     </div>
 
+    <!-- 추가된 품목 목록 -->
+    <div class="mx-4 mt-4" id="items-area"></div>
+
     <!-- 고객 정보 (접이식) -->
     <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 overflow-hidden">
       <button onclick="document.getElementById('customer-form').classList.toggle('hidden');this.querySelector('span:last-child').textContent=document.getElementById('customer-form').classList.contains('hidden')?'▼':'▲'"
         class="w-full px-4 py-3 flex items-center justify-between text-sm font-semibold text-gray-700">
-        <span>👤 고객 정보 (선택)</span>
+        <span>고객 정보 (선택)</span>
         <span class="text-gray-400">▼</span>
       </button>
       <div id="customer-form" class="hidden px-4 pb-4 space-y-3">
@@ -144,7 +135,7 @@
       <button id="btn-save" disabled
         onclick="handleSave()"
         class="w-full h-14 bg-primary text-white rounded-2xl font-bold text-lg disabled:opacity-40 active:scale-[0.98] transition-transform">
-        💾 견적 저장
+        견적 저장
       </button>
     </div>
   </main>
@@ -156,9 +147,7 @@
   <script src="js/app.js"></script>
   <script src="js/estimate.js"></script>
   <script>
-    // 앱 초기화
     document.addEventListener('DOMContentLoaded', async () => {
-      // 인증 체크
       if (!Auth.guard()) {
         window.addEventListener('yr-authenticated', init);
         return;
@@ -173,11 +162,18 @@
 
       // 임시 저장 복원
       const draft = App.loadDraft();
-      if (draft && draft.customer) {
-        if (draft.customer.name) document.getElementById('cust-name').value = draft.customer.name;
-        if (draft.customer.company) document.getElementById('cust-company').value = draft.customer.company;
-        if (draft.customer.phone) document.getElementById('cust-phone').value = draft.customer.phone;
-        if (draft.customer.address) document.getElementById('cust-address').value = draft.customer.address;
+      if (draft) {
+        if (draft.items && draft.items.length > 0) {
+          App.items = draft.items;
+          App.renderItems();
+          App.updateTotal();
+        }
+        if (draft.customer) {
+          if (draft.customer.name) document.getElementById('cust-name').value = draft.customer.name;
+          if (draft.customer.company) document.getElementById('cust-company').value = draft.customer.company;
+          if (draft.customer.phone) document.getElementById('cust-phone').value = draft.customer.phone;
+          if (draft.customer.address) document.getElementById('cust-address').value = draft.customer.address;
+        }
       }
     }
 
@@ -188,7 +184,6 @@
         const result = await App.saveEstimate();
         if (result && result.estimateId) {
           UI.toast('견적이 저장되었습니다', 'success');
-          // 미리보기 페이지로 이동
           window.location.href = `estimate-preview.html?id=${result.estimateId}`;
         }
       } catch (err) {
@@ -198,7 +193,6 @@
       }
     }
 
-    // 고객 리피터 자동완성
     async function loadCustomerSuggestions() {
       try {
         const data = await API.getEstimates();
@@ -214,7 +208,6 @@
             }
           });
 
-          // 고객명 선택 시 자동 채우기
           document.getElementById('cust-name').addEventListener('change', (ev) => {
             const match = data.estimates.find(e => e.customerName === ev.target.value);
             if (match) {

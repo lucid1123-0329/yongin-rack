@@ -1,20 +1,19 @@
 /**
  * app.js — 견적 계산 핵심 로직
- * 랙 선택 → 수량 → 옵션 → 실시간 금액 계산
+ * 복수 품목 카트 방식: 랙 선택 → 수량 → 추가 → 반복 → 저장
  */
 
 const App = (() => {
   let priceData = [];
-  let selectedRack = null;
-  let quantity = 1;
-  let options = { delivery: false, assembly: false, demolition: false };
+  let items = [];           // 추가된 품목 배열
+  let currentSelection = null; // 현재 선택 중인 랙 (추가 전)
+  let currentQuantity = 1;
 
   const DRAFT_KEY = 'yr_draft_estimate';
   let draftTimer = null;
 
   // --- 단가 데이터 로드 ---
   async function loadPrices() {
-    // 캐시에서 먼저 로드
     const cached = localStorage.getItem('yr_prices_cache');
     if (cached) {
       try {
@@ -23,7 +22,6 @@ const App = (() => {
       } catch {}
     }
 
-    // 네트워크에서 최신 데이터 fetch
     try {
       const data = await API.getPrices();
       if (data && data.prices) {
@@ -44,8 +42,7 @@ const App = (() => {
 
   // --- 랙 카테고리 추출 ---
   function getCategories() {
-    const cats = [...new Set(priceData.map(p => p.type))];
-    return cats;
+    return [...new Set(priceData.map(p => p.type))];
   }
 
   function getSpecsForType(type) {
@@ -68,20 +65,20 @@ const App = (() => {
     }
 
     container.innerHTML = `
-      <div class="mb-4">
+      <div class="mb-3">
         <label class="block text-sm font-semibold text-gray-600 mb-2">랙 종류</label>
         <select id="sel-type" class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base bg-white focus:border-[#1e3a5f] focus:outline-none">
           <option value="">선택하세요</option>
           ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
         </select>
       </div>
-      <div class="mb-4 hidden" id="spec-group">
+      <div class="mb-3 hidden" id="spec-group">
         <label class="block text-sm font-semibold text-gray-600 mb-2">규격</label>
         <select id="sel-spec" class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base bg-white focus:border-[#1e3a5f] focus:outline-none">
           <option value="">선택하세요</option>
         </select>
       </div>
-      <div class="mb-4 hidden" id="tier-group">
+      <div class="mb-3 hidden" id="tier-group">
         <label class="block text-sm font-semibold text-gray-600 mb-2">단수</label>
         <select id="sel-tier" class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base bg-white focus:border-[#1e3a5f] focus:outline-none">
           <option value="">선택하세요</option>
@@ -96,12 +93,13 @@ const App = (() => {
     const type = e.target.value;
     const specGroup = document.getElementById('spec-group');
     const tierGroup = document.getElementById('tier-group');
+    const addSection = document.getElementById('add-section');
 
     if (!type) {
       specGroup.classList.add('hidden');
       tierGroup.classList.add('hidden');
-      selectedRack = null;
-      updateTotal();
+      if (addSection) addSection.classList.add('hidden');
+      currentSelection = null;
       return;
     }
 
@@ -111,120 +109,160 @@ const App = (() => {
       specs.map(s => `<option value="${s}">${s}</option>`).join('');
     specGroup.classList.remove('hidden');
     tierGroup.classList.add('hidden');
-    selectedRack = null;
-    updateTotal();
+    if (addSection) addSection.classList.add('hidden');
+    currentSelection = null;
 
     selSpec.onchange = (ev) => {
       const spec = ev.target.value;
       if (!spec) {
         tierGroup.classList.add('hidden');
-        selectedRack = null;
-        updateTotal();
+        if (addSection) addSection.classList.add('hidden');
+        currentSelection = null;
         return;
       }
       const tiers = getTiersForSpec(type, spec);
       const selTier = document.getElementById('sel-tier');
       selTier.innerHTML = `<option value="">선택하세요</option>` +
-        tiers.map(t => `<option value="${t.tier}">${t.tier}</option>`).join('');
+        tiers.map(t => `<option value="${t.tier}">${t.tier}단</option>`).join('');
       tierGroup.classList.remove('hidden');
 
       selTier.onchange = (ev2) => {
         const tier = ev2.target.value;
-        selectedRack = tiers.find(t => String(t.tier) === String(tier)) || null;
-        updateTotal();
-        saveDraft();
+        if (!tier) {
+          if (addSection) addSection.classList.add('hidden');
+          currentSelection = null;
+          return;
+        }
+        currentSelection = tiers.find(t => String(t.tier) === String(tier)) || null;
+        if (currentSelection && addSection) {
+          addSection.classList.remove('hidden');
+        }
       };
     };
   }
 
   // --- 수량 ---
   function setQuantity(q) {
-    quantity = Math.max(1, Math.min(9999, parseInt(q) || 1));
+    currentQuantity = Math.max(1, Math.min(9999, parseInt(q) || 1));
     const input = document.getElementById('qty-input');
-    if (input) input.value = quantity;
-    updateTotal();
-    saveDraft();
+    if (input) input.value = currentQuantity;
   }
 
   function changeQuantity(delta) {
-    setQuantity(quantity + delta);
+    setQuantity(currentQuantity + delta);
   }
 
-  // --- 옵션 토글 ---
-  function toggleOption(key) {
-    options[key] = !options[key];
+  // --- 품목 추가/삭제 ---
+  function addItem() {
+    if (!currentSelection) {
+      UI.toast('랙을 선택하세요', 'warning');
+      return;
+    }
+
+    items.push({
+      type: currentSelection.type,
+      spec: currentSelection.spec,
+      tier: currentSelection.tier,
+      unitPrice: Number(currentSelection.unitPrice) || 0,
+      installFee: Number(currentSelection.installFee) || 0,
+      vat: currentSelection.vat || '별도',
+      quantity: currentQuantity,
+    });
+
+    // 선택 초기화
+    currentSelection = null;
+    currentQuantity = 1;
+    const selType = document.getElementById('sel-type');
+    if (selType) selType.value = '';
+    const specGroup = document.getElementById('spec-group');
+    const tierGroup = document.getElementById('tier-group');
+    const addSection = document.getElementById('add-section');
+    if (specGroup) specGroup.classList.add('hidden');
+    if (tierGroup) tierGroup.classList.add('hidden');
+    if (addSection) addSection.classList.add('hidden');
+    const qtyInput = document.getElementById('qty-input');
+    if (qtyInput) qtyInput.value = 1;
+
+    renderItems();
     updateTotal();
     saveDraft();
+    UI.toast('품목이 추가되었습니다', 'success');
+  }
+
+  function removeItem(index) {
+    items.splice(index, 1);
+    renderItems();
+    updateTotal();
+    saveDraft();
+  }
+
+  function renderItems() {
+    const container = document.getElementById('items-area');
+    if (!container) return;
+
+    if (items.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <h3 class="text-sm font-bold text-gray-700 px-4 pt-4 pb-2">추가된 품목 (${items.length}건)</h3>
+        ${items.map((item, i) => {
+          const itemTotal = (item.unitPrice + item.installFee) * item.quantity;
+          return `
+            <div class="px-4 py-3 border-t border-gray-100 flex items-center gap-3">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-gray-800 truncate">${item.type} ${item.spec} ${item.tier}단</p>
+                <p class="text-xs text-gray-500">@${UI.formatNumber(item.unitPrice)} × ${item.quantity}대 + 시공비 ${UI.formatCurrency(item.installFee * item.quantity)}</p>
+                <p class="text-sm font-bold text-[#1e3a5f] mt-0.5">${UI.formatCurrency(itemTotal)}</p>
+              </div>
+              <button onclick="App.removeItem(${i})"
+                class="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 active:bg-red-50 text-lg flex-shrink-0">✕</button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
   }
 
   // --- 계산 ---
   function calculate() {
-    if (!selectedRack) return { total: 0, breakdown: null };
+    if (items.length === 0) return { total: 0, items: null };
 
-    const unitPrice = Number(selectedRack.unitPrice) || 0;
-    const installFee = Number(selectedRack.installFee) || 0;
-    const subtotal = unitPrice * quantity;
-    const totalInstall = installFee * quantity;
+    let grandTotal = 0;
+    const itemDetails = items.map(item => {
+      const subtotal = item.unitPrice * item.quantity;
+      const installTotal = item.installFee * item.quantity;
+      const itemTotal = subtotal + installTotal;
+      grandTotal += itemTotal;
+      return { ...item, subtotal, installTotal, itemTotal };
+    });
 
-    // 옵션비 (단가표의 옵션 데이터 또는 고정값)
-    let optionTotal = 0;
-    // TODO: 옵션 단가를 단가표에서 관리
-
-    const total = subtotal + totalInstall + optionTotal;
-
-    return {
-      total,
-      breakdown: {
-        rackType: selectedRack.type,
-        spec: selectedRack.spec,
-        tier: selectedRack.tier,
-        unitPrice,
-        quantity,
-        subtotal,
-        installFee,
-        totalInstall,
-        optionTotal,
-        options: { ...options },
-      }
-    };
+    return { total: grandTotal, items: itemDetails };
   }
 
   // --- 금액 표시 업데이트 ---
   function updateTotal() {
-    const { total, breakdown } = calculate();
+    const { total, items: calcItems } = calculate();
     const totalEl = document.getElementById('total-amount');
     const detailEl = document.getElementById('total-detail');
     const saveBtn = document.getElementById('btn-save');
 
     if (totalEl) {
-      animateNumber(totalEl, total);
+      totalEl.textContent = UI.formatCurrency(total);
     }
-    if (detailEl && breakdown) {
-      detailEl.textContent = `${breakdown.rackType} ${breakdown.quantity}대 × ${UI.formatNumber(breakdown.unitPrice)}원 + 시공비 ${UI.formatNumber(breakdown.totalInstall)}원`;
-    } else if (detailEl) {
-      detailEl.textContent = '랙을 선택하세요';
+    if (detailEl) {
+      if (calcItems && calcItems.length > 0) {
+        const totalQty = calcItems.reduce((sum, item) => sum + item.quantity, 0);
+        detailEl.textContent = `${calcItems.length}종 ${totalQty}대`;
+      } else {
+        detailEl.textContent = '랙을 추가하세요';
+      }
     }
     if (saveBtn) {
-      saveBtn.disabled = !breakdown;
+      saveBtn.disabled = !calcItems || calcItems.length === 0;
     }
-  }
-
-  function animateNumber(el, target) {
-    const current = parseInt(el.textContent.replace(/[^0-9]/g, '')) || 0;
-    if (current === target) {
-      el.textContent = UI.formatCurrency(target);
-      return;
-    }
-    const duration = 300;
-    const start = performance.now();
-    function step(now) {
-      const progress = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // ease-out
-      const value = Math.round(current + (target - current) * eased);
-      el.textContent = UI.formatCurrency(value);
-      if (progress < 1) requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
   }
 
   // --- 폼 상태 localStorage 임시 저장 ---
@@ -232,9 +270,7 @@ const App = (() => {
     clearTimeout(draftTimer);
     draftTimer = setTimeout(() => {
       const draft = {
-        selectedRack,
-        quantity,
-        options,
+        items,
         customer: getCustomerInfo(),
         timestamp: Date.now(),
       };
@@ -245,7 +281,7 @@ const App = (() => {
   function loadDraft() {
     try {
       const data = JSON.parse(localStorage.getItem(DRAFT_KEY));
-      if (data && Date.now() - data.timestamp < 86400000) { // 24시간 이내
+      if (data && Date.now() - data.timestamp < 86400000) {
         return data;
       }
     } catch {}
@@ -268,32 +304,40 @@ const App = (() => {
 
   // --- 견적 저장 ---
   async function saveEstimate() {
-    const { total, breakdown } = calculate();
-    if (!breakdown) {
-      UI.toast('랙을 선택하세요', 'warning');
+    const { total, items: calcItems } = calculate();
+    if (!calcItems || calcItems.length === 0) {
+      UI.toast('랙을 추가하세요', 'warning');
       return null;
     }
 
     const customer = getCustomerInfo();
+    const clientId = 'est-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
     const data = {
-      ...breakdown,
-      ...customer,
+      items: calcItems,
       total,
-      date: new Date().toISOString(),
+      ...customer,
+      clientId,
     };
 
     const result = await API.saveEstimate(data);
-    clearDraft();
+    if (result && result.estimateId) {
+      sessionStorage.setItem('yr-estimate-' + result.estimateId, JSON.stringify({
+        ...data,
+        estimateId: result.estimateId,
+      }));
+      clearDraft();
+      items = [];
+    }
     return result;
   }
 
   return {
-    loadPrices, setQuantity, changeQuantity, toggleOption,
+    loadPrices, setQuantity, changeQuantity,
+    addItem, removeItem, renderItems,
     calculate, updateTotal, saveEstimate,
     loadDraft, clearDraft, getCustomerInfo,
     get priceData() { return priceData; },
-    get selectedRack() { return selectedRack; },
-    get quantity() { return quantity; },
-    get options() { return options; },
+    get items() { return items; },
+    set items(v) { items = v; },
   };
 })();

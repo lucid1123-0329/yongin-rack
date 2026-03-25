@@ -154,7 +154,7 @@
                 <span class="text-sm font-bold text-gray-800 truncate">${e.customerName || '미지정'}</span>
                 ${UI.statusBadge(e.status || '상담완료')}
               </div>
-              <p class="text-xs text-gray-400 mt-0.5">${UI.formatDate(e.date || e.createdAt)} · ${e.rackType || '랙'} · ${e.quantity || 0}대</p>
+              <p class="text-xs text-gray-400 mt-0.5">${UI.formatDate(e.date || e.createdAt)} · ${e.itemSummary || '랙'} · ${e.totalQuantity || 0}대</p>
             </div>
             <p class="text-sm font-extrabold text-primary flex-shrink-0 ml-3">${UI.formatCurrency(e.total || 0)}</p>
           </div>

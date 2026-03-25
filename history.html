@@ -161,6 +161,8 @@
 
     function renderCard(e) {
       const isExpanded = expandedId === e.estimateId;
+      const summary = e.itemSummary || '랙';
+      const totalQty = e.totalQuantity || 0;
       return `
         <div class="bg-white rounded-xl border border-gray-100 mb-3 overflow-hidden transition-all">
           <div class="p-4 cursor-pointer active:bg-gray-50" onclick="toggleExpand('${e.estimateId}')">
@@ -171,7 +173,7 @@
                   ${UI.statusBadge(e.status || '상담완료')}
                 </div>
                 <p class="text-xs text-gray-400 mb-1">${UI.formatDate(e.date || e.createdAt)}</p>
-                <p class="text-xs text-gray-500">${e.rackType || '랙'} · ${e.quantity || 0}대</p>
+                <p class="text-xs text-gray-500">${summary} · ${totalQty}대</p>
               </div>
               <div class="text-right flex-shrink-0 ml-3">
                 <p class="text-base font-extrabold text-primary">${UI.formatCurrency(e.total || 0)}</p>
@@ -186,15 +188,33 @@
 
     function renderDetail(e) {
       const currentStatus = e.status || '상담완료';
+      let items = e.items || [];
+      if (typeof items === 'string') { try { items = JSON.parse(items); } catch { items = []; } }
+
+      const itemsHtml = items.map(item => {
+        const qty = Number(item.quantity) || 0;
+        const uPrice = Number(item.unitPrice) || 0;
+        const iFee = Number(item.installFee) || 0;
+        return `
+          <div class="flex justify-between text-xs py-1">
+            <span class="text-gray-700">${item.type} ${item.spec} ${item.tier}단 × ${qty}대</span>
+            <span class="text-gray-600 font-medium">${UI.formatCurrency((uPrice + iFee) * qty)}</span>
+          </div>
+        `;
+      }).join('');
+
       return `
         <div class="border-t border-gray-100 px-4 py-3 bg-gray-50">
           <div class="grid grid-cols-2 gap-2 text-xs mb-3">
             <div><span class="text-gray-400">회사명</span><br><span class="font-medium text-gray-700">${e.company || '-'}</span></div>
             <div><span class="text-gray-400">연락처</span><br><span class="font-medium text-gray-700">${e.phone || '-'}</span></div>
             <div class="col-span-2"><span class="text-gray-400">현장 주소</span><br><span class="font-medium text-gray-700">${e.address || '-'}</span></div>
-            <div><span class="text-gray-400">단가</span><br><span class="font-medium text-gray-700">${UI.formatCurrency(e.unitPrice || 0)}</span></div>
-            <div><span class="text-gray-400">수량</span><br><span class="font-medium text-gray-700">${e.quantity || 0}대</span></div>
           </div>
+          ${items.length > 0 ? `
+          <div class="mb-3">
+            <p class="text-xs font-bold text-gray-500 mb-1">품목 내역</p>
+            ${itemsHtml}
+          </div>` : ''}
           <div>
             <p class="text-xs font-bold text-gray-500 mb-2">상태 변경</p>
             <div class="flex gap-2 flex-wrap">

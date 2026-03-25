@@ -4,7 +4,7 @@
  *
  * 시트 구조:
  *   단가표: [랙종류, 규격, 단수, 기본단가, 추가시공비, VAT적용, 활성]
- *   견적내역: [견적일시, 견적번호, 고객명, 회사명, 연락처, 주소, 랙종류, 규격, 단수, 수량, 단가, 시공비, 총액, 진행상태]
+ *   견적내역: [견적일시, 견적번호, 고객명, 회사명, 연락처, 주소, 품목상세(JSON), 총액, 진행상태, clientId]
  *   견적요청: [요청일시, 고객명, 연락처, 랙종류, 수량, 메모, 처리상태]
  *   설정: [key, value]
  *   포트폴리오: [날짜, 견적번호, 설명, 사진URL]
@@ -121,7 +121,7 @@ function getPrices() {
   const prices = [];
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    if (row[6] === '삭제') continue; // 삭제된 항목만 제외
+    if (row[6] === '삭제') continue;
     prices.push({
       rowIndex: i + 1,
       type: row[0],
@@ -161,13 +161,13 @@ function deletePrice(rowIndex) {
   const sheet = getSheet('단가표');
   const row = Number(rowIndex);
   if (row < 2) return { error: 'Invalid row' };
-  // 소프트 삭제
   sheet.getRange(row, 7).setValue('삭제');
   return { result: 'success' };
 }
 
 // ============================================================
-// 견적 저장/조회
+// 견적 저장/조회 (복수 품목)
+// 열 구조: [견적일시, 견적번호, 고객명, 회사명, 연락처, 주소, 품목상세JSON, 총액, 진행상태, clientId]
 // ============================================================
 function saveEstimate(body) {
   const sheet = getSheet('견적내역');
@@ -179,11 +179,14 @@ function saveEstimate(body) {
   if (body.clientId) {
     const data = sheet.getDataRange().getValues();
     for (let i = 1; i < data.length; i++) {
-      if (data[i][14] === body.clientId) {
+      if (data[i][9] === body.clientId) {
         return { result: 'success', estimateId: data[i][1], duplicate: true };
       }
     }
   }
+
+  // 품목 배열을 JSON 문자열로 저장
+  const itemsJson = JSON.stringify(body.items || []);
 
   sheet.appendRow([
     dateStr,
@@ -192,12 +195,7 @@ function saveEstimate(body) {
     body.company || '',
     body.phone || '',
     body.address || '',
-    body.rackType || '',
-    body.spec || '',
-    body.tier || '',
-    Number(body.quantity) || 0,
-    Number(body.unitPrice) || 0,
-    Number(body.totalInstall) || 0,
+    itemsJson,
     Number(body.total) || 0,
     '상담완료',
     body.clientId || ''
@@ -226,6 +224,8 @@ function getEstimate(estimateId) {
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][1] === estimateId) {
+      let items = [];
+      try { items = JSON.parse(data[i][6]); } catch {}
       return {
         estimateId: data[i][1],
         date: data[i][0],
@@ -233,15 +233,9 @@ function getEstimate(estimateId) {
         company: data[i][3],
         phone: data[i][4],
         address: data[i][5],
-        rackType: data[i][6],
-        spec: data[i][7],
-        tier: data[i][8],
-        quantity: Number(data[i][9]),
-        unitPrice: Number(data[i][10]),
-        subtotal: Number(data[i][10]) * Number(data[i][9]),
-        totalInstall: Number(data[i][11]),
-        total: Number(data[i][12]),
-        status: data[i][13],
+        items: items,
+        total: Number(data[i][7]),
+        status: data[i][8],
       };
     }
   }
@@ -256,6 +250,15 @@ function getEstimates() {
   const estimates = [];
   for (let i = data.length - 1; i >= 1; i--) {
     const row = data[i];
+    let items = [];
+    try { items = JSON.parse(row[6]); } catch {}
+
+    // 품목 요약 생성
+    const totalQty = items.reduce(function(sum, item) { return sum + (Number(item.quantity) || 0); }, 0);
+    const summary = items.length > 1
+      ? items[0].type + ' 외 ' + (items.length - 1) + '종'
+      : (items[0] ? items[0].type : '');
+
     estimates.push({
       date: row[0],
       estimateId: row[1],
@@ -263,14 +266,11 @@ function getEstimates() {
       company: row[3],
       phone: row[4],
       address: row[5],
-      rackType: row[6],
-      spec: row[7],
-      tier: row[8],
-      quantity: Number(row[9]),
-      unitPrice: Number(row[10]),
-      totalInstall: Number(row[11]),
-      total: Number(row[12]),
-      status: row[13],
+      items: items,
+      itemSummary: summary,
+      totalQuantity: totalQty,
+      total: Number(row[7]),
+      status: row[8],
     });
   }
   return { estimates };
@@ -284,7 +284,7 @@ function updateStatus(estimateId, newStatus) {
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][1] === estimateId) {
-      sheet.getRange(i + 1, 14).setValue(newStatus);
+      sheet.getRange(i + 1, 9).setValue(newStatus);
       return { result: 'success' };
     }
   }
@@ -308,15 +308,27 @@ function getDashboard() {
     const dateStr = String(row[0]);
     if (dateStr.startsWith(thisMonth)) {
       count++;
-      totalAmount += Number(row[12]) || 0;
-      if (row[13] === '계약' || row[13] === '시공중' || row[13] === '시공완료') {
+      totalAmount += Number(row[7]) || 0;
+      if (row[8] === '계약' || row[8] === '시공중' || row[8] === '시공완료') {
         contracted++;
       }
     }
     if (recent.length < 5) {
+      let items = [];
+      try { items = JSON.parse(row[6]); } catch {}
+      const totalQty = items.reduce(function(sum, item) { return sum + (Number(item.quantity) || 0); }, 0);
+      const summary = items.length > 1
+        ? items[0].type + ' 외 ' + (items.length - 1) + '종'
+        : (items[0] ? items[0].type : '');
+
       recent.push({
-        date: row[0], estimateId: row[1], customerName: row[2],
-        rackType: row[6], total: Number(row[12]), status: row[13],
+        date: row[0],
+        estimateId: row[1],
+        customerName: row[2],
+        itemSummary: summary,
+        totalQuantity: totalQty,
+        total: Number(row[7]),
+        status: row[8],
       });
     }
   }
@@ -328,7 +340,6 @@ function getDashboard() {
 // 고객 견적 요청
 // ============================================================
 function submitRequest(body) {
-  // 간단한 rate limiting: 같은 연락처로 1시간 내 5건 제한
   const sheet = getSheet('견적요청');
   const data = sheet.getDataRange().getValues();
   const oneHourAgo = new Date(Date.now() - 3600000);
@@ -369,7 +380,6 @@ function getRequests() {
 // 포트폴리오
 // ============================================================
 function uploadPhoto(body) {
-  // base64 이미지를 Google Drive에 저장
   const folder = getOrCreateFolder('용인랙_포트폴리오');
   const blob = Utilities.newBlob(
     Utilities.base64Decode(body.base64Data),
@@ -380,7 +390,6 @@ function uploadPhoto(body) {
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   const url = 'https://drive.google.com/uc?id=' + file.getId();
 
-  // 시트에 기록
   const sheet = getSheet('포트폴리오');
   const now = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
   sheet.appendRow([now, body.estimateId || '', body.description || '', url]);
@@ -453,14 +462,17 @@ function viewEstimateHtml(estimateId) {
 
   for (let i = 1; i < data.length; i++) {
     if (data[i][1] === estimateId) {
+      let items = [];
+      try { items = JSON.parse(data[i][6]); } catch {}
       est = {
-        date: data[i][0], id: data[i][1],
-        name: data[i][2], company: data[i][3],
+        date: data[i][0],
+        id: data[i][1],
+        name: data[i][2],
+        company: data[i][3],
         phone: String(data[i][4]).replace(/(\d{3})(\d{4})(\d{4})/, '$1-****-$3'),
-        address: data[i][5], rackType: data[i][6],
-        spec: data[i][7], tier: data[i][8],
-        quantity: Number(data[i][9]), unitPrice: Number(data[i][10]),
-        installFee: Number(data[i][11]), total: Number(data[i][12]),
+        address: data[i][5],
+        items: items,
+        total: Number(data[i][7]),
       };
       break;
     }
@@ -471,53 +483,76 @@ function viewEstimateHtml(estimateId) {
       .setTitle('용인 랙');
   }
 
-  const subtotal = est.unitPrice * est.quantity;
   const fmt = (n) => Number(n).toLocaleString('ko-KR');
 
-  const html = `<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>[용인 랙] 견적서 - ${est.id}</title>
-  <meta property="og:title" content="[용인 랙] 맞춤형 견적서가 도착했습니다">
-  <meta property="og:description" content="${est.rackType} ${est.quantity}대 — ${fmt(est.total)}원">
-  <meta property="og:type" content="website">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
-  <style>body{font-family:'Pretendard',sans-serif}</style>
-</head>
-<body class="bg-gray-50 min-h-screen flex items-start justify-center py-6">
-  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 w-full max-w-md mx-4 overflow-hidden">
-    <div class="bg-[#1e3a5f] text-white px-5 py-4 text-center">
-      <h1 class="text-xl font-extrabold">용인 랙</h1>
-      <p class="text-xs opacity-80 mt-1">전문 랙 설치 시공</p>
-    </div>
-    <div class="p-5">
-      <div class="flex justify-between text-xs text-gray-500 mb-4">
-        <span>견적일: ${est.date}</span><span>${est.id}</span>
-      </div>
-      ${est.name ? `<div class="bg-gray-50 rounded-xl p-3 mb-4 text-sm">
-        <p class="font-bold text-gray-800">${est.name}${est.company ? ' (' + est.company + ')' : ''}</p>
-        ${est.address ? '<p class="text-gray-500 mt-1">' + est.address + '</p>' : ''}
-      </div>` : ''}
-      <div class="border-t pt-3">
-        <div class="flex justify-between py-2 text-sm"><span>${est.rackType} (${est.spec}, ${est.tier})</span><span>${est.quantity}대</span></div>
-        <div class="flex justify-between py-2 text-sm text-gray-500"><span class="pl-3">기본 단가</span><span>@${fmt(est.unitPrice)}</span></div>
-        <div class="flex justify-between py-2 text-sm border-b border-dashed"><span class="pl-3">소계</span><span>${fmt(subtotal)}원</span></div>
-        <div class="flex justify-between py-2 text-sm"><span class="pl-3">시공비</span><span>${fmt(est.installFee)}원</span></div>
-      </div>
-      <div class="flex justify-between pt-3 mt-2 border-t-2 border-[#1e3a5f]">
-        <span class="font-extrabold text-[#1e3a5f]">총 견적액</span>
-        <span class="text-xl font-extrabold text-[#f97316]">${fmt(est.total)}원</span>
-      </div>
-      <p class="text-xs text-gray-400 mt-2 text-right">* 부가세 별도</p>
-    </div>
-    <div class="bg-gray-50 px-5 py-3 text-center text-xs text-gray-400 border-t">
-      용인 랙 | yongin-rack.com
-    </div>
-  </div>
-</body></html>`;
+  // 품목 요약
+  const totalQty = est.items.reduce(function(sum, item) { return sum + (Number(item.quantity) || 0); }, 0);
+  const ogDesc = est.items.length > 1
+    ? est.items[0].type + ' 외 ' + (est.items.length - 1) + '종 ' + totalQty + '대 — ' + fmt(est.total) + '원'
+    : (est.items[0] ? est.items[0].type + ' ' + totalQty + '대 — ' + fmt(est.total) + '원' : fmt(est.total) + '원');
+
+  // 품목 HTML 생성
+  let itemsHtml = '';
+  let totalSubtotal = 0;
+  let totalInstall = 0;
+  est.items.forEach(function(item, i) {
+    const qty = Number(item.quantity) || 0;
+    const uPrice = Number(item.unitPrice) || 0;
+    const iFee = Number(item.installFee) || 0;
+    const sub = uPrice * qty;
+    const inst = iFee * qty;
+    totalSubtotal += sub;
+    totalInstall += inst;
+    itemsHtml += '<div class="' + (i > 0 ? 'border-t border-dashed pt-2 mt-2' : '') + '">' +
+      '<div class="flex justify-between text-sm"><span class="font-semibold">' + (item.type || '') + ' ' + (item.spec || '') + ' ' + (item.tier || '') + '단</span><span>' + qty + '대</span></div>' +
+      '<div class="flex justify-between text-xs text-gray-500 mt-1"><span class="pl-2">@' + fmt(uPrice) + '</span><span>' + fmt(sub) + '원</span></div>' +
+      (iFee > 0 ? '<div class="flex justify-between text-xs text-gray-500"><span class="pl-2">시공비 @' + fmt(iFee) + '</span><span>' + fmt(inst) + '원</span></div>' : '') +
+      '</div>';
+  });
+
+  const html = '<!DOCTYPE html>' +
+'<html lang="ko">' +
+'<head>' +
+'  <meta charset="UTF-8">' +
+'  <meta name="viewport" content="width=device-width,initial-scale=1">' +
+'  <title>[용인 랙] 견적서 - ' + est.id + '</title>' +
+'  <meta property="og:title" content="[용인 랙] 맞춤형 견적서가 도착했습니다">' +
+'  <meta property="og:description" content="' + ogDesc + '">' +
+'  <meta property="og:type" content="website">' +
+'  <script src="https://cdn.tailwindcss.com"><\/script>' +
+'  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">' +
+'  <style>body{font-family:"Pretendard",sans-serif}</style>' +
+'</head>' +
+'<body class="bg-gray-50 min-h-screen flex items-start justify-center py-6">' +
+'  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 w-full max-w-md mx-4 overflow-hidden">' +
+'    <div class="bg-[#1e3a5f] text-white px-5 py-4 text-center">' +
+'      <h1 class="text-xl font-extrabold">용인 랙</h1>' +
+'      <p class="text-xs opacity-80 mt-1">전문 랙 설치 시공</p>' +
+'    </div>' +
+'    <div class="p-5">' +
+'      <div class="flex justify-between text-xs text-gray-500 mb-4">' +
+'        <span>견적일: ' + est.date + '</span><span>' + est.id + '</span>' +
+'      </div>' +
+(est.name ? '<div class="bg-gray-50 rounded-xl p-3 mb-4 text-sm"><p class="font-bold text-gray-800">' + est.name + (est.company ? ' (' + est.company + ')' : '') + '</p>' + (est.address ? '<p class="text-gray-500 mt-1">' + est.address + '</p>' : '') + '</div>' : '') +
+'      <div class="border-t pt-3">' +
+'        <p class="text-xs font-bold text-gray-500 mb-2">품목 내역</p>' +
+itemsHtml +
+'      </div>' +
+'      <div class="border-t pt-2 mt-3 text-sm">' +
+'        <div class="flex justify-between py-1 text-gray-500"><span>제품 소계</span><span>' + fmt(totalSubtotal) + '원</span></div>' +
+'        <div class="flex justify-between py-1 text-gray-500"><span>시공비 합계</span><span>' + fmt(totalInstall) + '원</span></div>' +
+'      </div>' +
+'      <div class="flex justify-between pt-3 mt-2 border-t-2 border-[#1e3a5f]">' +
+'        <span class="font-extrabold text-[#1e3a5f]">총 견적액</span>' +
+'        <span class="text-xl font-extrabold text-[#f97316]">' + fmt(est.total) + '원</span>' +
+'      </div>' +
+'      <p class="text-xs text-gray-400 mt-2 text-right">* 부가세 별도</p>' +
+'    </div>' +
+'    <div class="bg-gray-50 px-5 py-3 text-center text-xs text-gray-400 border-t">' +
+'      용인 랙 | yongin-rack.com' +
+'    </div>' +
+'  </div>' +
+'</body></html>';
 
   return HtmlService.createHtmlOutput(html)
     .setTitle('[용인 랙] 견적서')
@@ -527,6 +562,7 @@ function viewEstimateHtml(estimateId) {
 // ============================================================
 // 헬퍼
 // ============================================================
+
 /**
  * GAS 에디터에서 직접 실행 — 모든 시트 탭 초기화
  */
@@ -542,10 +578,9 @@ function getSheet(name) {
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
-    // 헤더 추가
     const headers = {
       '단가표': ['랙종류', '규격', '단수', '기본단가', '추가시공비', 'VAT적용', '활성'],
-      '견적내역': ['견적일시', '견적번호', '고객명', '회사명', '연락처', '주소', '랙종류', '규격', '단수', '수량', '단가', '시공비', '총액', '진행상태', 'clientId'],
+      '견적내역': ['견적일시', '견적번호', '고객명', '회사명', '연락처', '주소', '품목상세', '총액', '진행상태', 'clientId'],
       '견적요청': ['요청일시', '고객명', '연락처', '랙종류', '수량', '메모', '처리상태'],
       '설정': ['key', 'value'],
       '포트폴리오': ['날짜', '견적번호', '설명', '사진URL'],
