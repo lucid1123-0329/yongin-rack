@@ -109,9 +109,26 @@
       <div class="flex flex-wrap gap-2 mb-3">
         <button onclick="App.addPresetItem('운송비')" class="px-3 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 active:bg-gray-200">+ 운송비</button>
         <button onclick="App.addPresetItem('설치비')" class="px-3 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 active:bg-gray-200">+ 설치비</button>
-        <button onclick="App.addPresetItem('마진')" class="px-3 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 active:bg-gray-200">+ 마진</button>
+        <button onclick="App.addPresetItem('마진')" class="px-3 py-1.5 rounded-full text-xs font-bold bg-blue-50 text-blue-600 active:bg-blue-100">+ 마진</button>
         <button onclick="App.addPresetItem('D/C')" class="px-3 py-1.5 rounded-full text-xs font-bold bg-red-50 text-red-500 active:bg-red-100">+ D/C(할인)</button>
       </div>
+
+      <!-- 마진 % 입력 영역 (토글) -->
+      <div id="margin-area" class="hidden mb-3 bg-blue-50 rounded-xl p-3">
+        <p class="text-xs font-bold text-blue-700 mb-2">마진율 설정</p>
+        <div class="flex items-center gap-2">
+          <input id="margin-pct" type="number" value="25" min="1" max="100"
+            oninput="App.calcMarginFromPct()"
+            class="w-20 h-10 px-3 border-2 border-blue-200 rounded-lg text-sm text-center font-bold focus:border-blue-500 focus:outline-none">
+          <span class="text-sm font-bold text-blue-600">%</span>
+          <span class="text-sm text-gray-500 mx-1">=</span>
+          <span id="margin-amount" class="text-sm font-extrabold text-blue-700" data-amount="0">0원</span>
+          <button onclick="App.addMargin()"
+            class="ml-auto h-10 px-4 bg-blue-600 text-white rounded-lg text-sm font-bold active:scale-[0.98]">추가</button>
+        </div>
+        <p class="text-[11px] text-blue-400 mt-1">랙 품목 소계 기준으로 자동 계산됩니다</p>
+      </div>
+
       <div class="flex gap-2">
         <input id="custom-name" placeholder="항목명" class="flex-1 h-10 px-3 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none">
         <input id="custom-price" type="number" placeholder="금액" class="w-24 h-10 px-3 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none">

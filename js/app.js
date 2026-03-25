@@ -225,15 +225,14 @@ const App = (() => {
     const qtyEl = document.getElementById('custom-qty');
 
     if (presetName === '마진') {
-      // 현재 랙 소계의 25% 자동 계산하여 금액 칸에 미리 입력
-      const rackSubtotal = items
-        .filter(i => i.itemType !== 'custom')
-        .reduce((sum, i) => sum + ((Number(i.unitPrice) || 0) + (Number(i.installFee) || 0)) * (Number(i.quantity) || 0), 0);
-      const margin = Math.round(rackSubtotal * 0.25);
-      if (nameEl) nameEl.value = '마진(25%)';
-      if (priceEl) { priceEl.value = margin > 0 ? margin : ''; priceEl.focus(); }
-      if (qtyEl) qtyEl.value = '1';
-      UI.toast('마진율을 조정하려면 금액을 수정하세요', 'info');
+      // 마진 % 입력 UI 토글
+      const marginArea = document.getElementById('margin-area');
+      const marginPctEl = document.getElementById('margin-pct');
+      if (marginArea) {
+        marginArea.classList.remove('hidden');
+        if (marginPctEl) { marginPctEl.value = '25'; marginPctEl.focus(); }
+        calcMarginFromPct();
+      }
       return;
     } else if (presetName === 'D/C') {
       if (nameEl) nameEl.value = 'D/C(할인)';
@@ -247,6 +246,43 @@ const App = (() => {
       if (qtyEl) qtyEl.value = '1';
       return;
     }
+  }
+
+  function calcMarginFromPct() {
+    const pctEl = document.getElementById('margin-pct');
+    const amountEl = document.getElementById('margin-amount');
+    if (!pctEl || !amountEl) return;
+    const pct = Number(pctEl.value) || 0;
+    const rackSubtotal = items
+      .filter(i => i.itemType !== 'custom')
+      .reduce((sum, i) => sum + ((Number(i.unitPrice) || 0) + (Number(i.installFee) || 0)) * (Number(i.quantity) || 0), 0);
+    const amount = Math.round(rackSubtotal * (pct / 100));
+    amountEl.textContent = UI.formatCurrency(amount);
+    amountEl.dataset.amount = amount;
+  }
+
+  function addMargin() {
+    const pctEl = document.getElementById('margin-pct');
+    const amountEl = document.getElementById('margin-amount');
+    const pct = Number(pctEl?.value) || 0;
+    const amount = Number(amountEl?.dataset?.amount) || 0;
+    if (amount <= 0) { UI.toast('랙 품목을 먼저 추가하세요', 'warning'); return; }
+
+    items.push({
+      itemType: 'custom',
+      name: `마진(${pct}%)`,
+      unitPrice: amount,
+      installFee: 0,
+      quantity: 1,
+    });
+
+    const marginArea = document.getElementById('margin-area');
+    if (marginArea) marginArea.classList.add('hidden');
+
+    renderItems();
+    updateTotal();
+    saveDraft();
+    UI.toast(`마진(${pct}%) ${UI.formatCurrency(amount)} 추가됨`, 'success');
   }
 
   function removeItem(index) {
@@ -430,6 +466,7 @@ const App = (() => {
   return {
     loadPrices, setQuantity, changeQuantity,
     addItem, addCustomItem, addPresetItem,
+    calcMarginFromPct, addMargin,
     removeItem, renderItems,
     calculate, updateTotal, saveEstimate,
     loadDraft, clearDraft, getCustomerInfo,
