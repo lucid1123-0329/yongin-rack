@@ -113,19 +113,24 @@ const Estimate = (() => {
   }
 
   // 테이블 공통 스타일 (인라인 — html2canvas 호환)
-  const V = 'vertical-align:middle;';
-  // height 고정 + line-height=height로 텍스트 강제 수직 중앙
-  const cellH = 'height:32px;line-height:32px;';
-  const cellHsm = 'height:28px;line-height:28px;';
+  // 셀 내부 flex 컨테이너로 강제 수직 중앙 (html2canvas 호환)
+  const fc = 'display:flex;align-items:center;justify-content:center;min-height:30px;';
+  const fcL = 'display:flex;align-items:center;min-height:30px;';
+  const fcR = 'display:flex;align-items:center;justify-content:flex-end;min-height:30px;';
+  const fcSm = 'display:flex;align-items:center;justify-content:center;min-height:26px;';
+  const fcSmL = 'display:flex;align-items:center;min-height:26px;';
+
+  function w(text, style) { return `<div style="${style || fc}">${text}</div>`; }
+
   const S = {
     table: 'width:100%;border-collapse:collapse;font-size:12px;',
-    th: `border:1px solid #333;padding:0 8px;background:#f5f5f5;font-weight:bold;text-align:center;font-size:11px;${V}${cellH}`,
-    td: `border:1px solid #333;padding:0 8px;text-align:center;${V}${cellH}`,
-    tdL: `border:1px solid #333;padding:0 8px;text-align:left;${V}${cellH}`,
-    tdR: `border:1px solid #333;padding:0 8px;text-align:right;${V}${cellH}`,
-    thHeader: `border:1px solid #333;padding:0 8px;background:#e8e8e8;font-weight:bold;text-align:center;font-size:13px;${V}${cellH}`,
-    infoTd: `border:1px solid #333;padding:0 8px;font-size:12px;${V}${cellHsm}`,
-    infoTh: `border:1px solid #333;padding:0 8px;background:#f0f0f0;font-weight:bold;font-size:11px;text-align:center;width:70px;white-space:nowrap;${V}${cellHsm}`,
+    th: 'border:1px solid #333;padding:0 8px;background:#f5f5f5;font-weight:bold;text-align:center;font-size:11px;vertical-align:middle;',
+    td: 'border:1px solid #333;padding:0 8px;vertical-align:middle;',
+    tdL: 'border:1px solid #333;padding:0 8px;vertical-align:middle;',
+    tdR: 'border:1px solid #333;padding:0 8px;vertical-align:middle;',
+    thHeader: 'border:1px solid #333;padding:0 8px;background:#e8e8e8;font-weight:bold;text-align:center;font-size:13px;vertical-align:middle;',
+    infoTd: 'border:1px solid #333;padding:0 8px;font-size:12px;vertical-align:middle;',
+    infoTh: 'border:1px solid #333;padding:0 8px;background:#f0f0f0;font-weight:bold;font-size:11px;text-align:center;width:70px;white-space:nowrap;vertical-align:middle;',
   };
 
   // ========== 정식 견적서 ==========
@@ -150,20 +155,20 @@ const Estimate = (() => {
       const lineTax = Math.round(lineSupply * 0.1);
 
       return `<tr>
-        <td style="${S.td}">${i+1}</td>
-        <td style="${S.tdL}">${getItemName(item)}</td>
-        <td style="${S.td}">${getItemSpec(item)}</td>
-        <td style="${S.td}">${qty}</td>
-        <td style="${S.tdR}">${fmt(isCustom ? uPrice : uPrice + iFee)}</td>
-        <td style="${S.tdR}">${fmt(lineSupply)}</td>
-        <td style="${S.tdR}">${fmt(lineTax)}</td>
+        <td style="${S.td}">${w(i+1)}</td>
+        <td style="${S.tdL}">${w(getItemName(item), fcL)}</td>
+        <td style="${S.td}">${w(getItemSpec(item))}</td>
+        <td style="${S.td}">${w(qty)}</td>
+        <td style="${S.tdR}">${w(fmt(isCustom ? uPrice : uPrice + iFee), fcR)}</td>
+        <td style="${S.tdR}">${w(fmt(lineSupply), fcR)}</td>
+        <td style="${S.tdR}">${w(fmt(lineTax), fcR)}</td>
       </tr>`;
     }).join('');
 
     for (let i = 0; i < emptyRows; i++) {
       itemRows += `<tr>
-        <td style="${S.td}">&nbsp;</td><td style="${S.tdL}">&nbsp;</td><td style="${S.td}">&nbsp;</td>
-        <td style="${S.td}">&nbsp;</td><td style="${S.tdR}">&nbsp;</td><td style="${S.tdR}">&nbsp;</td><td style="${S.tdR}">&nbsp;</td>
+        <td style="${S.td}">${w('&nbsp;')}</td><td style="${S.tdL}">${w('&nbsp;',fcL)}</td><td style="${S.td}">${w('&nbsp;')}</td>
+        <td style="${S.td}">${w('&nbsp;')}</td><td style="${S.tdR}">${w('&nbsp;',fcR)}</td><td style="${S.tdR}">${w('&nbsp;',fcR)}</td><td style="${S.tdR}">${w('&nbsp;',fcR)}</td>
       </tr>`;
     }
 
@@ -235,13 +240,13 @@ const Estimate = (() => {
       <table style="${S.table}margin-top:12px;">
         <thead>
           <tr>
-            <th style="${S.th};width:30px;">No</th>
-            <th style="${S.th};min-width:100px;">품 명</th>
-            <th style="${S.th};min-width:80px;">규 격</th>
-            <th style="${S.th};width:40px;">수량</th>
-            <th style="${S.th};width:70px;">단 가</th>
-            <th style="${S.th};width:80px;">공급가액</th>
-            <th style="${S.th};width:70px;">세 액</th>
+            <th style="${S.th};width:30px;">${w('No')}</th>
+            <th style="${S.th};min-width:100px;">${w('품 명')}</th>
+            <th style="${S.th};min-width:80px;">${w('규 격')}</th>
+            <th style="${S.th};width:40px;">${w('수량')}</th>
+            <th style="${S.th};width:70px;">${w('단 가')}</th>
+            <th style="${S.th};width:80px;">${w('공급가액')}</th>
+            <th style="${S.th};width:70px;">${w('세 액')}</th>
           </tr>
         </thead>
         <tbody>
@@ -249,10 +254,10 @@ const Estimate = (() => {
         </tbody>
         <tfoot>
           <tr>
-            <td style="${S.th}" colspan="4">합 계</td>
+            <td style="${S.th}" colspan="4">${w('합 계')}</td>
             <td style="${S.tdR}"></td>
-            <td style="${S.tdR};font-weight:bold;">${fmt(supplyTotal)}</td>
-            <td style="${S.tdR};font-weight:bold;">${fmt(vat)}</td>
+            <td style="${S.tdR};font-weight:bold;">${w(fmt(supplyTotal), fcR)}</td>
+            <td style="${S.tdR};font-weight:bold;">${w(fmt(vat), fcR)}</td>
           </tr>
         </tfoot>
       </table>
@@ -300,23 +305,23 @@ const Estimate = (() => {
       const monthDay = `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
 
       return `<tr>
-        <td style="${S.td}">${i+1}</td>
-        <td style="${S.td}">${monthDay}</td>
-        <td style="${S.tdL}">${getItemName(item)}</td>
-        <td style="${S.td}">${getItemSpec(item)}</td>
-        <td style="${S.td}">${getItemUnit(item)}</td>
-        <td style="${S.td}">${qty}</td>
-        <td style="${S.tdR}">${fmt(uPrice + (isCustom ? 0 : iFee))}</td>
-        <td style="${S.tdR}">${fmt(amount)}</td>
+        <td style="${S.td}">${w(i+1)}</td>
+        <td style="${S.td}">${w(monthDay)}</td>
+        <td style="${S.tdL}">${w(getItemName(item), fcL)}</td>
+        <td style="${S.td}">${w(getItemSpec(item))}</td>
+        <td style="${S.td}">${w(getItemUnit(item))}</td>
+        <td style="${S.td}">${w(qty)}</td>
+        <td style="${S.tdR}">${w(fmt(uPrice + (isCustom ? 0 : iFee)), fcR)}</td>
+        <td style="${S.tdR}">${w(fmt(amount), fcR)}</td>
         <td style="${S.td}"></td>
       </tr>`;
     }).join('');
 
     for (let i = 0; i < emptyRows; i++) {
       itemRows += `<tr>
-        <td style="${S.td}">&nbsp;</td><td style="${S.td}">&nbsp;</td><td style="${S.tdL}">&nbsp;</td>
-        <td style="${S.td}">&nbsp;</td><td style="${S.td}">&nbsp;</td><td style="${S.td}">&nbsp;</td>
-        <td style="${S.tdR}">&nbsp;</td><td style="${S.tdR}">&nbsp;</td><td style="${S.td}">&nbsp;</td>
+        <td style="${S.td}">${w('&nbsp;')}</td><td style="${S.td}">${w('&nbsp;')}</td><td style="${S.tdL}">${w('&nbsp;',fcL)}</td>
+        <td style="${S.td}">${w('&nbsp;')}</td><td style="${S.td}">${w('&nbsp;')}</td><td style="${S.td}">${w('&nbsp;')}</td>
+        <td style="${S.tdR}">${w('&nbsp;',fcR)}</td><td style="${S.tdR}">${w('&nbsp;',fcR)}</td><td style="${S.td}">${w('&nbsp;')}</td>
       </tr>`;
     }
 
@@ -392,15 +397,15 @@ const Estimate = (() => {
       <table style="${S.table}margin-top:8px;">
         <thead>
           <tr>
-            <th style="${S.th};width:28px;">순번</th>
-            <th style="${S.th};width:42px;">월일</th>
-            <th style="${S.th};min-width:90px;">품 목</th>
-            <th style="${S.th};min-width:70px;">규 격</th>
-            <th style="${S.th};width:32px;">단위</th>
-            <th style="${S.th};width:38px;">수량</th>
-            <th style="${S.th};width:68px;">단 가</th>
-            <th style="${S.th};width:78px;">금 액</th>
-            <th style="${S.th};width:42px;">비고</th>
+            <th style="${S.th};width:28px;">${w('순번')}</th>
+            <th style="${S.th};width:42px;">${w('월일')}</th>
+            <th style="${S.th};min-width:90px;">${w('품 목')}</th>
+            <th style="${S.th};min-width:70px;">${w('규 격')}</th>
+            <th style="${S.th};width:32px;">${w('단위')}</th>
+            <th style="${S.th};width:38px;">${w('수량')}</th>
+            <th style="${S.th};width:68px;">${w('단 가')}</th>
+            <th style="${S.th};width:78px;">${w('금 액')}</th>
+            <th style="${S.th};width:42px;">${w('비고')}</th>
           </tr>
         </thead>
         <tbody>
@@ -411,12 +416,12 @@ const Estimate = (() => {
       <!-- 하단 합계 -->
       <table style="${S.table}margin-top:-1px;">
         <tr>
-          <td style="${S.infoTh};width:80px;">합계금액</td>
-          <td style="${S.infoTd};text-align:right;font-weight:bold;font-size:13px;" colspan="2">₩ ${fmt(total)}</td>
-          <td style="${S.infoTh};width:60px;">공급가액</td>
-          <td style="${S.infoTd};text-align:right;">${fmt(supplyTotal)}</td>
-          <td style="${S.infoTh};width:50px;">세 액</td>
-          <td style="${S.infoTd};text-align:right;">${fmt(vat)}</td>
+          <td style="${S.infoTh};width:80px;">${w('합계금액', fcSm)}</td>
+          <td style="${S.infoTd};text-align:right;font-weight:bold;font-size:13px;" colspan="2">${w('₩ '+fmt(total), fcR)}</td>
+          <td style="${S.infoTh};width:60px;">${w('공급가액', fcSm)}</td>
+          <td style="${S.infoTd};text-align:right;">${w(fmt(supplyTotal), fcR)}</td>
+          <td style="${S.infoTh};width:50px;">${w('세 액', fcSm)}</td>
+          <td style="${S.infoTd};text-align:right;">${w(fmt(vat), fcR)}</td>
         </tr>
       </table>
 
