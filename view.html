@@ -196,17 +196,27 @@
 
       document.title = `[용인 랙] 견적서 - ${data.estimateId}`;
 
-      // 전화번호 설정
-      loadPhone();
+      // 서버 설정 로드 (상호명, 연락처 등)
+      loadSettings();
     }
 
-    async function loadPhone() {
+    async function loadSettings() {
       try {
         const data = await API.getSettings();
-        const phone = data.settings && data.settings.phone;
-        if (phone) {
+        if (!data.settings) return;
+        const s = data.settings;
+
+        // 상호명/슬로건
+        if (s.company) document.getElementById('v-company').textContent = s.company;
+        if (s.company || s.phone) {
+          document.getElementById('v-footer').textContent =
+            [s.company, s.phone, s.bizNumber ? '사업자 ' + s.bizNumber : ''].filter(Boolean).join(' | ');
+        }
+
+        // 전화 연결
+        if (s.phone) {
           const btn = document.getElementById('btn-call');
-          btn.href = 'tel:' + phone.replace(/-/g, '');
+          btn.href = 'tel:' + s.phone.replace(/-/g, '');
           btn.onclick = null;
         }
       } catch {}

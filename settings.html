@@ -474,6 +474,7 @@
       document.getElementById('s-pin-new').value = '';
       document.getElementById('s-pin-confirm').value = '';
       UI.toast('PIN이 변경되었습니다', 'success');
+      setTimeout(() => { window.location.href = 'more.html'; }, 1500);
     }
   </script>
 

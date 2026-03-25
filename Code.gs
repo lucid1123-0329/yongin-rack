@@ -361,7 +361,55 @@ function submitRequest(body) {
     body.rackType || '', Number(body.quantity) || 0,
     body.memo || '', '미처리'
   ]);
+
+  // 알림 발송
+  sendNewRequestNotification(body.name, body.phone, body.rackType, body.memo);
+
   return { result: 'success' };
+}
+
+/**
+ * 새 견적 요청 알림 (ntfy.sh 푸시 + 이메일)
+ * ntfy.sh 앱 설치 후 'yonginrack-noti' 토픽 구독 필요
+ */
+function sendNewRequestNotification(name, phone, rackType, memo) {
+  var message = '고객: ' + (name || '미입력') + '\n연락처: ' + (phone || '미입력');
+  if (rackType) message += '\n랙종류: ' + rackType;
+  if (memo) message += '\n메모: ' + memo;
+
+  // 1) ntfy.sh 푸시 알림 (무료, 앱 설치 필요)
+  try {
+    UrlFetchApp.fetch('https://ntfy.sh/yonginrack-noti', {
+      method: 'post',
+      payload: message,
+      headers: {
+        'Title': '새 견적 요청이 도착했습니다',
+        'Tags': 'incoming_envelope',
+        'Priority': '4'
+      },
+      muteHttpExceptions: true
+    });
+  } catch (e) {}
+
+  // 2) 이메일 알림
+  try {
+    var settingsSheet = getSheet('설정');
+    var settingsData = settingsSheet.getDataRange().getValues();
+    var adminEmail = '';
+    for (var i = 1; i < settingsData.length; i++) {
+      if (settingsData[i][0] === 'adminEmail') {
+        adminEmail = settingsData[i][1];
+        break;
+      }
+    }
+    if (adminEmail) {
+      MailApp.sendEmail({
+        to: adminEmail,
+        subject: '[용인 랙] 새 견적 요청 - ' + (name || '고객'),
+        body: message + '\n\n---\n확인: https://docs.google.com/spreadsheets/d/' + SPREADSHEET_ID
+      });
+    }
+  } catch (e) {}
 }
 
 function getRequests() {

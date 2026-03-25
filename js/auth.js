@@ -51,13 +51,45 @@ const Auth = (() => {
   async function fetchServerPin() {
     try {
       const data = await API.getSettings();
-      if (data.settings && data.settings.pinHash) {
-        localStorage.setItem(PIN_HASH_KEY, data.settings.pinHash);
-        localStorage.setItem(ONBOARDING_KEY, 'true');
-        return true;
+      if (data.settings) {
+        // PIN 동기화
+        if (data.settings.pinHash) {
+          localStorage.setItem(PIN_HASH_KEY, data.settings.pinHash);
+          localStorage.setItem(ONBOARDING_KEY, 'true');
+        }
+        // 브랜딩 정보도 동기화
+        syncBrandingFromSettings(data.settings);
+        return !!data.settings.pinHash;
       }
     } catch {}
     return false;
+  }
+
+  // 서버 설정에서 브랜딩 정보를 localStorage에 동기화
+  function syncBrandingFromSettings(settings) {
+    const branding = {
+      company: settings.company || '',
+      phone: settings.phone || '',
+      bizNumber: settings.bizNumber || '',
+      tagline: settings.tagline || '',
+    };
+    // 값이 하나라도 있으면 저장
+    if (branding.company || branding.phone) {
+      localStorage.setItem('yr_branding', JSON.stringify(branding));
+    }
+  }
+
+  // 인증 후 서버 설정 동기화 (브랜딩 + PIN)
+  async function syncSettings() {
+    try {
+      const data = await API.getSettings();
+      if (data.settings) {
+        syncBrandingFromSettings(data.settings);
+        if (data.settings.pinHash) {
+          localStorage.setItem(PIN_HASH_KEY, data.settings.pinHash);
+        }
+      }
+    } catch {}
   }
 
   function completeOnboarding() {
@@ -156,6 +188,7 @@ const Auth = (() => {
         const ok = await verifyPin(pin);
         if (ok) {
           modal.remove();
+          syncSettings(); // 인증 후 서버 설정 동기화
           window.dispatchEvent(new Event('yr-authenticated'));
         } else {
           pin = '';
@@ -174,6 +207,6 @@ const Auth = (() => {
   return {
     isAuthenticated, hasPinSet,
     setPin, verifyPin, completeOnboarding, logout,
-    guard, showPinModal, fetchServerPin,
+    guard, showPinModal, fetchServerPin, syncSettings,
   };
 })();
