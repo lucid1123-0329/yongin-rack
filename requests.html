@@ -67,8 +67,6 @@
 
     async function init() {
       UI.renderTabBar('requests');
-      // 배지 즉시 클리어 (요청 페이지 진입 = 확인한 것)
-      localStorage.removeItem('yr_req_badge');
       UI.updateRequestBadge(0);
       document.getElementById('request-list').innerHTML = UI.skeleton(3);
       await loadRequests();
@@ -80,10 +78,8 @@
         const data = await API.getRequests();
         allRequests = (data && data.requests) ? data.requests : [];
         renderRequests();
-        // 배지 즉시 업데이트
-        const pendingCount = allRequests.filter(r => r.status === '미처리').length;
-        UI.updateRequestBadge(pendingCount);
-        localStorage.setItem('yr_req_badge', JSON.stringify({ count: pendingCount, ts: Date.now() }));
+        // 현재 요청 수를 "확인함"으로 기록 → 배지 0
+        UI.markRequestsSeen(allRequests.length);
       } catch (err) {
         document.getElementById('request-list').innerHTML = UI.empty(
           '⚠️', '로딩 실패', err.message || '요청을 불러올 수 없습니다', '다시 시도', 'requests.html'
@@ -251,10 +247,7 @@
         if (item) item.status = newStatus;
         UI.toast(`'${newStatus}'로 변경되었습니다`, 'success');
         renderRequests();
-        // 배지 즉시 업데이트
-        const pendingCount = allRequests.filter(r => r.status === '미처리').length;
-        UI.updateRequestBadge(pendingCount);
-        localStorage.setItem('yr_req_badge', JSON.stringify({ count: pendingCount, ts: Date.now() }));
+        UI.markRequestsSeen(allRequests.length);
       } catch { UI.toast('상태 변경 실패', 'error'); }
     }
   </script>

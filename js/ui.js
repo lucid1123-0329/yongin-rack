@@ -137,7 +137,7 @@ const UI = (() => {
     if (active !== 'requests') _fetchRequestBadge();
   }
 
-  // 미처리 요청 수 배지 업데이트
+  // 배지 숫자 DOM 업데이트
   function updateRequestBadge(count) {
     const badge = document.getElementById('req-badge');
     if (!badge) return;
@@ -149,24 +149,38 @@ const UI = (() => {
     }
   }
 
-  // 내부: 배지용 미처리 요청 수 조회 (30초 캐시)
+  // 요청 페이지 진입 시 호출 — 현재 요청 수를 "확인한 수"로 저장
+  function markRequestsSeen(totalCount) {
+    localStorage.setItem('yr_req_seen', JSON.stringify({ total: totalCount, ts: Date.now() }));
+    updateRequestBadge(0);
+  }
+
+  // 내부: 배지 조회 — "마지막 확인 이후 새로 들어온 요청 수" 표시
   function _fetchRequestBadge() {
     try {
-      const cacheKey = 'yr_req_badge';
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        const { count, ts } = JSON.parse(cached);
-        if (Date.now() - ts < 30000) {
-          updateRequestBadge(count);
-          return;
-        }
+      // 30초 내 재조회 방지
+      var lastFetch = localStorage.getItem('yr_req_fetch_ts');
+      if (lastFetch && Date.now() - Number(lastFetch) < 30000) {
+        // 캐시된 배지 값 표시
+        var cachedBadge = localStorage.getItem('yr_req_badge_count');
+        if (cachedBadge !== null) updateRequestBadge(Number(cachedBadge));
+        return;
       }
       if (typeof API === 'undefined') return;
       API.getRequests().then(function(data) {
         if (!data || !data.requests) return;
-        var count = data.requests.filter(function(r) { return r.status === '미처리'; }).length;
-        updateRequestBadge(count);
-        localStorage.setItem(cacheKey, JSON.stringify({ count: count, ts: Date.now() }));
+        var totalCount = data.requests.length;
+        // 마지막 확인 시점의 요청 수
+        var seen = localStorage.getItem('yr_req_seen');
+        var seenTotal = 0;
+        if (seen) {
+          try { seenTotal = JSON.parse(seen).total || 0; } catch(e) {}
+        }
+        // 새 요청 수 = 현재 총 수 - 마지막 확인 시 총 수
+        var newCount = Math.max(0, totalCount - seenTotal);
+        updateRequestBadge(newCount);
+        localStorage.setItem('yr_req_badge_count', String(newCount));
+        localStorage.setItem('yr_req_fetch_ts', String(Date.now()));
       }).catch(function(){});
     } catch(e) {}
   }
@@ -228,6 +242,6 @@ const UI = (() => {
   return {
     toast, setLoading, skeleton, empty, confirm,
     formatNumber, formatCurrency, formatDate,
-    renderTabBar, renderHeader, statusBadge, numberToKorean, updateRequestBadge,
+    renderTabBar, renderHeader, statusBadge, numberToKorean, updateRequestBadge, markRequestsSeen,
   };
 })();
