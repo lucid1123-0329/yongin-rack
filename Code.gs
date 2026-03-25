@@ -826,19 +826,64 @@ itemsHtml +
  * 허용 후 재배포하면 웹 앱에서도 ntfy가 동작합니다.
  */
 function testNtfyPush() {
+  // 설정 시트에서 토큰 읽기
+  var headers = {};
+  var settings = getSheet('설정').getDataRange().getValues();
+  for (var i = 1; i < settings.length; i++) {
+    if (settings[i][0] === 'ntfyToken' && settings[i][1]) {
+      var token = String(settings[i][1]).trim();
+      headers['Authorization'] = 'Bearer ' + token;
+      Logger.log('ntfyToken 발견: ' + token.substring(0, 8) + '...');
+      break;
+    }
+  }
+  if (!headers['Authorization']) {
+    Logger.log('⚠️ ntfyToken이 설정 시트에 없습니다!');
+  }
+
   var response = UrlFetchApp.fetch('https://ntfy.sh', {
     method: 'post',
     contentType: 'application/json; charset=utf-8',
+    headers: headers,
     payload: JSON.stringify({
       topic: 'yonginrack-noti',
       title: '중용 - ntfy 테스트 성공',
-      message: 'GAS에서 보낸 테스트 알림입니다!',
+      message: 'GAS에서 보낸 테스트 알림입니다!\n시각: ' + new Date().toLocaleString('ko-KR'),
       tags: ['white_check_mark'],
       priority: 4
     }),
     muteHttpExceptions: true
   });
-  Logger.log('ntfy 응답: ' + response.getResponseCode() + ' ' + response.getContentText());
+  Logger.log('ntfy 응답코드: ' + response.getResponseCode());
+  Logger.log('ntfy 응답내용: ' + response.getContentText().substring(0, 300));
+}
+
+function testEmailNotification() {
+  var settings = getSheet('설정').getDataRange().getValues();
+  var adminEmail = '';
+  for (var i = 1; i < settings.length; i++) {
+    if (settings[i][0] === 'adminEmail') {
+      adminEmail = String(settings[i][1]).trim();
+      break;
+    }
+  }
+  if (!adminEmail) {
+    Logger.log('⚠️ adminEmail이 설정 시트에 없습니다!');
+    return;
+  }
+  Logger.log('이메일 발송 대상: ' + adminEmail);
+  MailApp.sendEmail({
+    to: adminEmail,
+    subject: '[용인 랙] 이메일 알림 테스트',
+    body: '이메일 알림 테스트입니다.\n시각: ' + new Date().toLocaleString('ko-KR')
+  });
+  Logger.log('이메일 발송 완료!');
+}
+
+function testFullNotification() {
+  Logger.log('=== 전체 알림 테스트 시작 ===');
+  sendNewRequestNotification('테스트고객', '010-0000-0000', '경량랙', '알림 테스트');
+  Logger.log('=== 전체 알림 테스트 완료 ===');
 }
 
 function initAllSheets() {
