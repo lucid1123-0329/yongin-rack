@@ -124,13 +124,15 @@ const Estimate = (() => {
 
   const S = {
     table: 'width:100%;border-collapse:collapse;font-size:12px;',
-    th: 'border:1px solid #333;padding:0 8px;background:#f5f5f5;font-weight:bold;text-align:center;font-size:11px;vertical-align:middle;',
-    td: 'border:1px solid #333;padding:0 8px;vertical-align:middle;',
-    tdL: 'border:1px solid #333;padding:0 8px;vertical-align:middle;',
-    tdR: 'border:1px solid #333;padding:0 8px;vertical-align:middle;',
-    thHeader: 'border:1px solid #333;padding:0 8px;background:#e8e8e8;font-weight:bold;text-align:center;font-size:13px;vertical-align:middle;',
-    infoTd: 'border:1px solid #333;padding:0 8px;font-size:12px;vertical-align:middle;',
-    infoTh: 'border:1px solid #333;padding:0 8px;background:#f0f0f0;font-weight:bold;font-size:11px;text-align:center;width:70px;white-space:nowrap;vertical-align:middle;',
+    // item 테이블: padding 0 + flex 래퍼(w함수)로 수직 중앙
+    th: 'border:1px solid #333;padding:0 8px;background:#f5f5f5;font-weight:bold;text-align:center;font-size:11px;',
+    td: 'border:1px solid #333;padding:0 8px;',
+    tdL: 'border:1px solid #333;padding:0 8px;',
+    tdR: 'border:1px solid #333;padding:0 8px;',
+    // info 섹션: padding으로 간격 확보 (flex 래퍼 없음)
+    thHeader: 'border:1px solid #333;padding:6px 8px;background:#e8e8e8;font-weight:bold;text-align:center;font-size:13px;vertical-align:middle;',
+    infoTd: 'border:1px solid #333;padding:6px 8px;font-size:12px;vertical-align:middle;',
+    infoTh: 'border:1px solid #333;padding:6px 8px;background:#f0f0f0;font-weight:bold;font-size:11px;text-align:center;width:70px;white-space:nowrap;vertical-align:middle;',
   };
 
   // ========== 정식 견적서 ==========
