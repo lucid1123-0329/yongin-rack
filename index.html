@@ -230,6 +230,15 @@
   <script src="js/estimate.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
+      // 로딩 즉시 표시 (init 전에)
+      const fromParam = new URLSearchParams(location.search).get('from');
+      if (fromParam === 'edit' || fromParam === 'request') {
+        const loadingEl = document.getElementById('page-loading');
+        const textEl = document.getElementById('loading-text');
+        loadingEl.classList.remove('hidden');
+        textEl.textContent = fromParam === 'edit' ? '기존 견적을 불러오는 중...' : '고객 정보를 불러오는 중...';
+      }
+
       if (!Auth.guard()) {
         window.addEventListener('yr-authenticated', init);
         return;
@@ -271,8 +280,6 @@
 
       // 수정 모드: 기존 견적 데이터 로드
       if (from === 'edit' && p.get('editId')) {
-        document.getElementById('page-loading').classList.remove('hidden');
-        document.getElementById('loading-text').textContent = '기존 견적을 불러오는 중...';
         try {
           const data = await API.getEstimate(p.get('editId'));
           if (data && !data.error) {
@@ -302,8 +309,6 @@
 
       // 요청→견적 프리필
       if (from !== 'request') return;
-      document.getElementById('page-loading').classList.remove('hidden');
-      document.getElementById('loading-text').textContent = '고객 정보를 불러오는 중...';
       const fields = { name:'cust-name', company:'cust-company', phone:'cust-phone', address:'cust-address',
         bizNumber:'cust-biz-number', bizType:'cust-biz-type', bizItem:'cust-biz-item' };
       let filled = false;
