@@ -114,13 +114,21 @@ function doPost(e) {
       lock.releaseLock();
     }
 
-    // 알림은 Lock 해제 후 발송 (외부 HTTP 요청은 Lock 안에서 차단될 수 있음)
+    // 알림은 Lock 해제 후 발송
+    console.log('doPost action=' + action + ' result=' + JSON.stringify(result));
     if (action === 'submitRequest' && result && !result.error) {
-      sendNewRequestNotification(body.name, body.phone, body.rackType, body.memo);
+      console.log('>>> sendNewRequestNotification 호출 시작');
+      try {
+        sendNewRequestNotification(body.name, body.phone, body.rackType, body.memo);
+        console.log('>>> sendNewRequestNotification 호출 완료');
+      } catch (notiErr) {
+        console.error('>>> 알림 에러: ' + notiErr.message + '\n' + notiErr.stack);
+      }
     }
 
     return jsonResponse(result);
   } catch (err) {
+    console.error('doPost 전체 에러: ' + err.message + '\n' + err.stack);
     return jsonResponse({ error: err.message });
   }
 }
