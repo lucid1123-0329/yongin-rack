@@ -125,22 +125,8 @@
       });
     }
 
-    async function testPush() {
-      try {
-        const res = await fetch('https://onesignal.com/api/v1/notifications', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json; charset=utf-8' },
-          body: JSON.stringify({
-            app_id: '8b75a514-0f7a-4a3f-bc61-859724940bcd',
-            filters: [{ field: 'tag', key: 'role', relation: '=', value: 'admin' }],
-            headings: { en: '테스트 알림' },
-            contents: { en: '푸시 알림이 정상적으로 동작합니다!' },
-            url: window.location.origin + '/requests.html'
-          })
-        });
-        if (res.ok) alert('테스트 알림을 발송했습니다!');
-        else alert('발송 실패 (서버에서 발송해야 할 수 있습니다)');
-      } catch { alert('테스트 알림은 서버(GAS)에서 발송해야 합니다.'); }
+    function testPush() {
+      alert('테스트 알림은 GAS 편집기에서 testOneSignalPush 함수를 실행하세요.\n(REST API Key 보안을 위해 서버에서만 발송 가능합니다)');
     }
   </script>
 </body>

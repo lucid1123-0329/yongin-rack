@@ -564,8 +564,18 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
   if (rackType) message += '\n랙종류: ' + rackType;
   if (memo) message += '\n메모: ' + memo;
 
-  var ONESIGNAL_APP_ID = '8b75a514-0f7a-4a3f-bc61-859724940bcd';
-  var ONESIGNAL_API_KEY = 'os_v2_app_rn22kfappjfd7pdbqwlsjfalzwrfw6shgy2e4mmby66btkfhx7djogmbfeixsulelyuc2q2k6nuqqui57kbkygexy43zyazmet4edlq';
+  // 설정 시트에서 OneSignal 키 읽기 (GitHub에 노출 방지)
+  var ONESIGNAL_APP_ID = '';
+  var ONESIGNAL_API_KEY = '';
+  var settings = getSheet('설정').getDataRange().getValues();
+  for (var s = 1; s < settings.length; s++) {
+    if (settings[s][0] === 'onesignalAppId') ONESIGNAL_APP_ID = String(settings[s][1]).trim();
+    if (settings[s][0] === 'onesignalApiKey') ONESIGNAL_API_KEY = String(settings[s][1]).trim();
+  }
+  if (!ONESIGNAL_APP_ID || !ONESIGNAL_API_KEY) {
+    debugLog('OneSignal 키 미설정 - 설정 시트에 onesignalAppId, onesignalApiKey 추가 필요');
+    return;
+  }
 
   try {
     var payload = {
