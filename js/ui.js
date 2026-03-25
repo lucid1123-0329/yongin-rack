@@ -124,11 +124,51 @@ const UI = (() => {
     bar.style.paddingBottom = 'env(safe-area-inset-bottom)';
     bar.innerHTML = tabs.map(t => `
       <a href="${t.href}" class="flex-1 py-2 flex flex-col items-center gap-0.5 ${t.id === active ? 'text-[#1e3a5f]' : 'text-gray-400'}">
-        ${t.svg}
+        <span class="relative">
+          ${t.svg}
+          ${t.id === 'requests' ? '<span id="req-badge" class="hidden absolute -top-1.5 -right-2.5 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center"></span>' : ''}
+        </span>
         <span class="text-[10px] ${t.id === active ? 'font-bold' : ''}">${t.label}</span>
       </a>
     `).join('');
     document.body.appendChild(bar);
+
+    // 미처리 요청 배지 자동 조회
+    _fetchRequestBadge();
+  }
+
+  // 미처리 요청 수 배지 업데이트
+  function updateRequestBadge(count) {
+    const badge = document.getElementById('req-badge');
+    if (!badge) return;
+    if (count > 0) {
+      badge.textContent = count > 99 ? '99+' : count;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+
+  // 내부: 배지용 미처리 요청 수 조회 (30초 캐시)
+  function _fetchRequestBadge() {
+    try {
+      const cacheKey = 'yr_req_badge';
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const { count, ts } = JSON.parse(cached);
+        if (Date.now() - ts < 30000) {
+          updateRequestBadge(count);
+          return;
+        }
+      }
+      if (typeof API === 'undefined') return;
+      API.getRequests().then(function(data) {
+        if (!data || !data.requests) return;
+        var count = data.requests.filter(function(r) { return r.status === '미처리'; }).length;
+        updateRequestBadge(count);
+        localStorage.setItem(cacheKey, JSON.stringify({ count: count, ts: Date.now() }));
+      }).catch(function(){});
+    } catch(e) {}
   }
 
   // --- 헤더 렌더 ---
@@ -188,6 +228,6 @@ const UI = (() => {
   return {
     toast, setLoading, skeleton, empty, confirm,
     formatNumber, formatCurrency, formatDate,
-    renderTabBar, renderHeader, statusBadge, numberToKorean,
+    renderTabBar, renderHeader, statusBadge, numberToKorean, updateRequestBadge,
   };
 })();
