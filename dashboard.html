@@ -154,15 +154,29 @@
       return UI.formatCurrency(n);
     }
 
-    // --- 견적 목록 (이력 통합) ---
+    // --- 견적 목록 (stale-while-revalidate) ---
     async function loadEstimates() {
+      // 1. 캐시된 데이터 즉시 표시
+      try {
+        const cached = localStorage.getItem('yr_estimates_cache');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          allEstimates = parsed.estimates || [];
+          renderList();
+        }
+      } catch {}
+
+      // 2. 서버에서 최신 데이터 가져오기
       try {
         const data = await API.getEstimates();
         allEstimates = (data && data.estimates) ? data.estimates : [];
+        localStorage.setItem('yr_estimates_cache', JSON.stringify({ estimates: allEstimates }));
         renderList();
       } catch {
-        document.getElementById('estimate-list').innerHTML =
-          `<div class="text-center py-8 text-sm text-red-500">데이터를 불러올 수 없습니다.<br><button onclick="loadEstimates()" class="mt-2 text-primary font-bold underline">다시 시도</button></div>`;
+        if (!allEstimates.length) {
+          document.getElementById('estimate-list').innerHTML =
+            `<div class="text-center py-8 text-sm text-red-500">데이터를 불러올 수 없습니다.<br><button onclick="loadEstimates()" class="mt-2 text-primary font-bold underline">다시 시도</button></div>`;
+        }
       }
     }
 

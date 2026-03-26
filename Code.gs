@@ -145,8 +145,29 @@ function jsonResponse(data) {
 // ============================================================
 // 견적 행 검색 헬퍼 (getEstimate, updateEstimate, deleteEstimate 공통)
 // ============================================================
+// --- CacheService 헬퍼 ---
+function _getCache(key) {
+  try {
+    var cached = CacheService.getScriptCache().get(key);
+    return cached ? JSON.parse(cached) : null;
+  } catch(e) { return null; }
+}
+
+function _setCache(key, data, ttl) {
+  try {
+    var json = JSON.stringify(data);
+    // CacheService 최대 100KB 제한, 초과 시 캐시 스킵
+    if (json.length < 100000) {
+      CacheService.getScriptCache().put(key, json, ttl);
+    }
+  } catch(e) {}
+}
+
+function _clearCache(key) {
+  try { CacheService.getScriptCache().remove(key); } catch(e) {}
+}
+
 function findEstimateRow(sheet, estimateId) {
-  // NOTE: 대규모 데이터셋에서는 getDataRange 대신 특정 열만 getRange로 읽는 최적화 가능
   var data = sheet.getDataRange().getValues();
   for (var i = 1; i < data.length; i++) {
     if (data[i][1] === estimateId) return { row: i + 1, data: data[i], allData: data };
@@ -158,6 +179,9 @@ function findEstimateRow(sheet, estimateId) {
 // 단가표
 // ============================================================
 function getPrices() {
+  var cached = _getCache('cache_prices');
+  if (cached) return cached;
+
   const sheet = getSheet('단가표');
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return { prices: [] };
@@ -165,7 +189,6 @@ function getPrices() {
   const prices = [];
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    // 새 컬럼 구조: [type, form, spec, tier, unitPrice, installFee, vat, status]
     if (row[7] === '삭제') continue;
     prices.push({
       rowIndex: i + 1,
@@ -178,7 +201,9 @@ function getPrices() {
       vat: row[6] || '별도',
     });
   }
-  return { prices };
+  var result = { prices };
+  _setCache('cache_prices', result, 300);
+  return result;
 }
 
 function addPrice(body) {
@@ -188,6 +213,7 @@ function addPrice(body) {
     Number(body.unitPrice) || 0, Number(body.installFee) || 0,
     body.vat || '별도', true
   ]);
+  _clearCache('cache_prices');
   return { result: 'success' };
 }
 
@@ -200,6 +226,7 @@ function updatePrice(body) {
     Number(body.unitPrice) || 0, Number(body.installFee) || 0,
     body.vat || '별도'
   ]]);
+  _clearCache('cache_prices');
   return { result: 'success' };
 }
 
@@ -208,6 +235,7 @@ function deletePrice(rowIndex) {
   const row = Number(rowIndex);
   if (row < 2) return { error: 'Invalid row' };
   sheet.getRange(row, 8).setValue('삭제');
+  _clearCache('cache_prices');
   return { result: 'success' };
 }
 
@@ -256,6 +284,7 @@ function saveEstimate(body) {
     body.bizItem || ''
   ]);
 
+  _clearCache('cache_estimates');
   return { result: 'success', estimateId: estimateId, row: sheet.getLastRow() };
 }
 
@@ -290,6 +319,7 @@ function updateEstimate(body) {
     body.bizType || '',
     body.bizItem || ''
   ]]);
+  _clearCache('cache_estimates');
   return { result: 'success', estimateId: body.estimateId };
 }
 
@@ -300,6 +330,7 @@ function deleteEstimate(estimateId) {
   if (!found) return { error: 'Estimate not found' };
 
   sheet.deleteRow(found.row);
+  _clearCache('cache_estimates');
 
   // 견적요청 시트에서 연결된 estimateId 클리어
   try {
@@ -430,8 +461,10 @@ function getEstimateByToken(token) {
 }
 
 function getEstimates() {
+  var cached = _getCache('cache_estimates');
+  if (cached) return cached;
+
   const sheet = getSheet('견적내역');
-  // NOTE: 대규모 데이터셋에서는 getDataRange 대신 특정 범위만 읽는 최적화 가능
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return { estimates: [] };
 
@@ -441,7 +474,6 @@ function getEstimates() {
     let items = [];
     try { items = JSON.parse(row[6]); } catch {}
 
-    // 품목 요약 생성
     const totalQty = items.reduce(function(sum, item) { return sum + (Number(item.quantity) || 0); }, 0);
     const summary = items.length > 1
       ? items[0].type + ' 외 ' + (items.length - 1) + '종'
@@ -461,7 +493,9 @@ function getEstimates() {
       status: row[8],
     });
   }
-  return { estimates };
+  var result = { estimates };
+  _setCache('cache_estimates', result, 120);
+  return result;
 }
 
 function updateStatus(estimateId, newStatus) {
@@ -473,6 +507,7 @@ function updateStatus(estimateId, newStatus) {
   for (let i = 1; i < data.length; i++) {
     if (data[i][1] === estimateId) {
       sheet.getRange(i + 1, 9).setValue(newStatus);
+      _clearCache('cache_estimates');
       return { result: 'success' };
     }
   }
@@ -603,8 +638,10 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
 }
 
 function getRequests() {
+  var cached = _getCache('cache_requests');
+  if (cached) return cached;
+
   const sheet = getSheet('견적요청');
-  // NOTE: 대규모 데이터셋에서는 getDataRange 대신 특정 범위만 읽는 최적화 가능
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return { requests: [] };
 
@@ -620,7 +657,9 @@ function getRequests() {
       estimateId: data[i][12] || '',
     });
   }
-  return { requests };
+  var result = { requests };
+  _setCache('cache_requests', result, 60);
+  return result;
 }
 
 // ============================================================
@@ -733,6 +772,7 @@ function updateRequestStatus(rowIndex, newStatus) {
   if (row < 2) return { error: 'Invalid row' };
   var sheet = getSheet('견적요청');
   sheet.getRange(row, 7).setValue(newStatus);
+  _clearCache('cache_requests');
   return { result: 'success' };
 }
 
@@ -740,7 +780,8 @@ function linkEstimateToRequest(body) {
   var row = Number(body.rowIndex);
   if (row < 2 || !body.estimateId) return { error: 'Invalid params' };
   var sheet = getSheet('견적요청');
-  sheet.getRange(row, 13).setValue(body.estimateId); // 13번째 컬럼에 estimateId 저장
+  sheet.getRange(row, 13).setValue(body.estimateId);
+  _clearCache('cache_requests');
   return { result: 'success' };
 }
 
@@ -749,6 +790,7 @@ function deleteRequest(rowIndex) {
   if (row < 2) return { error: 'Invalid row' };
   var sheet = getSheet('견적요청');
   sheet.deleteRow(row);
+  _clearCache('cache_requests');
   return { result: 'success' };
 }
 
