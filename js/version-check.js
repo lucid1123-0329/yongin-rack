@@ -45,7 +45,7 @@
       }
 
       // 견적 작성 중이면 스킵
-      const cartData = localStorage.getItem('yr_cart_items');
+      const cartData = localStorage.getItem('yr_draft_estimate');
       if (cartData) {
         try {
           const cart = JSON.parse(cartData);
