@@ -539,6 +539,13 @@ const App = (() => {
     const container = document.getElementById('items-area');
     if (!container) return;
 
+    // 품목 있으면 초기화 버튼 표시 (수정 모드 아닌 경우에도)
+    const btnReset = document.getElementById('btn-reset');
+    if (btnReset) {
+      if (items.length > 0) btnReset.classList.remove('hidden');
+      else if (!sessionStorage.getItem('yr_edit_id')) btnReset.classList.add('hidden');
+    }
+
     if (items.length === 0) {
       container.innerHTML = '';
       return;
@@ -727,12 +734,39 @@ const App = (() => {
     return result;
   }
 
+  function resetEstimate() {
+    if (items.length > 0 && !confirm('현재 작성 중인 견적을 초기화하시겠습니까?')) return;
+    items = [];
+    renderItems();
+    updateTotal();
+    clearDraft();
+    sessionStorage.removeItem('yr_edit_id');
+    sessionStorage.removeItem('yr_request_row');
+    // 고객 정보 초기화
+    ['cust-name','cust-company','cust-phone','cust-address','cust-biz-number','cust-biz-type','cust-biz-item'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    // UI 초기화
+    const banner = document.getElementById('edit-banner');
+    if (banner) banner.classList.add('hidden');
+    const pageTitle = document.getElementById('page-title');
+    if (pageTitle) pageTitle.textContent = '새 견적 작성';
+    const btnSave = document.getElementById('btn-save');
+    if (btnSave) btnSave.textContent = '견적 저장';
+    const btnReset = document.getElementById('btn-reset');
+    if (btnReset) btnReset.classList.add('hidden');
+    const customerForm = document.getElementById('customer-form');
+    if (customerForm) customerForm.classList.add('hidden');
+    UI.toast('초기화되었습니다', 'info');
+  }
+
   return {
     loadPrices, setQuantity, changeQuantity,
     addItem, addCustomItem, addPresetItem, setActivePreset,
     calcMarginFromPct, addMargin, addDiscount,
     removeItem, renderItems,
-    calculate, updateTotal, saveEstimate,
+    calculate, updateTotal, saveEstimate, resetEstimate,
     loadDraft, clearDraft, getCustomerInfo,
     onTypeChip, onFormChip, onFormChipCustom, onSpecCard, addRecentQuick, sortSpecs,
     get priceData() { return priceData; },

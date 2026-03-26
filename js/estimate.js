@@ -276,13 +276,11 @@ const Estimate = (() => {
         </tbody>
         <tfoot>
           <tr>
-            <td style="${S.th}" colspan="2">${w('합계금액')}</td>
-            <td style="${S.tdR};font-weight:bold;font-size:13px;" colspan="4">
-              <div style="display:flex;align-items:center;justify-content:center;gap:0;${fcR}">
-                <span style="font-size:13px;font-weight:bold;">₩ ${fmt(total)}</span>
-                <span style="margin-left:16px;font-size:10px;color:#666;font-weight:normal;">공급가액 ${fmt(supplyTotal)} / 세액 ${fmt(vat)}</span>
-              </div>
-            </td>
+            <td style="${S.th}">${w('합계금액')}</td>
+            <td style="${S.tdR};font-weight:bold;font-size:13px;" colspan="2">₩ ${fmt(total)}</td>
+            <td style="${S.th}">${w('공급가액')}</td>
+            <td style="${S.tdR};font-size:11px;">${fmt(supplyTotal)}</td>
+            <td style="${S.tdR};font-size:10px;color:#666;">${w('세액')} ${fmt(vat)}</td>
           </tr>
         </tfoot>
       </table>
