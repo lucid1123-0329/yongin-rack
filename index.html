@@ -428,8 +428,8 @@
   <!-- Service Worker 등록 + 자동 업데이트 -->
   <script>
     if ('serviceWorker' in navigator) {
+      const hadController = !!navigator.serviceWorker.controller;
       navigator.serviceWorker.register('sw.js').then(reg => {
-        // 새 SW가 waiting 상태면 즉시 활성화
         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
         reg.addEventListener('updatefound', () => {
           const nw = reg.installing;
@@ -441,10 +441,9 @@
           });
         });
       }).catch(() => {});
-      // 새 SW가 제어권을 가져가면 리로드
       let refreshing = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (refreshing) return;
+        if (!hadController || refreshing) return;
         refreshing = true;
         location.reload();
       });
