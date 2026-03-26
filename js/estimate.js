@@ -276,23 +276,15 @@ const Estimate = (() => {
         </tbody>
         <tfoot>
           <tr>
-            <td style="${S.th}" colspan="4">${w('단가 합계')}</td>
-            <td style="${S.tdR}"></td>
-            <td style="${S.tdR};font-weight:bold;">${w(fmt(unitPriceSum), fcR)}</td>
-          </tr>
-          <tr>
-            <td style="${S.th}" colspan="4">${w('공급가액')}</td>
-            <td style="${S.tdR}"></td>
+            <td style="${S.th}" colspan="2">${w('합 계')}</td>
+            <td style="${S.tdR};font-weight:bold;" colspan="2">${w(fmt(unitPriceSum), fcR)}</td>
+            <td style="${S.th}">${w('공급가액')}</td>
             <td style="${S.tdR};font-weight:bold;">${w(fmt(supplyTotal), fcR)}</td>
           </tr>
           <tr>
-            <td style="${S.th}" colspan="4">${w('세 액')}</td>
-            <td style="${S.tdR}"></td>
-            <td style="${S.tdR};font-weight:bold;">${w(fmt(vat), fcR)}</td>
-          </tr>
-          <tr>
-            <td style="${S.th}" colspan="4">${w('총 견적액 (VAT 포함)')}</td>
-            <td style="${S.tdR}"></td>
+            <td style="${S.th}" colspan="2">${w('세 액')}</td>
+            <td style="${S.tdR};font-weight:bold;" colspan="2">${w(fmt(vat), fcR)}</td>
+            <td style="${S.th}">${w('총 견적액')}</td>
             <td style="${S.tdR};font-weight:bold;font-size:13px;">${w(fmt(total), fcR)}</td>
           </tr>
         </tfoot>
