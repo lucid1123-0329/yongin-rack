@@ -238,7 +238,7 @@ const Estimate = (() => {
                 <td style="${S.infoTh}">상 호</td>
                 <td style="${S.infoTd}">${brand.company || '중용'}</td>
                 <td style="${S.infoTh}">성 명</td>
-                <td style="${S.infoTd}">${brand.representative || '김영준'}</td>
+                <td style="${S.infoTd};position:relative;">${brand.representative || '김영준'}<img src="assets/sign_rack.png" style="position:absolute;top:50%;right:2px;transform:translateY(-50%);width:48px;height:48px;opacity:0.85;" crossorigin="anonymous"></td>
               </tr>
               <tr>
                 <td style="${S.infoTh}">주 소</td>
@@ -412,7 +412,7 @@ const Estimate = (() => {
                 <td style="${S.infoTh}">상 호</td>
                 <td style="${S.infoTd}">${brand.company || '중용'}</td>
                 <td style="${S.infoTh}">성 명</td>
-                <td style="${S.infoTd}">${brand.representative || '김영준'}</td>
+                <td style="${S.infoTd};position:relative;">${brand.representative || '김영준'}<img src="assets/sign_rack.png" style="position:absolute;top:50%;right:2px;transform:translateY(-50%);width:48px;height:48px;opacity:0.85;" crossorigin="anonymous"></td>
               </tr>
               <tr>
                 <td style="${S.infoTh}">주 소</td>
