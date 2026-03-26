@@ -593,7 +593,7 @@ const App = (() => {
   // --- 계산 (공급가액 + 세액) ---
   // D/C는 총액(공급가액+세액) 기준으로 차감
   function calculate() {
-    if (items.length === 0) return { supplyTotal: 0, vat: 0, total: 0, items: null };
+    if (items.length === 0) return { supplyTotal: 0, vat: 0, total: 0, dcTotal: 0, items: [] };
     return Calc.calcTotals(items);
   }
 

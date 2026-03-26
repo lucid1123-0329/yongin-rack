@@ -433,6 +433,11 @@ function createShareToken(body) {
         String(data[i][3]) === String(body.docType || 'formal')) {
       // 만료 확인
       var created = new Date(data[i][4]);
+      if (isNaN(created.getTime())) {
+        // 날짜 파싱 실패 → 만료 처리
+        sheet.deleteRow(i + 1);
+        break;
+      }
       var diffDays = (now - created) / (1000 * 60 * 60 * 24);
       if (diffDays < SHARE_TOKEN_EXPIRY_DAYS) {
         return { result: 'success', token: data[i][0] };
@@ -461,6 +466,9 @@ function getEstimateByToken(token) {
     if (data[i][0] === token) {
       // 만료 확인
       var created = new Date(data[i][4]);
+      if (isNaN(created.getTime())) {
+        return { error: '공유 링크가 만료되었습니다. 새 링크를 요청하세요.' };
+      }
       var diffDays = (now - created) / (1000 * 60 * 60 * 24);
       if (diffDays >= SHARE_TOKEN_EXPIRY_DAYS) {
         return { error: '공유 링크가 만료되었습니다. 새 링크를 요청하세요.' };

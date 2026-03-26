@@ -76,7 +76,8 @@
         var reg = await navigator.serviceWorker.ready;
         if (reg.waiting) {
           reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-          // controllerchange 리스너가 reload 처리
+          // controllerchange 리스너가 reload 처리 — 2초 fallback
+          setTimeout(function () { location.reload(); }, 2000);
           return;
         }
       } catch (e) { /* ignore */ }
