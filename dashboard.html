@@ -115,17 +115,31 @@
       await Promise.all([loadDashboard(), loadEstimates()]);
     }
 
-    // --- 통계 ---
+    // --- 통계 (stale-while-revalidate) ---
+    const DASH_STATS_TTL = 2 * 60 * 1000;
+
     async function loadDashboard() {
+      try {
+        const cached = localStorage.getItem('yr_dashboard_cache');
+        if (cached) renderStats(JSON.parse(cached));
+      } catch {}
+
+      const cacheTs = Number(localStorage.getItem('yr_dashboard_cache_ts')) || 0;
+      if (Date.now() - cacheTs < DASH_STATS_TTL) return;
+
       try {
         const data = await API.getDashboard();
         renderStats(data);
+        localStorage.setItem('yr_dashboard_cache', JSON.stringify(data));
+        localStorage.setItem('yr_dashboard_cache_ts', String(Date.now()));
       } catch {
-        document.getElementById('stat-cards').innerHTML = `
-          <div class="col-span-3 bg-white rounded-xl border border-gray-100 p-4 text-center">
-            <p class="text-xs text-gray-400 mb-1">이번 달 견적</p>
-            <p class="text-2xl font-extrabold text-primary">0<span class="text-sm font-bold">건</span></p>
-          </div>`;
+        if (!localStorage.getItem('yr_dashboard_cache')) {
+          document.getElementById('stat-cards').innerHTML = `
+            <div class="col-span-3 bg-white rounded-xl border border-gray-100 p-4 text-center">
+              <p class="text-xs text-gray-400 mb-1">이번 달 견적</p>
+              <p class="text-2xl font-extrabold text-primary">0<span class="text-sm font-bold">건</span></p>
+            </div>`;
+        }
       }
     }
 
@@ -155,22 +169,28 @@
     }
 
     // --- 견적 목록 (stale-while-revalidate) ---
+    const DASH_EST_TTL = 2 * 60 * 1000; // 2분
+
     async function loadEstimates() {
       // 1. 캐시된 데이터 즉시 표시
       try {
         const cached = localStorage.getItem('yr_estimates_cache');
         if (cached) {
-          const parsed = JSON.parse(cached);
-          allEstimates = parsed.estimates || [];
-          renderList();
+          allEstimates = JSON.parse(cached);
+          if (Array.isArray(allEstimates) && allEstimates.length) renderList();
+          else if (allEstimates.estimates) { allEstimates = allEstimates.estimates; renderList(); }
         }
       } catch {}
+
+      const cacheTs = Number(localStorage.getItem('yr_estimates_cache_ts')) || 0;
+      if (Date.now() - cacheTs < DASH_EST_TTL && allEstimates.length > 0) return;
 
       // 2. 서버에서 최신 데이터 가져오기
       try {
         const data = await API.getEstimates();
         allEstimates = (data && data.estimates) ? data.estimates : [];
-        localStorage.setItem('yr_estimates_cache', JSON.stringify({ estimates: allEstimates }));
+        localStorage.setItem('yr_estimates_cache', JSON.stringify(allEstimates));
+        localStorage.setItem('yr_estimates_cache_ts', String(Date.now()));
         renderList();
       } catch {
         if (!allEstimates.length) {

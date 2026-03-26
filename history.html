@@ -104,14 +104,36 @@
       document.getElementById('estimate-list').innerHTML = UI.skeleton(3);
     }
 
+    const EST_CACHE_KEY = 'yr_estimates_cache';
+    const EST_CACHE_TS = 'yr_estimates_cache_ts';
+    const EST_CACHE_TTL = 2 * 60 * 1000; // 2분
+
     async function loadEstimates() {
+      // 1. 캐시 즉시 표시
+      try {
+        const cached = localStorage.getItem(EST_CACHE_KEY);
+        if (cached) {
+          allEstimates = JSON.parse(cached);
+          renderList();
+        }
+      } catch {}
+
+      const cacheTs = Number(localStorage.getItem(EST_CACHE_TS)) || 0;
+      if (Date.now() - cacheTs < EST_CACHE_TTL && allEstimates.length > 0) return;
+
+      // 2. 백그라운드 갱신
       try {
         const data = await API.getEstimates();
-        allEstimates = (data && data.estimates) ? data.estimates : [];
+        const fresh = (data && data.estimates) ? data.estimates : [];
+        allEstimates = fresh;
+        localStorage.setItem(EST_CACHE_KEY, JSON.stringify(fresh));
+        localStorage.setItem(EST_CACHE_TS, String(Date.now()));
         renderList();
       } catch (err) {
-        document.getElementById('estimate-list').innerHTML =
-          `<div class="text-center py-8 text-sm text-red-500">데이터를 불러올 수 없습니다.<br><button onclick="loadEstimates()" class="mt-2 text-primary font-bold underline">다시 시도</button></div>`;
+        if (allEstimates.length === 0) {
+          document.getElementById('estimate-list').innerHTML =
+            `<div class="text-center py-8 text-sm text-red-500">데이터를 불러올 수 없습니다.<br><button onclick="loadEstimates()" class="mt-2 text-primary font-bold underline">다시 시도</button></div>`;
+        }
       }
     }
 
