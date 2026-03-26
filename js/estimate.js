@@ -284,7 +284,7 @@ const Estimate = (() => {
             1. 부가세 포함 금액입니다.<br>
             2. 담당: ${brand.representative || '김영준'} (${brand.phone || '010-3776-1230'})<br>
             3. 납기: 발주 후 3~5일<br>
-            ${brand.bankAccount ? `4. 입금계좌: ${brand.bankAccount}<br>` : ''}
+            4. 입금계좌: ${brand.bankAccount || '국민은행 218101-04-044846 (예금주: 김영준)'}<br>
             ${items.length > 0 ? `5. 견적 유효기간: 견적일로부터 30일` : ''}
           </td></tr>
         </table>

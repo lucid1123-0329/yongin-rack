@@ -4,7 +4,7 @@
  */
 importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
-const CACHE_NAME = 'yr-v51';
+const CACHE_NAME = 'yr-v52';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
