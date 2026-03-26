@@ -158,8 +158,16 @@ const App = (() => {
 
     // 규격 카드 영역 (hidden)
     html += `<div id="sel-spec-group" class="mb-3 hidden">
-      <label class="block text-xs font-semibold text-gray-500 mb-2">규격 선택</label>
-      <div id="cards-spec" class="grid grid-cols-2 gap-2"></div>
+      <div class="flex items-center justify-between mb-2">
+        <label class="block text-xs font-semibold text-gray-500">규격 선택</label>
+        <div class="flex gap-1">
+          <button type="button" onclick="App.sortSpecs('spec')" id="sort-spec-btn"
+            class="text-[10px] px-2 py-0.5 rounded-full bg-[#1e3a5f] text-white">규격순</button>
+          <button type="button" onclick="App.sortSpecs('price')" id="sort-price-btn"
+            class="text-[10px] px-2 py-0.5 rounded-full bg-gray-200 text-gray-600">가격순</button>
+        </div>
+      </div>
+      <div id="cards-spec" class="flex flex-col gap-1 max-h-[280px] overflow-y-auto overscroll-contain rounded-lg border border-gray-200"></div>
     </div>`;
 
     container.innerHTML = html;
@@ -229,6 +237,30 @@ const App = (() => {
     renderSpecCards(_selType, _selForm);
   }
 
+  let _specSortMode = 'spec'; // 'spec' or 'price'
+
+  function sortSpecs(mode) {
+    _specSortMode = mode;
+    // 정렬 버튼 활성 상태 토글
+    const specBtn = document.getElementById('sort-spec-btn');
+    const priceBtn = document.getElementById('sort-price-btn');
+    if (specBtn && priceBtn) {
+      specBtn.className = mode === 'spec'
+        ? 'text-[10px] px-2 py-0.5 rounded-full bg-[#1e3a5f] text-white'
+        : 'text-[10px] px-2 py-0.5 rounded-full bg-gray-200 text-gray-600';
+      priceBtn.className = mode === 'price'
+        ? 'text-[10px] px-2 py-0.5 rounded-full bg-[#1e3a5f] text-white'
+        : 'text-[10px] px-2 py-0.5 rounded-full bg-gray-200 text-gray-600';
+    }
+    renderSpecCards(_selType, _selForm);
+  }
+
+  function _parseSpecWidth(spec) {
+    if (!spec) return 9999;
+    const m = spec.match(/^(\d+)/);
+    return m ? parseInt(m[1], 10) : 9999;
+  }
+
   function renderSpecCards(type, form) {
     const specGroup = document.getElementById('sel-spec-group');
     const cardsContainer = document.getElementById('cards-spec');
@@ -236,19 +268,32 @@ const App = (() => {
 
     if (items.length === 0) {
       specGroup.classList.remove('hidden');
-      cardsContainer.innerHTML = '<p class="text-gray-400 text-xs col-span-2 text-center py-3">등록된 규격이 없습니다</p>';
+      cardsContainer.innerHTML = '<p class="text-gray-400 text-xs text-center py-3">등록된 규격이 없습니다</p>';
       return;
     }
 
+    // 정렬
+    const sorted = [...items].sort((a, b) => {
+      if (_specSortMode === 'price') return (a.unitPrice || 0) - (b.unitPrice || 0);
+      return _parseSpecWidth(a.spec) - _parseSpecWidth(b.spec);
+    });
+    // 원본 인덱스 매핑
+    const idxMap = sorted.map(s => items.indexOf(s));
+
     specGroup.classList.remove('hidden');
-    cardsContainer.innerHTML = items.map((p, i) => {
-      const tierStr = p.tier ? `*${p.tier}s` : '';
-      return `<button type="button" onclick="App.onSpecCard(${i})" data-idx="${i}"
-        class="spec-card p-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-left active:scale-[0.97] transition-transform">
-        <p class="text-sm font-bold text-gray-800">${p.spec || '규격 없음'}</p>
-        <p class="text-xs text-gray-500">${tierStr ? p.spec + tierStr : ''}</p>
-        <p class="text-sm font-extrabold text-[#1e3a5f] mt-1">${UI.formatCurrency(p.unitPrice || 0)}</p>
-        ${p.installFee ? `<p class="text-[10px] text-gray-400">+시공비 ${UI.formatCurrency(p.installFee)}</p>` : ''}
+    cardsContainer.innerHTML = sorted.map((p, si) => {
+      const tierStr = p.tier ? `${p.tier}단` : '';
+      const feeStr = p.installFee ? `<span class="text-gray-400 text-[10px]">(+${UI.formatCurrency(p.installFee)})</span>` : '';
+      return `<button type="button" onclick="App.onSpecCard(${idxMap[si]})" data-idx="${idxMap[si]}"
+        class="spec-card flex items-center justify-between px-3 py-2.5 bg-white border-b border-gray-100 text-left active:bg-blue-50 transition-colors"
+        ><div class="flex items-center gap-2 min-w-0">
+          <span class="text-sm font-bold text-gray-800 truncate">${p.spec || '규격 없음'}</span>
+          ${tierStr ? `<span class="text-[10px] text-gray-400 shrink-0">${tierStr}</span>` : ''}
+        </div>
+        <div class="flex items-center gap-1 shrink-0 ml-2">
+          <span class="text-sm font-extrabold text-[#1e3a5f]">${UI.formatCurrency(p.unitPrice || 0)}</span>
+          ${feeStr}
+        </div>
       </button>`;
     }).join('');
   }
@@ -258,15 +303,13 @@ const App = (() => {
     currentSelection = items[index] || null;
     if (!currentSelection) return;
 
-    // 카드 활성 상태
-    document.querySelectorAll('.spec-card').forEach((el, i) => {
-      if (i === index) {
-        el.classList.remove('border-gray-200', 'bg-gray-50');
-        el.classList.add('border-[#1e3a5f]', 'bg-blue-50');
-      } else {
-        el.classList.add('border-gray-200', 'bg-gray-50');
-        el.classList.remove('border-[#1e3a5f]', 'bg-blue-50');
-      }
+    // 행 활성 상태
+    document.querySelectorAll('.spec-card').forEach(el => {
+      const isSelected = parseInt(el.dataset.idx) === index;
+      el.classList.toggle('bg-blue-50', isSelected);
+      el.classList.toggle('bg-white', !isSelected);
+      el.classList.toggle('border-l-[3px]', isSelected);
+      el.classList.toggle('border-l-[#1e3a5f]', isSelected);
     });
 
     const addSection = document.getElementById('add-section');
@@ -677,7 +720,7 @@ const App = (() => {
     removeItem, renderItems,
     calculate, updateTotal, saveEstimate,
     loadDraft, clearDraft, getCustomerInfo,
-    onTypeChip, onFormChip, onFormChipCustom, onSpecCard, addRecentQuick,
+    onTypeChip, onFormChip, onFormChipCustom, onSpecCard, addRecentQuick, sortSpecs,
     get priceData() { return priceData; },
     get items() { return items; },
     set items(v) { items = v; },
