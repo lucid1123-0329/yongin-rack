@@ -4,7 +4,7 @@
  */
 importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
-const CACHE_NAME = 'yr-v58';
+const CACHE_NAME = 'yr-v59';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -74,6 +74,9 @@ self.addEventListener('fetch', (event) => {
 
   // GAS 요청 (script.google.com)은 passthrough — redirect 체인 문제
   if (url.hostname.includes('google') || url.hostname.includes('googleapis')) return;
+
+  // version.json, version-check.js는 항상 네트워크 (캐시 우회)
+  if (url.pathname === '/version.json' || url.pathname === '/js/version-check.js') return;
 
   // 외부 CDN (tailwind, pretendard, html2canvas) — cache-first
   if (url.hostname !== location.hostname) {
