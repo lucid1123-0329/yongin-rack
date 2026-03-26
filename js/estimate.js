@@ -276,16 +276,13 @@ const Estimate = (() => {
         </tbody>
         <tfoot>
           <tr>
-            <td style="${S.th}" colspan="2">${w('합 계')}</td>
-            <td style="${S.tdR};font-weight:bold;" colspan="2">${w(fmt(unitPriceSum), fcR)}</td>
-            <td style="${S.th}">${w('공급가액')}</td>
-            <td style="${S.tdR};font-weight:bold;">${w(fmt(supplyTotal), fcR)}</td>
-          </tr>
-          <tr>
-            <td style="${S.th}" colspan="2">${w('세 액')}</td>
-            <td style="${S.tdR};font-weight:bold;" colspan="2">${w(fmt(vat), fcR)}</td>
-            <td style="${S.th}">${w('총 견적액')}</td>
-            <td style="${S.tdR};font-weight:bold;font-size:13px;">${w(fmt(total), fcR)}</td>
+            <td style="${S.th}" colspan="2">${w('합계금액')}</td>
+            <td style="${S.tdR};font-weight:bold;font-size:13px;" colspan="4">
+              <div style="display:flex;align-items:center;justify-content:center;gap:0;${fcR}">
+                <span style="font-size:13px;font-weight:bold;">₩ ${fmt(total)}</span>
+                <span style="margin-left:16px;font-size:10px;color:#666;font-weight:normal;">공급가액 ${fmt(supplyTotal)} / 세액 ${fmt(vat)}</span>
+              </div>
+            </td>
           </tr>
         </tfoot>
       </table>
