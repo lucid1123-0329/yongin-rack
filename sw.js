@@ -23,6 +23,7 @@ const STATIC_ASSETS = [
   '/js/api.js',
   '/js/auth.js',
   '/js/ui.js',
+  '/js/calc.js',
   '/js/app.js',
   '/js/estimate.js',
   '/js/sw-register.js',

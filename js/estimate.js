@@ -37,27 +37,9 @@ const Estimate = (() => {
     return items;
   }
 
-  function calcTotals(items, data) {
-    let supply = 0;
-    let dcTotal = 0; // D/C 총액 (음수, VAT 포함 기준)
-    items.forEach(item => {
-      const isCustom = item.itemType === 'custom';
-      const isDC = isCustom && (item.name || '').includes('D/C');
-      if (isDC) {
-        dcTotal += (Number(item.unitPrice) || 0) * (Number(item.quantity) || 1);
-      } else if (isCustom) {
-        supply += (Number(item.unitPrice) || 0) * (Number(item.quantity) || 1);
-      } else {
-        supply += ((Number(item.unitPrice) || 0) + (Number(item.installFee) || 0)) * (Number(item.quantity) || 0);
-      }
-    });
-    // D/C는 총액(VAT포함) 기준 → 공급가액/세액 역산 분리
-    const dcSupply = Math.round(dcTotal * 10 / 11);
-    const dcVat = dcTotal - dcSupply;
-    const supplyTotal = supply + dcSupply;
-    const vat = Math.round(supply * 0.1) + dcVat;
-    const total = supplyTotal + vat;
-    return { supplyTotal, vat, total, dcTotal };
+  // 계산 로직은 calc.js의 Calc.calcTotals 사용
+  function calcTotals(items) {
+    return Calc.calcTotals(items);
   }
 
   function formatDateKr(dateStr) {
@@ -163,7 +145,7 @@ const Estimate = (() => {
     const brand = getBranding();
     let items = parseItems(data);
     if (options && options.hideMargin) items = applyMarginToUnitPrices(items);
-    const { supplyTotal, vat, total } = calcTotals(items, { ...data, supplyTotal: 0, vat: 0, total: 0 });
+    const { supplyTotal, vat, total } = calcTotals(items);
     const dateKr = formatDateKr(data.date);
     const koreanAmount = UI.numberToKorean ? `일금 ${UI.numberToKorean(total)}원정` : '';
 
@@ -315,7 +297,7 @@ const Estimate = (() => {
     const brand = getBranding();
     let items = parseItems(data);
     if (options && options.hideMargin) items = applyMarginToUnitPrices(items);
-    const { supplyTotal, vat, total } = calcTotals(items, { ...data, supplyTotal: 0, vat: 0, total: 0 });
+    const { supplyTotal, vat, total } = calcTotals(items);
     const dateKr = formatDateKr(data.date);
 
     const minRows = 15;
@@ -476,7 +458,7 @@ const Estimate = (() => {
     const brand = getBranding();
     let items = parseItems(data);
     if (options && options.hideMargin) items = applyMarginToUnitPrices(items);
-    const { supplyTotal, vat, total } = calcTotals(items, { ...data, supplyTotal: 0, vat: 0, total: 0 });
+    const { supplyTotal, vat, total } = calcTotals(items);
     const hasVat = Number(data.vat) > 0 || Number(data.supplyTotal) > 0;
 
     return `
@@ -569,7 +551,7 @@ const Estimate = (() => {
     const docName = docType === 'transaction' ? '거래명세표' : '견적서';
     const title = `[${brand.company || '중용'}] ${docName}`;
     const items = parseItems(data);
-    const { total } = calcTotals(items, data);
+    const { total } = calcTotals(items);
 
     const rackItems = items.filter(i => i.itemType !== 'custom');
     const totalQty = rackItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
@@ -670,7 +652,7 @@ const Estimate = (() => {
     applyMarginToUnitPrices, share, downloadImage, getBranding,
     calcTotals: (data) => {
       const items = parseItems(data);
-      return calcTotals(items, { supplyTotal: 0, vat: 0, total: 0 });
+      return calcTotals(items);
     },
   };
 })();

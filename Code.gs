@@ -413,6 +413,8 @@ function generateShareToken() {
   return Utilities.getUuid().replace(/-/g, '');
 }
 
+var SHARE_TOKEN_EXPIRY_DAYS = 30; // 공유 토큰 만료 기간
+
 function createShareToken(body) {
   if (!body.estimateId) return { error: 'Missing estimateId' };
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -422,19 +424,28 @@ function createShareToken(body) {
     sheet.appendRow(['token', 'estimateId', 'hideMargin', 'docType', 'createdAt']);
   }
 
-  // 동일 조건 토큰이 이미 있으면 재사용
+  var now = new Date();
+  // 동일 조건 토큰이 이미 있으면 재사용 (만료되지 않은 경우만)
   var data = sheet.getDataRange().getValues();
   for (var i = 1; i < data.length; i++) {
     if (data[i][1] === body.estimateId &&
         String(data[i][2]) === String(!!body.hideMargin) &&
         String(data[i][3]) === String(body.docType || 'formal')) {
-      return { result: 'success', token: data[i][0] };
+      // 만료 확인
+      var created = new Date(data[i][4]);
+      var diffDays = (now - created) / (1000 * 60 * 60 * 24);
+      if (diffDays < SHARE_TOKEN_EXPIRY_DAYS) {
+        return { result: 'success', token: data[i][0] };
+      }
+      // 만료된 토큰 → 행 삭제 후 새로 생성
+      sheet.deleteRow(i + 1);
+      break;
     }
   }
 
   var token = generateShareToken();
-  var now = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss');
-  sheet.appendRow([token, body.estimateId, !!body.hideMargin, body.docType || 'formal', now]);
+  var nowStr = Utilities.formatDate(now, 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss');
+  sheet.appendRow([token, body.estimateId, !!body.hideMargin, body.docType || 'formal', nowStr]);
   return { result: 'success', token: token };
 }
 
@@ -445,8 +456,15 @@ function getEstimateByToken(token) {
   if (!sheet) return { error: 'Token not found' };
 
   var data = sheet.getDataRange().getValues();
+  var now = new Date();
   for (var i = 1; i < data.length; i++) {
     if (data[i][0] === token) {
+      // 만료 확인
+      var created = new Date(data[i][4]);
+      var diffDays = (now - created) / (1000 * 60 * 60 * 24);
+      if (diffDays >= SHARE_TOKEN_EXPIRY_DAYS) {
+        return { error: '공유 링크가 만료되었습니다. 새 링크를 요청하세요.' };
+      }
       var estimateId = data[i][1];
       var hideMargin = data[i][2] === true || data[i][2] === 'true';
       var docType = data[i][3] || 'formal';
