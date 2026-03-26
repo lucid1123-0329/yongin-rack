@@ -51,9 +51,9 @@ const Estimate = (() => {
     // D/C는 총액(VAT포함) 기준 → 공급가액/세액 역산 분리
     const dcSupply = Math.round(dcTotal * 10 / 11);
     const dcVat = dcTotal - dcSupply;
-    const supplyTotal = Number(data.supplyTotal) || (supply + dcSupply);
-    const vat = Number(data.vat) || (Math.round(supply * 0.1) + dcVat);
-    const total = Number(data.total) || (supplyTotal + vat);
+    const supplyTotal = supply + dcSupply;
+    const vat = Math.round(supply * 0.1) + dcVat;
+    const total = supplyTotal + vat;
     return { supplyTotal, vat, total, dcTotal };
   }
 
@@ -481,7 +481,7 @@ const Estimate = (() => {
     const brand = getBranding();
     let items = parseItems(data);
     if (options && options.hideMargin) items = applyMarginToUnitPrices(items);
-    const { supplyTotal, vat, total } = calcTotals(items, data);
+    const { supplyTotal, vat, total } = calcTotals(items, { ...data, supplyTotal: 0, vat: 0, total: 0 });
     const hasVat = Number(data.vat) > 0 || Number(data.supplyTotal) > 0;
 
     return `
