@@ -255,10 +255,10 @@ const App = (() => {
     renderSpecCards(_selType, _selForm);
   }
 
-  function _parseSpecWidth(spec) {
-    if (!spec) return 9999;
-    const m = spec.match(/^(\d+)/);
-    return m ? parseInt(m[1], 10) : 9999;
+  function _parseSpecDims(spec) {
+    if (!spec) return [9999, 9999, 9999];
+    const parts = spec.split('*').map(s => parseInt(s, 10) || 9999);
+    return [parts[0] || 9999, parts[1] || 9999, parts[2] || 9999]; // 가로, 세로, 높이
   }
 
   function renderSpecCards(type, form) {
@@ -275,7 +275,8 @@ const App = (() => {
     // 정렬
     const sorted = [...items].sort((a, b) => {
       if (_specSortMode === 'price') return (a.unitPrice || 0) - (b.unitPrice || 0);
-      return _parseSpecWidth(a.spec) - _parseSpecWidth(b.spec);
+      const da = _parseSpecDims(a.spec), db = _parseSpecDims(b.spec);
+      return (da[0] - db[0]) || (da[1] - db[1]) || (da[2] - db[2]);
     });
     // 원본 인덱스 매핑
     const idxMap = sorted.map(s => items.indexOf(s));
