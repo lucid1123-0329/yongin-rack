@@ -270,51 +270,14 @@
     }
   </script>
 
-  <!-- 새로고침 쿨다운 가드 (모든 reload 경로에서 공유) -->
+  <!-- Service Worker 등록 (업데이트 감지·토스트는 version-check.js에서 처리) -->
   <script>
-    (function () {
-      var GUARD_KEY = 'yr_reload_ts', COOLDOWN = 30000;
-      window.__yr_reloadGuard = {
-        canReload: function () {
-          return Date.now() - Number(localStorage.getItem(GUARD_KEY) || 0) >= COOLDOWN;
-        },
-        markReload: function () {
-          localStorage.setItem(GUARD_KEY, String(Date.now()));
-        },
-        safeReload: function () {
-          if (!this.canReload()) return false;
-          this.markReload();
-          location.reload();
-          return true;
-        }
-      };
-    })();
-  </script>
-
-  <!-- bfcache + Service Worker 등록 + 자동 업데이트 -->
-  <script>
-    window.addEventListener('pageshow', (e) => { if (e.persisted) window.__yr_reloadGuard.safeReload(); });
     if ('serviceWorker' in navigator) {
-      const hadController = !!navigator.serviceWorker.controller;
-      navigator.serviceWorker.register('sw.js').then(reg => {
-        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        reg.addEventListener('updatefound', () => {
-          const nw = reg.installing;
-          if (!nw) return;
-          nw.addEventListener('statechange', () => {
-            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-              nw.postMessage({ type: 'SKIP_WAITING' });
-            }
-          });
-        });
-      }).catch(() => {});
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!hadController || refreshing) return;
-        // 쿨다운 가드: version-check 등에서 이미 reload 했으면 스킵
-        if (!window.__yr_reloadGuard.canReload()) return;
-        refreshing = true;
-        window.__yr_reloadGuard.markReload();
+      navigator.serviceWorker.register('sw.js').catch(function(){});
+      var _yrRefreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        if (_yrRefreshing) return;
+        _yrRefreshing = true;
         location.reload();
       });
     }
