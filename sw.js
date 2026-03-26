@@ -4,7 +4,7 @@
  */
 importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
-const CACHE_NAME = 'yr-v47';
+const CACHE_NAME = 'yr-v48';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -40,6 +40,13 @@ self.addEventListener('install', (event) => {
     })
   );
   self.skipWaiting();
+});
+
+// 클라이언트에서 SKIP_WAITING 메시지 수신 시 즉시 활성화
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Activate — 이전 캐시 제거 (with logging)
