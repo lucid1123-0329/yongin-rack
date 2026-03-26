@@ -582,13 +582,20 @@ const App = (() => {
   }
 
   // --- 계산 (공급가액 + 세액) ---
+  // D/C는 총액(공급가액+세액) 기준으로 차감
   function calculate() {
     if (items.length === 0) return { supplyTotal: 0, vat: 0, total: 0, items: null };
 
     let supplyTotal = 0;
+    let dcTotal = 0; // D/C 합산 (음수)
     const itemDetails = items.map(item => {
       const isCustom = item.itemType === 'custom';
-      if (isCustom) {
+      const isDC = isCustom && (item.name || '').includes('D/C');
+      if (isDC) {
+        const amount = (Number(item.unitPrice) || 0) * (Number(item.quantity) || 1);
+        dcTotal += amount; // 음수값 합산
+        return { ...item, itemTotal: amount };
+      } else if (isCustom) {
         const amount = (Number(item.unitPrice) || 0) * (Number(item.quantity) || 1);
         supplyTotal += amount;
         return { ...item, itemTotal: amount };
@@ -602,8 +609,8 @@ const App = (() => {
     });
 
     const vat = Math.round(supplyTotal * 0.1);
-    const total = supplyTotal + vat;
-    return { supplyTotal, vat, total, items: itemDetails };
+    const total = supplyTotal + vat + dcTotal; // D/C는 총액에서 차감
+    return { supplyTotal, vat, total, dcTotal, items: itemDetails };
   }
 
   // --- 금액 표시 업데이트 ---

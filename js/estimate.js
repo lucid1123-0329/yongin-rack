@@ -36,9 +36,13 @@ const Estimate = (() => {
 
   function calcTotals(items, data) {
     let supply = 0;
+    let dcTotal = 0;
     items.forEach(item => {
       const isCustom = item.itemType === 'custom';
-      if (isCustom) {
+      const isDC = isCustom && (item.name || '').includes('D/C');
+      if (isDC) {
+        dcTotal += (Number(item.unitPrice) || 0) * (Number(item.quantity) || 1);
+      } else if (isCustom) {
         supply += (Number(item.unitPrice) || 0) * (Number(item.quantity) || 1);
       } else {
         supply += ((Number(item.unitPrice) || 0) + (Number(item.installFee) || 0)) * (Number(item.quantity) || 0);
@@ -46,8 +50,8 @@ const Estimate = (() => {
     });
     const supplyTotal = Number(data.supplyTotal) || supply;
     const vat = Number(data.vat) || Math.round(supplyTotal * 0.1);
-    const total = Number(data.total) || (supplyTotal + vat);
-    return { supplyTotal, vat, total };
+    const total = Number(data.total) || (supplyTotal + vat + dcTotal);
+    return { supplyTotal, vat, total, dcTotal };
   }
 
   function formatDateKr(dateStr) {
@@ -163,11 +167,12 @@ const Estimate = (() => {
 
     let itemRows = items.map((item, i) => {
       const isCustom = item.itemType === 'custom';
+      const isDC = isCustom && (item.name || '').includes('D/C');
       const qty = Number(item.quantity) || (isCustom ? 1 : 0);
       const uPrice = Number(item.unitPrice) || 0;
       const iFee = Number(item.installFee) || 0;
       const lineSupply = isCustom ? uPrice * qty : (uPrice + iFee) * qty;
-      const lineTax = Math.round(lineSupply * 0.1);
+      const lineTax = isDC ? 0 : Math.round(lineSupply * 0.1);
 
       return `<tr>
         <td style="${S.td}">${w(i+1)}</td>
@@ -175,8 +180,8 @@ const Estimate = (() => {
         <td style="${S.td}">${w(getItemSpec(item))}</td>
         <td style="${S.td}">${w(qty)}</td>
         <td style="${S.tdR}">${w(fmt(isCustom ? uPrice : uPrice + iFee), fcR)}</td>
-        <td style="${S.tdR}">${w(fmt(lineSupply), fcR)}</td>
-        <td style="${S.tdR}">${w(fmt(lineTax), fcR)}</td>
+        <td style="${S.tdR}">${w(isDC ? fmt(lineSupply) : fmt(lineSupply), fcR)}</td>
+        <td style="${S.tdR}">${w(isDC ? '' : fmt(lineTax), fcR)}</td>
       </tr>`;
     }).join('');
 
