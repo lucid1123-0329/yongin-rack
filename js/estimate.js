@@ -168,38 +168,30 @@ const Estimate = (() => {
     const minRows = 15;
     const emptyRows = Math.max(0, minRows - items.length);
 
+    let unitPriceSum = 0; // 단가 합계
     let itemRows = items.map((item, i) => {
       const isCustom = item.itemType === 'custom';
-      const isDC = isCustom && (item.name || '').includes('D/C');
       const qty = Number(item.quantity) || (isCustom ? 1 : 0);
       const uPrice = Number(item.unitPrice) || 0;
       const iFee = Number(item.installFee) || 0;
-      let lineSupply, lineTax;
-      if (isDC) {
-        // D/C는 총액(VAT포함) 기준 → 공급가액/세액 역산 분리
-        const dcAmount = uPrice * qty; // 음수
-        lineSupply = Math.round(dcAmount * 10 / 11);
-        lineTax = dcAmount - lineSupply;
-      } else {
-        lineSupply = isCustom ? uPrice * qty : (uPrice + iFee) * qty;
-        lineTax = Math.round(lineSupply * 0.1);
-      }
+      const displayPrice = isCustom ? uPrice : uPrice + iFee;
+      const lineAmount = displayPrice * qty;
+      unitPriceSum += lineAmount;
 
       return `<tr>
         <td style="${S.td}">${w(i+1)}</td>
         <td style="${S.tdL}">${w(getItemName(item), fcL)}</td>
         <td style="${S.td}">${w(getItemSpec(item))}</td>
         <td style="${S.td}">${w(qty)}</td>
-        <td style="${S.tdR}">${w(fmt(isCustom ? uPrice : uPrice + iFee), fcR)}</td>
-        <td style="${S.tdR}">${w(fmt(lineSupply), fcR)}</td>
-        <td style="${S.tdR}">${w(fmt(lineTax), fcR)}</td>
+        <td style="${S.tdR}">${w(fmt(displayPrice), fcR)}</td>
+        <td style="${S.tdR}">${w(fmt(lineAmount), fcR)}</td>
       </tr>`;
     }).join('');
 
     for (let i = 0; i < emptyRows; i++) {
       itemRows += `<tr>
         <td style="${S.td}">${w('&nbsp;')}</td><td style="${S.tdL}">${w('&nbsp;',fcL)}</td><td style="${S.td}">${w('&nbsp;')}</td>
-        <td style="${S.td}">${w('&nbsp;')}</td><td style="${S.tdR}">${w('&nbsp;',fcR)}</td><td style="${S.tdR}">${w('&nbsp;',fcR)}</td><td style="${S.tdR}">${w('&nbsp;',fcR)}</td>
+        <td style="${S.td}">${w('&nbsp;')}</td><td style="${S.tdR}">${w('&nbsp;',fcR)}</td><td style="${S.tdR}">${w('&nbsp;',fcR)}</td>
       </tr>`;
     }
 
@@ -276,8 +268,7 @@ const Estimate = (() => {
             <th style="${S.th};min-width:80px;">${w('규 격')}</th>
             <th style="${S.th};width:40px;">${w('수량')}</th>
             <th style="${S.th};width:70px;">${w('단 가')}</th>
-            <th style="${S.th};width:80px;">${w('공급가액')}</th>
-            <th style="${S.th};width:70px;">${w('세 액')}</th>
+            <th style="${S.th};width:90px;">${w('금 액')}</th>
           </tr>
         </thead>
         <tbody>
@@ -285,10 +276,24 @@ const Estimate = (() => {
         </tbody>
         <tfoot>
           <tr>
-            <td style="${S.th}" colspan="4">${w('합 계')}</td>
+            <td style="${S.th}" colspan="4">${w('단가 합계')}</td>
+            <td style="${S.tdR}"></td>
+            <td style="${S.tdR};font-weight:bold;">${w(fmt(unitPriceSum), fcR)}</td>
+          </tr>
+          <tr>
+            <td style="${S.th}" colspan="4">${w('공급가액')}</td>
             <td style="${S.tdR}"></td>
             <td style="${S.tdR};font-weight:bold;">${w(fmt(supplyTotal), fcR)}</td>
+          </tr>
+          <tr>
+            <td style="${S.th}" colspan="4">${w('세 액')}</td>
+            <td style="${S.tdR}"></td>
             <td style="${S.tdR};font-weight:bold;">${w(fmt(vat), fcR)}</td>
+          </tr>
+          <tr>
+            <td style="${S.th}" colspan="4">${w('총 견적액 (VAT 포함)')}</td>
+            <td style="${S.tdR}"></td>
+            <td style="${S.tdR};font-weight:bold;font-size:13px;">${w(fmt(total), fcR)}</td>
           </tr>
         </tfoot>
       </table>
