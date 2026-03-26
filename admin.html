@@ -172,6 +172,18 @@
     let activeFilter = '전체';
     let searchQuery = '';
     const collapsedGroups = new Set();
+    const groupSortModes = {}; // { type: 'spec' | 'price' }
+
+    function _parseDims(spec) {
+      if (!spec) return [9999, 9999, 9999];
+      const parts = spec.split('*').map(s => parseInt(s, 10) || 9999);
+      return [parts[0] || 9999, parts[1] || 9999, parts[2] || 9999];
+    }
+
+    function sortGroup(type, mode) {
+      groupSortModes[type] = mode;
+      renderPrices();
+    }
 
     // 랙 종류별 형태 매핑
     const RACK_TYPES = ['무볼트앵글', '경량랙', '중량랙', '파렛트랙', '곤도라 진열대', '하이퍼 진열대'];
@@ -401,14 +413,31 @@
       for (const [type, items] of Object.entries(groups)) {
         const collapsed = collapsedGroups.has(type);
         const arrow = collapsed ? '▶' : '▼';
+        const sortMode = groupSortModes[type] || 'spec';
+
+        // 정렬 적용
+        items.sort((a, b) => {
+          if (sortMode === 'price') return (a.unitPrice || 0) - (b.unitPrice || 0);
+          const da = _parseDims(a.spec), db = _parseDims(b.spec);
+          return (da[0] - db[0]) || (da[1] - db[1]) || (da[2] - db[2]);
+        });
+
         html += `
           <div class="mb-3">
-            <button onclick="toggleGroup('${type}')"
-              class="w-full flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg text-sm font-bold text-gray-700 active:bg-gray-100">
-              <span>${arrow}</span>
-              <span>${type}</span>
-              <span class="text-xs font-normal text-gray-400">${items.length}건</span>
-            </button>
+            <div class="flex items-center gap-2 px-1 mb-1">
+              <button onclick="toggleGroup('${type}')"
+                class="flex items-center gap-2 px-2 py-2 bg-gray-50 rounded-lg text-sm font-bold text-gray-700 active:bg-gray-100 flex-1 min-w-0">
+                <span>${arrow}</span>
+                <span>${type}</span>
+                <span class="text-xs font-normal text-gray-400">${items.length}건</span>
+              </button>
+              <div class="flex gap-1 shrink-0">
+                <button onclick="sortGroup('${type}','spec')"
+                  class="text-[10px] px-2 py-1 rounded-full ${sortMode === 'spec' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-600'}">규격순</button>
+                <button onclick="sortGroup('${type}','price')"
+                  class="text-[10px] px-2 py-1 rounded-full ${sortMode === 'price' ? 'bg-primary text-white' : 'bg-gray-200 text-gray-600'}">가격순</button>
+              </div>
+            </div>
             <div class="${collapsed ? 'hidden' : ''} mt-1 space-y-1.5">`;
 
         items.forEach(p => {
