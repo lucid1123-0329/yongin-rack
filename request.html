@@ -9,7 +9,7 @@
   <meta name="description" content="경량랙, 중량랙 설치 견적을 무료로 요청하세요.">
   <meta property="og:title" content="중용 - 무료 견적 요청">
   <meta property="og:description" content="용인 랙(선반) 전문 시공, 무료 견적을 요청하세요.">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script>
     tailwind.config = {
       theme: { extend: { colors: { primary: '#1e3a5f', accent: '#f97316' } } }
@@ -149,8 +149,9 @@
       if (document.querySelector('[name="website"]').value) return;
 
       const btn = document.getElementById('btn-submit');
-      const name = document.getElementById('req-name').value.trim();
-      const phone = document.getElementById('req-phone').value.trim();
+      function _sf(val, max) { return String(val || '').trim().slice(0, max || 100); }
+      const name = _sf(document.getElementById('req-name').value, 50);
+      const phone = _sf(document.getElementById('req-phone').value, 20);
 
       if (!name || !phone) {
         UI.toast('이름과 연락처를 입력하세요', 'warning');
@@ -162,14 +163,14 @@
         const result = await API.submitRequest({
           name,
           phone,
-          company: (document.getElementById('req-company')?.value || '').trim(),
-          address: (document.getElementById('req-address')?.value || '').trim(),
-          rackType: document.getElementById('req-rack').value,
-          quantity: document.getElementById('req-qty').value,
-          memo: document.getElementById('req-memo').value,
-          bizNumber: (document.getElementById('req-biz-number')?.value || '').trim(),
-          bizType: (document.getElementById('req-biz-type')?.value || '').trim(),
-          bizItem: (document.getElementById('req-biz-item')?.value || '').trim(),
+          company: _sf(document.getElementById('req-company')?.value, 50),
+          address: _sf(document.getElementById('req-address')?.value, 200),
+          rackType: _sf(document.getElementById('req-rack').value, 30),
+          quantity: _sf(document.getElementById('req-qty').value, 10),
+          memo: _sf(document.getElementById('req-memo').value, 500),
+          bizNumber: _sf(document.getElementById('req-biz-number')?.value, 20),
+          bizType: _sf(document.getElementById('req-biz-type')?.value, 30),
+          bizItem: _sf(document.getElementById('req-biz-item')?.value, 30),
         });
 
         if (result.error) {

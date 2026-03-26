@@ -17,7 +17,7 @@
   <link rel="apple-touch-icon" href="assets/icon-192.png">
 
   <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -297,17 +297,6 @@
     }
   </script>
 
-  <!-- Service Worker 등록 (업데이트 감지·토스트는 version-check.js에서 처리) -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(function(){});
-      var _yrRefreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', function() {
-        if (_yrRefreshing) return;
-        _yrRefreshing = true;
-        location.reload();
-      });
-    }
-  </script>
+  <script src="js/sw-register.js"></script>
 </body>
 </html>

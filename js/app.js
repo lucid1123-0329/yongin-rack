@@ -686,15 +686,19 @@ const App = (() => {
   }
 
   // --- 고객 정보 ---
+  function _sanitizeField(val, maxLen) {
+    return String(val || '').trim().slice(0, maxLen || 100);
+  }
+
   function getCustomerInfo() {
     return {
-      name: document.getElementById('cust-name')?.value || '',
-      company: document.getElementById('cust-company')?.value || '',
-      phone: document.getElementById('cust-phone')?.value || '',
-      address: document.getElementById('cust-address')?.value || '',
-      bizNumber: document.getElementById('cust-biz-number')?.value || '',
-      bizType: document.getElementById('cust-biz-type')?.value || '',
-      bizItem: document.getElementById('cust-biz-item')?.value || '',
+      name: _sanitizeField(document.getElementById('cust-name')?.value, 50),
+      company: _sanitizeField(document.getElementById('cust-company')?.value, 50),
+      phone: _sanitizeField(document.getElementById('cust-phone')?.value, 20),
+      address: _sanitizeField(document.getElementById('cust-address')?.value, 200),
+      bizNumber: _sanitizeField(document.getElementById('cust-biz-number')?.value, 20),
+      bizType: _sanitizeField(document.getElementById('cust-biz-type')?.value, 30),
+      bizItem: _sanitizeField(document.getElementById('cust-biz-item')?.value, 30),
     };
   }
 

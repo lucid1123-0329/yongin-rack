@@ -25,6 +25,7 @@ const STATIC_ASSETS = [
   '/js/ui.js',
   '/js/app.js',
   '/js/estimate.js',
+  '/js/sw-register.js',
   '/js/onesignal-init.js',
   '/OneSignalSDKWorker.js',
   '/manifest.json',
