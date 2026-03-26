@@ -85,6 +85,16 @@
       </a>
     </div>
 
+    <!-- 앱 설치 -->
+    <div id="pwa-install-card" class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 overflow-hidden hidden">
+      <button onclick="installPWA()"
+        class="flex items-center w-full h-14 px-4 active:bg-gray-50 transition-colors">
+        <span class="text-xl w-8">📲</span>
+        <span class="flex-1 text-sm font-semibold text-gray-800 text-left">앱 설치하기</span>
+        <span class="text-xs text-accent font-bold">홈 화면에 추가</span>
+      </button>
+    </div>
+
     <!-- 앱 정보 -->
     <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 p-4">
       <div class="flex items-center gap-3">
@@ -121,6 +131,43 @@
         if (b.company) document.getElementById('brand-name').textContent = b.company;
         if (b.tagline) document.getElementById('brand-tagline').textContent = b.tagline;
       } catch {}
+    }
+  </script>
+
+  <!-- PWA 설치 -->
+  <script>
+    let _deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      _deferredPrompt = e;
+      document.getElementById('pwa-install-card').classList.remove('hidden');
+    });
+
+    // 이미 설치된 경우 버튼 숨김
+    window.addEventListener('appinstalled', () => {
+      document.getElementById('pwa-install-card').classList.add('hidden');
+      _deferredPrompt = null;
+    });
+
+    // standalone 모드로 이미 실행 중이면 숨김
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      // 이미 앱으로 실행 중 — 버튼 불필요
+    }
+
+    async function installPWA() {
+      if (!_deferredPrompt) {
+        // beforeinstallprompt가 아직 안 떨어진 경우 (iOS 등)
+        UI.toast('브라우저 메뉴에서 "홈 화면에 추가"를 눌러주세요', 'info');
+        return;
+      }
+      _deferredPrompt.prompt();
+      const { outcome } = await _deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        UI.toast('앱이 설치되었습니다!', 'success');
+      }
+      _deferredPrompt = null;
+      document.getElementById('pwa-install-card').classList.add('hidden');
     }
   </script>
 

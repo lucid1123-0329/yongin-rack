@@ -3,7 +3,7 @@
  * Google Sheets를 DB로 사용하는 웹 앱 API
  *
  * 시트 구조:
- *   단가표: [랙종류, 규격, 단수, 기본단가, 추가시공비, VAT적용, 활성]
+ *   단가표: [랙종류, 형태, 규격, 단수, 기본단가, 추가시공비, VAT적용, 활성]
  *   견적내역: [견적일시, 견적번호, 고객명, 회사명, 연락처, 주소, 품목상세(JSON), 총액, 진행상태, clientId]
  *   견적요청: [요청일시, 고객명, 연락처, 랙종류, 수량, 메모, 처리상태]
  *   설정: [key, value]
@@ -159,22 +159,23 @@ function findEstimateRow(sheet, estimateId) {
 // ============================================================
 function getPrices() {
   const sheet = getSheet('단가표');
-  // NOTE: 대규모 데이터셋에서는 getDataRange 대신 특정 범위만 읽는 최적화 가능
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return { prices: [] };
 
   const prices = [];
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    if (row[6] === '삭제') continue;
+    // 새 컬럼 구조: [type, form, spec, tier, unitPrice, installFee, vat, status]
+    if (row[7] === '삭제') continue;
     prices.push({
       rowIndex: i + 1,
-      type: row[0],
-      spec: row[1],
-      tier: row[2],
-      unitPrice: Number(row[3]) || 0,
-      installFee: Number(row[4]) || 0,
-      vat: row[5] || '별도',
+      type: row[0] || '',
+      form: row[1] || '',
+      spec: row[2] || '',
+      tier: row[3],
+      unitPrice: Number(row[4]) || 0,
+      installFee: Number(row[5]) || 0,
+      vat: row[6] || '별도',
     });
   }
   return { prices };
@@ -183,7 +184,7 @@ function getPrices() {
 function addPrice(body) {
   const sheet = getSheet('단가표');
   sheet.appendRow([
-    body.type, body.spec, body.tier,
+    body.type, body.form || '', body.spec, body.tier,
     Number(body.unitPrice) || 0, Number(body.installFee) || 0,
     body.vat || '별도', true
   ]);
@@ -194,8 +195,8 @@ function updatePrice(body) {
   const sheet = getSheet('단가표');
   const row = Number(body.rowIndex);
   if (row < 2) return { error: 'Invalid row' };
-  sheet.getRange(row, 1, 1, 6).setValues([[
-    body.type, body.spec, body.tier,
+  sheet.getRange(row, 1, 1, 7).setValues([[
+    body.type, body.form || '', body.spec, body.tier,
     Number(body.unitPrice) || 0, Number(body.installFee) || 0,
     body.vat || '별도'
   ]]);
@@ -206,7 +207,7 @@ function deletePrice(rowIndex) {
   const sheet = getSheet('단가표');
   const row = Number(rowIndex);
   if (row < 2) return { error: 'Invalid row' };
-  sheet.getRange(row, 7).setValue('삭제');
+  sheet.getRange(row, 8).setValue('삭제');
   return { result: 'success' };
 }
 
@@ -940,7 +941,7 @@ function getSheet(name) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName(name);
   var headers = {
-    '단가표': ['랙종류', '규격', '단수', '기본단가', '추가시공비', 'VAT적용', '활성'],
+    '단가표': ['랙종류', '형태', '규격', '단수', '기본단가', '추가시공비', 'VAT적용', '활성'],
     '견적내역': ['견적일시', '견적번호', '고객명', '회사명', '연락처', '주소', '품목상세', '총액', '진행상태', 'clientId', '공급가액', '세액'],
     '견적요청': ['요청일시', '고객명', '연락처', '랙종류', '수량', '메모', '처리상태'],
     '설정': ['key', 'value'],

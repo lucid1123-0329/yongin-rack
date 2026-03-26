@@ -43,6 +43,10 @@
 
   <style>
     body { font-family: 'Pretendard', sans-serif; padding-bottom: 80px; }
+    .chip { display:inline-flex; align-items:center; justify-content:center; padding:8px 14px; border-radius:9999px; font-size:13px; font-weight:600; border:2px solid #e5e7eb; color:#374151; background:#fff; cursor:pointer; transition:all 0.15s; user-select:none; }
+    .chip:active { transform:scale(0.95); }
+    .chip.selected { border-color:#1e3a5f; background:#1e3a5f; color:#fff; }
+    .chip-form.selected { border-color:#f97316; background:#f97316; color:#fff; }
   </style>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script src="js/onesignal-init.js" defer></script>

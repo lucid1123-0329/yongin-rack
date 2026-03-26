@@ -62,12 +62,14 @@ const Estimate = (() => {
 
   function getItemName(item) {
     if (item.itemType === 'custom') return item.name || '';
-    return `${item.type || ''}${item.tier ? `(${item.tier}단)` : ''}`;
+    return `${item.type || ''}${item.form ? `(${item.form})` : ''}`;
   }
 
   function getItemSpec(item) {
     if (item.itemType === 'custom') return '';
-    return item.spec || '';
+    const spec = item.spec || '';
+    const tierStr = item.tier ? `*${item.tier}s` : '';
+    return spec + tierStr;
   }
 
   function getItemUnit(item) {

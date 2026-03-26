@@ -235,7 +235,7 @@
         const uPrice = Number(item.unitPrice) || 0;
         const iFee = Number(item.installFee) || 0;
         const amount = isCustom ? uPrice * qty : (uPrice + iFee) * qty;
-        const name = isCustom ? item.name : `${item.type} ${item.spec} ${item.tier}단 × ${qty}대`;
+        const name = isCustom ? item.name : `${item.type}${item.form ? '(' + item.form + ')' : ''} ${item.spec}${item.tier ? '*' + item.tier + 's' : ''} × ${qty}대`;
         return `<div class="flex justify-between text-xs py-1">
           <span class="${amount < 0 ? 'text-red-600' : 'text-gray-700'}">${name}</span>
           <span class="${amount < 0 ? 'text-red-600' : 'text-gray-600'} font-medium">${UI.formatCurrency(amount)}</span>

@@ -11,8 +11,20 @@ const App = (() => {
   let currentQuantity = 1;
 
   const DRAFT_KEY = 'yr_draft_estimate';
+  const RECENT_KEY = 'yr_recent_items';
   const PRICE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   let draftTimer = null;
+
+  // 랙 종류별 형태 매핑
+  const RACK_TYPES = ['무볼트앵글', '경량랙', '중량랙', '파렛트랙', '곤도라 진열대', '하이퍼 진열대'];
+  const RACK_FORMS = {
+    '무볼트앵글': ['독립', '연결', '벽부착', '이동'],
+    '경량랙': ['독립', '연결', '벽면'],
+    '중량랙': ['독립', '연결', '이동'],
+    '파렛트랙': ['독립', '연결'],
+    '곤도라 진열대': ['중앙독립', '중앙연결', '벽대독립', '벽대연결', '엔드독립', '엔드연결'],
+    '하이퍼 진열대': ['중앙독립', '중앙연결', '벽대독립', '벽대연결', '엔드독립', '엔드연결'],
+  };
 
   // --- safe localStorage helpers ---
   function _lsGet(key) {
@@ -65,100 +77,222 @@ const App = (() => {
     return [...new Set(priceData.map(p => p.type))];
   }
 
-  function getSpecsForType(type) {
-    return [...new Set(priceData.filter(p => p.type === type).map(p => p.spec))];
+  function getFormsForType(type) {
+    return [...new Set(priceData.filter(p => p.type === type).map(p => p.form || '').filter(Boolean))];
   }
 
-  function getTiersForSpec(type, spec) {
-    return priceData.filter(p => p.type === type && p.spec === spec);
+  function getSpecsForTypeAndForm(type, form) {
+    return priceData.filter(p => p.type === type && (p.form || '') === (form || ''));
   }
 
-  // --- 렌더링 ---
+  // --- 최근 사용 관리 ---
+  function getRecentItems() {
+    try {
+      return JSON.parse(_lsGet(RECENT_KEY) || '[]').slice(0, 5);
+    } catch { return []; }
+  }
+
+  function addRecentItem(item) {
+    const recents = getRecentItems();
+    // 중복 제거 (type+form+spec+tier 기준)
+    const key = `${item.type}|${item.form || ''}|${item.spec}|${item.tier}`;
+    const filtered = recents.filter(r => `${r.type}|${r.form || ''}|${r.spec}|${r.tier}` !== key);
+    filtered.unshift({ type: item.type, form: item.form || '', spec: item.spec, tier: item.tier, unitPrice: item.unitPrice, installFee: item.installFee, vat: item.vat });
+    _lsSet(RECENT_KEY, JSON.stringify(filtered.slice(0, 5)));
+  }
+
+  // --- 칩/카드 기반 렌더링 ---
+  let _selType = '';
+  let _selForm = '';
+
   function renderRackSelector() {
     const container = document.getElementById('rack-selector');
     if (!container) return;
 
-    const categories = getCategories();
-    if (categories.length === 0) {
-      container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">등록된 랙이 없습니다</p>';
+    if (priceData.length === 0) {
+      container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">등록된 랙이 없습니다. 더보기 > 단가 관리에서 추가하세요.</p>';
       return;
     }
 
-    container.innerHTML = `
-      <div class="mb-3">
-        <label class="block text-sm font-semibold text-gray-600 mb-2">랙 종류</label>
-        <select id="sel-type" class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base bg-white focus:border-[#1e3a5f] focus:outline-none">
-          <option value="">선택하세요</option>
-          ${categories.map(c => `<option value="${c}">${c}</option>`).join('')}
-        </select>
-      </div>
-      <div class="mb-3 hidden" id="spec-group">
-        <label class="block text-sm font-semibold text-gray-600 mb-2">규격</label>
-        <select id="sel-spec" class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base bg-white focus:border-[#1e3a5f] focus:outline-none">
-          <option value="">선택하세요</option>
-        </select>
-      </div>
-      <div class="mb-3 hidden" id="tier-group">
-        <label class="block text-sm font-semibold text-gray-600 mb-2">단수</label>
-        <select id="sel-tier" class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base bg-white focus:border-[#1e3a5f] focus:outline-none">
-          <option value="">선택하세요</option>
-        </select>
-      </div>
-    `;
-
-    document.getElementById('sel-type').addEventListener('change', onTypeChange);
-  }
-
-  function onTypeChange(e) {
-    const type = e.target.value;
-    const specGroup = document.getElementById('spec-group');
-    const tierGroup = document.getElementById('tier-group');
-    const addSection = document.getElementById('add-section');
-
-    if (!type) {
-      specGroup.classList.add('hidden');
-      tierGroup.classList.add('hidden');
-      if (addSection) addSection.classList.add('hidden');
-      currentSelection = null;
-      return;
-    }
-
-    const specs = getSpecsForType(type);
-    const selSpec = document.getElementById('sel-spec');
-    selSpec.innerHTML = `<option value="">선택하세요</option>` +
-      specs.map(s => `<option value="${s}">${s}</option>`).join('');
-    specGroup.classList.remove('hidden');
-    tierGroup.classList.add('hidden');
-    if (addSection) addSection.classList.add('hidden');
+    _selType = '';
+    _selForm = '';
     currentSelection = null;
 
-    selSpec.onchange = (ev) => {
-      const spec = ev.target.value;
-      if (!spec) {
-        tierGroup.classList.add('hidden');
-        if (addSection) addSection.classList.add('hidden');
-        currentSelection = null;
-        return;
-      }
-      const tiers = getTiersForSpec(type, spec);
-      const selTier = document.getElementById('sel-tier');
-      selTier.innerHTML = `<option value="">선택하세요</option>` +
-        tiers.map(t => `<option value="${t.tier}">${t.tier}단</option>`).join('');
-      tierGroup.classList.remove('hidden');
+    let html = '';
 
-      selTier.onchange = (ev2) => {
-        const tier = ev2.target.value;
-        if (!tier) {
-          if (addSection) addSection.classList.add('hidden');
-          currentSelection = null;
-          return;
-        }
-        currentSelection = tiers.find(t => String(t.tier) === String(tier)) || null;
-        if (currentSelection && addSection) {
-          addSection.classList.remove('hidden');
-        }
-      };
-    };
+    // 최근 사용
+    const recents = getRecentItems();
+    if (recents.length > 0) {
+      html += `<div class="mb-4">
+        <label class="block text-xs font-semibold text-gray-500 mb-2">최근 사용</label>
+        <div class="flex flex-wrap gap-2">
+          ${recents.map((r, i) => {
+            const specShort = r.spec || '';
+            const tierStr = r.tier ? `*${r.tier}s` : '';
+            const label = `${r.type}${r.form ? '(' + r.form + ')' : ''} ${specShort}${tierStr}`;
+            return `<button type="button" onclick="App.addRecentQuick(${i})"
+              class="px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl text-xs font-semibold text-blue-700 active:bg-blue-100 text-left">
+              <span class="block">${label}</span>
+              <span class="block text-blue-500 text-[10px]">${UI.formatCurrency(r.unitPrice || 0)}</span>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }
+
+    // 종류 칩
+    const categories = getCategories();
+    const allTypes = [...new Set([...RACK_TYPES, ...categories])];
+    html += `<div class="mb-3">
+      <label class="block text-xs font-semibold text-gray-500 mb-2">랙 종류</label>
+      <div id="chips-type" class="flex flex-wrap gap-2">
+        ${allTypes.map(t => `<span class="chip" onclick="App.onTypeChip('${t}')">${t}</span>`).join('')}
+      </div>
+    </div>`;
+
+    // 형태 영역 (hidden)
+    html += `<div id="sel-form-group" class="mb-3 hidden">
+      <label class="block text-xs font-semibold text-gray-500 mb-2">형태</label>
+      <div id="chips-form" class="flex flex-wrap gap-2"></div>
+    </div>`;
+
+    // 규격 카드 영역 (hidden)
+    html += `<div id="sel-spec-group" class="mb-3 hidden">
+      <label class="block text-xs font-semibold text-gray-500 mb-2">규격 선택</label>
+      <div id="cards-spec" class="grid grid-cols-2 gap-2"></div>
+    </div>`;
+
+    container.innerHTML = html;
+  }
+
+  function onTypeChip(type) {
+    _selType = type;
+    _selForm = '';
+    currentSelection = null;
+    const addSection = document.getElementById('add-section');
+    if (addSection) addSection.classList.add('hidden');
+
+    // 타입 칩 활성 상태
+    document.querySelectorAll('#chips-type .chip').forEach(el => {
+      el.classList.toggle('selected', el.textContent === type);
+    });
+
+    // 형태 칩 렌더
+    const formGroup = document.getElementById('sel-form-group');
+    const specGroup = document.getElementById('sel-spec-group');
+    specGroup.classList.add('hidden');
+
+    const dataForms = getFormsForType(type);
+    const presetForms = RACK_FORMS[type] || [];
+    const allForms = [...new Set([...presetForms, ...dataForms])];
+
+    if (allForms.length === 0) {
+      // 형태 없이 바로 규격 표시
+      formGroup.classList.add('hidden');
+      _selForm = '';
+      renderSpecCards(type, '');
+      return;
+    }
+
+    const chipsContainer = document.getElementById('chips-form');
+    chipsContainer.innerHTML = allForms.map(f =>
+      `<span class="chip chip-form" onclick="App.onFormChip('${f}')">${f}</span>`
+    ).join('') + `<span class="chip chip-form" onclick="App.onFormChipCustom()">기타 ✏️</span>`;
+    formGroup.classList.remove('hidden');
+  }
+
+  function onFormChip(form) {
+    _selForm = form;
+    currentSelection = null;
+    const addSection = document.getElementById('add-section');
+    if (addSection) addSection.classList.add('hidden');
+
+    // 형태 칩 활성 상태
+    document.querySelectorAll('#chips-form .chip').forEach(el => {
+      el.classList.toggle('selected', el.textContent === form);
+    });
+
+    renderSpecCards(_selType, form);
+  }
+
+  function onFormChipCustom() {
+    const form = prompt('형태를 입력하세요:');
+    if (!form || !form.trim()) return;
+    _selForm = form.trim();
+    currentSelection = null;
+
+    document.querySelectorAll('#chips-form .chip').forEach(el => {
+      el.classList.remove('selected');
+      if (el.textContent === '기타 ✏️') el.classList.add('selected');
+    });
+
+    renderSpecCards(_selType, _selForm);
+  }
+
+  function renderSpecCards(type, form) {
+    const specGroup = document.getElementById('sel-spec-group');
+    const cardsContainer = document.getElementById('cards-spec');
+    const items = getSpecsForTypeAndForm(type, form);
+
+    if (items.length === 0) {
+      specGroup.classList.remove('hidden');
+      cardsContainer.innerHTML = '<p class="text-gray-400 text-xs col-span-2 text-center py-3">등록된 규격이 없습니다</p>';
+      return;
+    }
+
+    specGroup.classList.remove('hidden');
+    cardsContainer.innerHTML = items.map((p, i) => {
+      const tierStr = p.tier ? `*${p.tier}s` : '';
+      return `<button type="button" onclick="App.onSpecCard(${i})" data-idx="${i}"
+        class="spec-card p-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-left active:scale-[0.97] transition-transform">
+        <p class="text-sm font-bold text-gray-800">${p.spec || '규격 없음'}</p>
+        <p class="text-xs text-gray-500">${tierStr ? p.spec + tierStr : ''}</p>
+        <p class="text-sm font-extrabold text-[#1e3a5f] mt-1">${UI.formatCurrency(p.unitPrice || 0)}</p>
+        ${p.installFee ? `<p class="text-[10px] text-gray-400">+시공비 ${UI.formatCurrency(p.installFee)}</p>` : ''}
+      </button>`;
+    }).join('');
+  }
+
+  function onSpecCard(index) {
+    const items = getSpecsForTypeAndForm(_selType, _selForm);
+    currentSelection = items[index] || null;
+    if (!currentSelection) return;
+
+    // 카드 활성 상태
+    document.querySelectorAll('.spec-card').forEach((el, i) => {
+      if (i === index) {
+        el.classList.remove('border-gray-200', 'bg-gray-50');
+        el.classList.add('border-[#1e3a5f]', 'bg-blue-50');
+      } else {
+        el.classList.add('border-gray-200', 'bg-gray-50');
+        el.classList.remove('border-[#1e3a5f]', 'bg-blue-50');
+      }
+    });
+
+    const addSection = document.getElementById('add-section');
+    if (addSection) addSection.classList.remove('hidden');
+  }
+
+  function addRecentQuick(index) {
+    const recents = getRecentItems();
+    const r = recents[index];
+    if (!r) return;
+
+    items.push({
+      type: r.type,
+      form: r.form || '',
+      spec: r.spec,
+      tier: r.tier,
+      unitPrice: Number(r.unitPrice) || 0,
+      installFee: Number(r.installFee) || 0,
+      vat: r.vat || '별도',
+      quantity: 1,
+    });
+
+    renderItems();
+    updateTotal();
+    saveDraft();
+    UI.toast('품목이 추가되었습니다', 'success');
   }
 
   // --- 수량 ---
@@ -179,32 +313,42 @@ const App = (() => {
       return;
     }
 
-    items.push({
+    const newItem = {
       type: currentSelection.type,
+      form: currentSelection.form || '',
       spec: currentSelection.spec,
       tier: currentSelection.tier,
       unitPrice: Number(currentSelection.unitPrice) || 0,
       installFee: Number(currentSelection.installFee) || 0,
       vat: currentSelection.vat || '별도',
       quantity: currentQuantity,
-    });
+    };
+    items.push(newItem);
+    addRecentItem(newItem);
 
     currentSelection = null;
     currentQuantity = 1;
-    const selType = document.getElementById('sel-type');
-    if (selType) selType.value = '';
-    const specGroup = document.getElementById('spec-group');
-    const tierGroup = document.getElementById('tier-group');
+    _selType = '';
+    _selForm = '';
+
+    // 선택 UI 초기화
     const addSection = document.getElementById('add-section');
-    if (specGroup) specGroup.classList.add('hidden');
-    if (tierGroup) tierGroup.classList.add('hidden');
     if (addSection) addSection.classList.add('hidden');
     const qtyInput = document.getElementById('qty-input');
     if (qtyInput) qtyInput.value = 1;
 
+    // 칩/카드 초기화
+    document.querySelectorAll('#chips-type .chip').forEach(el => el.classList.remove('selected'));
+    const formGroup = document.getElementById('sel-form-group');
+    const specGroup = document.getElementById('sel-spec-group');
+    if (formGroup) formGroup.classList.add('hidden');
+    if (specGroup) specGroup.classList.add('hidden');
+
     renderItems();
     updateTotal();
     saveDraft();
+    // 최근 사용 다시 렌더
+    renderRackSelector();
     UI.toast('품목이 추가되었습니다', 'success');
   }
 
@@ -380,7 +524,7 @@ const App = (() => {
           return `
             <div class="px-4 py-3 border-t border-gray-100 flex items-center gap-3">
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold text-gray-800 truncate">${item.type} ${item.spec} ${item.tier}단</p>
+                <p class="text-sm font-bold text-gray-800 truncate">${item.type}${item.form ? '(' + item.form + ')' : ''} ${item.spec}${item.tier ? '*' + item.tier + 's' : ''}</p>
                 <p class="text-xs text-gray-500">@${UI.formatNumber(item.unitPrice)} × ${item.quantity}대 + 시공비 ${UI.formatCurrency((Number(item.installFee) || 0) * item.quantity)}</p>
                 <p class="text-sm font-bold text-[#1e3a5f] mt-0.5">${UI.formatCurrency(itemTotal)}</p>
               </div>
@@ -533,6 +677,7 @@ const App = (() => {
     removeItem, renderItems,
     calculate, updateTotal, saveEstimate,
     loadDraft, clearDraft, getCustomerInfo,
+    onTypeChip, onFormChip, onFormChipCustom, onSpecCard, addRecentQuick,
     get priceData() { return priceData; },
     get items() { return items; },
     set items(v) { items = v; },
