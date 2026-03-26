@@ -197,7 +197,7 @@ const App = (() => {
     const chipsContainer = document.getElementById('chips-form');
     chipsContainer.innerHTML = allForms.map(f =>
       `<span class="chip chip-form" onclick="App.onFormChip('${f}')">${f}</span>`
-    ).join('') + `<span class="chip chip-form" onclick="App.onFormChipCustom()">기타 ✏️</span>`;
+    ).join('');
     formGroup.classList.remove('hidden');
   }
 
