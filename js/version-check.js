@@ -11,11 +11,23 @@
   const VERSION_URL = '/version.json';
   const RELOAD_COOLDOWN = 30000; // 30초 내 재새로고침 방지
 
+  // 다른 스크립트(controllerchange 핸들러)에서도 쿨다운 체크에 사용
+  window.__yr_reloadGuard = {
+    key: RELOAD_GUARD_KEY,
+    cooldown: RELOAD_COOLDOWN,
+    canReload: function () {
+      var lastReload = Number(localStorage.getItem(RELOAD_GUARD_KEY) || 0);
+      return Date.now() - lastReload >= RELOAD_COOLDOWN;
+    },
+    markReload: function () {
+      localStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
+    }
+  };
+
   async function checkVersion() {
     try {
       // 새로고침 루프 방지: 30초 내 이미 새로고침 했으면 스킵
-      const lastReload = Number(localStorage.getItem(RELOAD_GUARD_KEY) || 0);
-      if (Date.now() - lastReload < RELOAD_COOLDOWN) {
+      if (!window.__yr_reloadGuard.canReload()) {
         console.log('[VersionCheck] 쿨다운 중, 스킵');
         return;
       }
@@ -60,7 +72,7 @@
 
       // 버전 저장 + 새로고침 타임스탬프 기록
       localStorage.setItem(VERSION_KEY, remoteVersion);
-      localStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
+      window.__yr_reloadGuard.markReload();
 
       // SW 캐시 전체 삭제 (SW 등록은 해제하지 않음 — 해제 시 재등록 루프 위험)
       if ('caches' in window) {
@@ -69,14 +81,9 @@
         console.log('[VersionCheck] SW 캐시 삭제 완료');
       }
 
-      // SW 업데이트만 트리거 (등록 해제 대신)
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        const reg = await navigator.serviceWorker.ready;
-        await reg.update();
-        console.log('[VersionCheck] SW 업데이트 트리거 완료');
-      }
-
-      // 강제 새로고침
+      // 강제 새로고침 (SW 업데이트는 reload 후 자동으로 진행됨)
+      // 주의: reg.update() + location.reload() 동시 호출 시
+      // controllerchange와 경쟁하여 무한 루프 발생 가능하므로 reload만 수행
       location.reload(true);
     } catch (e) {
       console.log('[VersionCheck] 체크 실패 (오프라인?)', e.message);

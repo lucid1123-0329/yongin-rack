@@ -39,7 +39,8 @@ self.addEventListener('install', (event) => {
       });
     })
   );
-  self.skipWaiting();
+  // skipWaiting은 클라이언트의 SKIP_WAITING 메시지로만 호출
+  // install에서 무조건 호출하면 controllerchange → reload 루프 위험
 });
 
 // 클라이언트에서 SKIP_WAITING 메시지 수신 시 즉시 활성화

@@ -543,7 +543,10 @@
       let refreshing = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (!hadController || refreshing) return;
+        // 쿨다운 가드: version-check 등에서 이미 reload 했으면 스킵
+        if (window.__yr_reloadGuard && !window.__yr_reloadGuard.canReload()) return;
         refreshing = true;
+        if (window.__yr_reloadGuard) window.__yr_reloadGuard.markReload();
         location.reload();
       });
     }
