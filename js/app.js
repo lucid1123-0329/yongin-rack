@@ -586,8 +586,8 @@ const App = (() => {
   function calculate() {
     if (items.length === 0) return { supplyTotal: 0, vat: 0, total: 0, items: null };
 
-    let supplyTotal = 0;
-    let dcTotal = 0; // D/C 합산 (음수)
+    let supply = 0;
+    let dcTotal = 0; // D/C 합산 (음수, VAT포함 총액 기준)
     const itemDetails = items.map(item => {
       const isCustom = item.itemType === 'custom';
       const isDC = isCustom && (item.name || '').includes('D/C');
@@ -597,19 +597,23 @@ const App = (() => {
         return { ...item, itemTotal: amount };
       } else if (isCustom) {
         const amount = (Number(item.unitPrice) || 0) * (Number(item.quantity) || 1);
-        supplyTotal += amount;
+        supply += amount;
         return { ...item, itemTotal: amount };
       } else {
         const subtotal = (Number(item.unitPrice) || 0) * (Number(item.quantity) || 0);
         const installTotal = (Number(item.installFee) || 0) * (Number(item.quantity) || 0);
         const itemTotal = subtotal + installTotal;
-        supplyTotal += itemTotal;
+        supply += itemTotal;
         return { ...item, subtotal, installTotal, itemTotal };
       }
     });
 
-    const vat = Math.round(supplyTotal * 0.1);
-    const total = supplyTotal + vat + dcTotal; // D/C는 총액에서 차감
+    // D/C는 총액(VAT포함) 기준 → 공급가액/세액 역산 분리
+    const dcSupply = Math.round(dcTotal * 10 / 11);
+    const dcVat = dcTotal - dcSupply;
+    const supplyTotal = supply + dcSupply;
+    const vat = Math.round(supply * 0.1) + dcVat;
+    const total = supplyTotal + vat;
     return { supplyTotal, vat, total, dcTotal, items: itemDetails };
   }
 

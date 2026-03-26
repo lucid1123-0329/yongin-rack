@@ -36,7 +36,7 @@ const Estimate = (() => {
 
   function calcTotals(items, data) {
     let supply = 0;
-    let dcTotal = 0;
+    let dcTotal = 0; // D/C 총액 (음수, VAT 포함 기준)
     items.forEach(item => {
       const isCustom = item.itemType === 'custom';
       const isDC = isCustom && (item.name || '').includes('D/C');
@@ -48,9 +48,12 @@ const Estimate = (() => {
         supply += ((Number(item.unitPrice) || 0) + (Number(item.installFee) || 0)) * (Number(item.quantity) || 0);
       }
     });
-    const supplyTotal = Number(data.supplyTotal) || supply;
-    const vat = Number(data.vat) || Math.round(supplyTotal * 0.1);
-    const total = Number(data.total) || (supplyTotal + vat + dcTotal);
+    // D/C는 총액(VAT포함) 기준 → 공급가액/세액 역산 분리
+    const dcSupply = Math.round(dcTotal * 10 / 11);
+    const dcVat = dcTotal - dcSupply;
+    const supplyTotal = Number(data.supplyTotal) || (supply + dcSupply);
+    const vat = Number(data.vat) || (Math.round(supply * 0.1) + dcVat);
+    const total = Number(data.total) || (supplyTotal + vat);
     return { supplyTotal, vat, total, dcTotal };
   }
 
@@ -171,8 +174,16 @@ const Estimate = (() => {
       const qty = Number(item.quantity) || (isCustom ? 1 : 0);
       const uPrice = Number(item.unitPrice) || 0;
       const iFee = Number(item.installFee) || 0;
-      const lineSupply = isCustom ? uPrice * qty : (uPrice + iFee) * qty;
-      const lineTax = isDC ? 0 : Math.round(lineSupply * 0.1);
+      let lineSupply, lineTax;
+      if (isDC) {
+        // D/C는 총액(VAT포함) 기준 → 공급가액/세액 역산 분리
+        const dcAmount = uPrice * qty; // 음수
+        lineSupply = Math.round(dcAmount * 10 / 11);
+        lineTax = dcAmount - lineSupply;
+      } else {
+        lineSupply = isCustom ? uPrice * qty : (uPrice + iFee) * qty;
+        lineTax = Math.round(lineSupply * 0.1);
+      }
 
       return `<tr>
         <td style="${S.td}">${w(i+1)}</td>
@@ -180,8 +191,8 @@ const Estimate = (() => {
         <td style="${S.td}">${w(getItemSpec(item))}</td>
         <td style="${S.td}">${w(qty)}</td>
         <td style="${S.tdR}">${w(fmt(isCustom ? uPrice : uPrice + iFee), fcR)}</td>
-        <td style="${S.tdR}">${w(isDC ? fmt(lineSupply) : fmt(lineSupply), fcR)}</td>
-        <td style="${S.tdR}">${w(isDC ? '' : fmt(lineTax), fcR)}</td>
+        <td style="${S.tdR}">${w(fmt(lineSupply), fcR)}</td>
+        <td style="${S.tdR}">${w(fmt(lineTax), fcR)}</td>
       </tr>`;
     }).join('');
 
