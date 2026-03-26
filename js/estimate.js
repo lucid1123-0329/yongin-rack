@@ -678,5 +678,9 @@ const Estimate = (() => {
   return {
     renderPreview, renderFormalQuotation, renderTransactionStatement,
     applyMarginToUnitPrices, share, downloadImage, getBranding,
+    calcTotals: (data) => {
+      const items = parseItems(data);
+      return calcTotals(items, { supplyTotal: 0, vat: 0, total: 0 });
+    },
   };
 })();

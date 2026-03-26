@@ -36,7 +36,7 @@
     body { font-family: 'Pretendard', sans-serif; padding-bottom: 80px; }
   </style>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <script src="js/onesignal-init.js?v=57" defer></script>
+  <script src="js/onesignal-init.js?v=58" defer></script>
 </head>
 <body class="bg-[#f7fafc] min-h-screen">
 
@@ -93,10 +93,10 @@
   </main>
 
   <!-- Scripts -->
-  <script src="js/api.js?v=57"></script>
-  <script src="js/auth.js?v=57"></script>
-  <script src="js/ui.js?v=57"></script>
-  <script src="js/estimate.js?v=57"></script>
+  <script src="js/api.js?v=58"></script>
+  <script src="js/auth.js?v=58"></script>
+  <script src="js/ui.js?v=58"></script>
+  <script src="js/estimate.js?v=58"></script>
   <script>
     let allEstimates = [];
     let currentFilter = '전체';
@@ -114,7 +114,8 @@
     async function init() {
       UI.renderTabBar('dashboard');
       document.getElementById('estimate-list').innerHTML = UI.skeleton(3);
-      await Promise.all([loadDashboard(), loadEstimates()]);
+      await loadEstimates();
+      await loadDashboard();
     }
 
     // --- 통계 (stale-while-revalidate) ---
@@ -147,7 +148,21 @@
 
     function renderStats(data) {
       const count = data.count || 0;
-      const total = data.totalAmount || 0;
+      // 총액을 items에서 재계산 (D/C 총액 기준 반영)
+      let total = 0;
+      if (allEstimates.length > 0) {
+        const now = new Date();
+        const thisMonth = allEstimates.filter(e => {
+          const d = new Date(e.date);
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        });
+        total = thisMonth.reduce((sum, e) => {
+          const r = Estimate.calcTotals(e);
+          return sum + (r.total || e.total || 0);
+        }, 0);
+      } else {
+        total = data.totalAmount || 0;
+      }
       const conversion = count > 0 ? Math.round((data.contracted || 0) / count * 100) : 0;
       document.getElementById('stat-cards').innerHTML = `
         <div class="bg-white rounded-xl border border-gray-100 p-3 text-center">
@@ -239,6 +254,8 @@
 
     function renderCard(e) {
       const isExpanded = expandedId === e.estimateId;
+      const recalc = Estimate.calcTotals(e);
+      const displayTotal = recalc.total || e.total || 0;
       return `
         <div class="bg-white rounded-xl border border-gray-100 mb-3 overflow-hidden">
           <div class="p-3 cursor-pointer active:bg-gray-50" onclick="toggleExpand('${e.estimateId}')">
@@ -251,7 +268,7 @@
                 <p class="text-xs text-gray-400">${UI.formatDate(e.date || '')} · ${e.itemSummary || '랙'} · ${e.totalQuantity || 0}대</p>
               </div>
               <div class="text-right flex-shrink-0 ml-3">
-                <p class="text-sm font-extrabold text-primary">${UI.formatCurrency(e.total || 0)}</p>
+                <p class="text-sm font-extrabold text-primary">${UI.formatCurrency(displayTotal)}</p>
                 <span class="text-gray-300 text-xs">${isExpanded ? '▲' : '▼'}</span>
               </div>
             </div>
