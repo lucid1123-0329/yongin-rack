@@ -7,27 +7,15 @@
  */
 (function () {
   const VERSION_KEY = 'yr_app_version';
-  const RELOAD_GUARD_KEY = 'yr_reload_ts';
   const VERSION_URL = '/version.json';
-  const RELOAD_COOLDOWN = 30000; // 30초 내 재새로고침 방지
 
-  // 다른 스크립트(controllerchange 핸들러)에서도 쿨다운 체크에 사용
-  window.__yr_reloadGuard = {
-    key: RELOAD_GUARD_KEY,
-    cooldown: RELOAD_COOLDOWN,
-    canReload: function () {
-      var lastReload = Number(localStorage.getItem(RELOAD_GUARD_KEY) || 0);
-      return Date.now() - lastReload >= RELOAD_COOLDOWN;
-    },
-    markReload: function () {
-      localStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
-    }
-  };
+  // __yr_reloadGuard는 각 HTML의 인라인 스크립트에서 정의됨
+  var guard = window.__yr_reloadGuard;
 
   async function checkVersion() {
     try {
       // 새로고침 루프 방지: 30초 내 이미 새로고침 했으면 스킵
-      if (!window.__yr_reloadGuard.canReload()) {
+      if (guard && !guard.canReload()) {
         console.log('[VersionCheck] 쿨다운 중, 스킵');
         return;
       }
@@ -72,7 +60,7 @@
 
       // 버전 저장 + 새로고침 타임스탬프 기록
       localStorage.setItem(VERSION_KEY, remoteVersion);
-      window.__yr_reloadGuard.markReload();
+      guard && guard.markReload();
 
       // SW 캐시 전체 삭제 (SW 등록은 해제하지 않음 — 해제 시 재등록 루프 위험)
       if ('caches' in window) {
