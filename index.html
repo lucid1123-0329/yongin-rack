@@ -50,22 +50,11 @@
     .chip.selected { border-color:#1e3a5f; background:#1e3a5f; color:#fff; }
     .chip-form.selected { border-color:#f97316; background:#f97316; color:#fff; }
   </style>
-  <!-- 인증 핵심 스크립트: head에서 조기 로드 -->
-  <script src="js/api.js?v=64"></script>
-  <script src="js/auth.js?v=64"></script>
-
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script src="js/onesignal-init.js?v=64" defer></script>
   <script src="js/version-check.js" defer></script>
 </head>
 <body class="bg-[#f7fafc] min-h-screen">
-
-  <!-- 인증 즉시 확인: body 최상단에서 PIN 모달 또는 로딩 표시 -->
-  <script>
-    if (!Auth.isAuthenticated()) {
-      document.write('<div id="auth-overlay" style="position:fixed;inset:0;background:#fff;z-index:9999;display:flex;align-items:center;justify-content:center"><div style="text-align:center"><div style="width:32px;height:32px;border:4px solid #1e3a5f;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px"></div><p style="color:#6b7280;font-size:14px">인증 확인 중...</p></div></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>');
-    }
-  </script>
 
   <!-- 로딩 오버레이 -->
   <div id="page-loading" class="hidden fixed inset-0 bg-white z-50 flex items-center justify-center">
@@ -272,22 +261,19 @@
     </div>
   </main>
 
-  <!-- Scripts (api.js, auth.js는 head에서 이미 로드) -->
+  <!-- Scripts -->
+  <script src="js/api.js?v=64"></script>
+  <script src="js/auth.js?v=64"></script>
   <script src="js/ui.js?v=64"></script>
   <script src="js/calc.js?v=64"></script>
   <script src="js/app.js?v=64"></script>
   <script src="js/estimate.js?v=64"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      var overlay = document.getElementById('auth-overlay');
       if (!Auth.guard()) {
-        window.addEventListener('yr-authenticated', function() {
-          if (overlay) overlay.remove();
-          init();
-        });
+        window.addEventListener('yr-authenticated', init);
         return;
       }
-      if (overlay) overlay.remove();
       init();
     });
 
