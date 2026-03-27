@@ -83,9 +83,9 @@
   </button>
 
   <!-- 추가/수정 모달 -->
-  <div id="price-modal" class="fixed inset-0 bg-black/50 z-50 flex items-end justify-center hidden">
-    <div class="bg-white rounded-t-2xl w-full max-w-lg p-6 pb-8 animate-slide-up">
-      <div class="flex items-center justify-between mb-6">
+  <div id="price-modal" class="fixed inset-0 bg-black/50 z-50 flex items-end justify-center hidden" style="overflow-y:auto">
+    <div class="bg-white rounded-t-2xl w-full max-w-lg p-6 pb-8 animate-slide-up max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6 sticky top-0 bg-white pb-2 z-10">
         <h2 class="text-lg font-bold text-gray-800" id="modal-title">랙 추가</h2>
         <button onclick="closeModal()" class="text-gray-400 text-2xl">&times;</button>
       </div>
@@ -93,6 +93,7 @@
         <input type="hidden" id="edit-row-index" value="">
         <input type="hidden" id="f-type" value="">
         <input type="hidden" id="f-form" value="">
+        <input type="hidden" id="f-pricing-model" value="">
 
         <!-- 랙 종류 칩 -->
         <div>
@@ -110,46 +111,248 @@
             class="w-full h-10 px-3 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none mt-2 hidden">
         </div>
 
-        <!-- 규격 (구조화 입력) -->
-        <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1">규격</label>
-          <div class="grid grid-cols-4 gap-2">
-            <div>
-              <label class="block text-[10px] text-gray-400 mb-0.5 text-center">가로(W)</label>
-              <input type="number" id="f-w" placeholder="1200" min="1"
-                class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+        <!-- ========== 모델 A: 매트릭스형 (경량/중량) ========== -->
+        <div id="model-a-fields" class="hidden space-y-4">
+          <div class="bg-blue-50 rounded-lg p-3">
+            <p class="text-[10px] font-bold text-blue-600 mb-2">매트릭스형 (경량/중량)</p>
+            <!-- 규격 (깊이×넓이) -->
+            <label class="block text-xs font-semibold text-gray-500 mb-1">규격 (깊이 × 넓이)</label>
+            <div class="grid grid-cols-2 gap-2 mb-3">
+              <div>
+                <label class="block text-[10px] text-gray-400 mb-0.5 text-center">깊이(mm)</label>
+                <input type="number" id="f-a-depth" placeholder="450" min="1"
+                  class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-[10px] text-gray-400 mb-0.5 text-center">넓이(mm)</label>
+                <input type="number" id="f-a-width" placeholder="900" min="1"
+                  class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+              </div>
             </div>
-            <div>
-              <label class="block text-[10px] text-gray-400 mb-0.5 text-center">세로(D)</label>
-              <input type="number" id="f-d" placeholder="600" min="1"
-                class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+            <!-- 높이/단수 -->
+            <label class="block text-xs font-semibold text-gray-500 mb-1">높이 / 단수</label>
+            <div class="grid grid-cols-2 gap-2 mb-3">
+              <div>
+                <label class="block text-[10px] text-gray-400 mb-0.5 text-center">높이(mm)</label>
+                <input type="number" id="f-a-height" placeholder="1800" min="1"
+                  class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-[10px] text-gray-400 mb-0.5 text-center">단수</label>
+                <input type="number" id="f-a-tier" placeholder="5" min="1" max="20"
+                  class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+              </div>
             </div>
-            <div>
-              <label class="block text-[10px] text-gray-400 mb-0.5 text-center">높이(H)</label>
-              <input type="number" id="f-h" placeholder="2100" min="1"
-                class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+            <p class="text-[10px] text-gray-400 mb-3" id="spec-preview-a"></p>
+            <!-- 단가 + 시공비 -->
+            <div class="grid grid-cols-2 gap-2 mb-3">
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1">기본 단가 (원)</label>
+                <input type="number" id="f-a-unit-price" placeholder="79300" required
+                  class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1">추가 시공비 (원)</label>
+                <input type="number" id="f-a-install-fee" placeholder="0"
+                  class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+              </div>
             </div>
-            <div>
-              <label class="block text-[10px] text-gray-400 mb-0.5 text-center">단수</label>
-              <input type="number" id="f-tier" placeholder="4" min="1" max="20"
-                class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+            <!-- 선반 추가 단가 -->
+            <div class="mb-3">
+              <label class="block text-xs font-semibold text-gray-500 mb-1">선반 추가 단가 (받침포함, 원)</label>
+              <input type="number" id="f-a-shelf-addon" placeholder="10800"
+                class="w-full h-10 px-3 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none">
+            </div>
+            <!-- 사양 정보 -->
+            <label class="block text-xs font-semibold text-gray-500 mb-1">사양 정보</label>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-[10px] text-gray-400 mb-0.5 text-center">기둥두께</label>
+                <input type="text" id="f-a-pillar" placeholder="1.8T"
+                  class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-[10px] text-gray-400 mb-0.5 text-center">선반두께</label>
+                <input type="text" id="f-a-shelf-t" placeholder="0.8T"
+                  class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-[10px] text-gray-400 mb-0.5 text-center">단당하중</label>
+                <input type="text" id="f-a-load" placeholder="150kg"
+                  class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+              </div>
             </div>
           </div>
-          <p class="text-[10px] text-gray-400 mt-1" id="spec-preview"></p>
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1">기본 단가 (원)</label>
-            <input type="number" id="f-unit-price" placeholder="150000" required
-              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1">추가 시공비 (원)</label>
-            <input type="number" id="f-install-fee" placeholder="30000"
-              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+        <!-- ========== 모델 B: 진열대형 (하이퍼) ========== -->
+        <div id="model-b-fields" class="hidden space-y-4">
+          <div class="bg-green-50 rounded-lg p-3">
+            <p class="text-[10px] font-bold text-green-600 mb-2">진열대형 (하이퍼)</p>
+            <!-- 규격 -->
+            <label class="block text-xs font-semibold text-gray-500 mb-1">규격</label>
+            <div class="grid grid-cols-2 gap-2 mb-3">
+              <div>
+                <label class="block text-[10px] text-gray-400 mb-0.5 text-center">넓이(mm)</label>
+                <input type="number" id="f-b-width" placeholder="1000" min="1"
+                  class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-[10px] text-gray-400 mb-0.5 text-center">깊이(mm)</label>
+                <input type="number" id="f-b-depth" placeholder="500" min="1"
+                  class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+              </div>
+            </div>
+            <!-- 배치유형 -->
+            <label class="block text-xs font-semibold text-gray-500 mb-1">배치유형</label>
+            <div id="layout-chips" class="flex gap-2 mb-3"></div>
+            <!-- 후면판 유형 -->
+            <label class="block text-xs font-semibold text-gray-500 mb-1">후면판</label>
+            <div id="panel-chips" class="flex gap-2 mb-3"></div>
+            <!-- 높이/단수 -->
+            <label class="block text-xs font-semibold text-gray-500 mb-1">높이 / 단수</label>
+            <div class="grid grid-cols-2 gap-2 mb-3">
+              <div>
+                <label class="block text-[10px] text-gray-400 mb-0.5 text-center">높이(mm)</label>
+                <input type="number" id="f-b-height" placeholder="1530" min="1"
+                  class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-[10px] text-gray-400 mb-0.5 text-center">단수</label>
+                <input type="number" id="f-b-tier" placeholder="5" min="1" max="20"
+                  class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+              </div>
+            </div>
+            <!-- 단가 + 시공비 -->
+            <div class="grid grid-cols-2 gap-2 mb-3">
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1">기본 단가 (원)</label>
+                <input type="number" id="f-b-unit-price" placeholder="117500" required
+                  class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 mb-1">추가 시공비 (원)</label>
+                <input type="number" id="f-b-install-fee" placeholder="0"
+                  class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+              </div>
+            </div>
+            <!-- 선반 추가 단가 -->
+            <div class="mb-3">
+              <label class="block text-xs font-semibold text-gray-500 mb-1">추가선반 단가 (받침포함, 원)</label>
+              <input type="number" id="f-b-shelf-addon" placeholder="10700"
+                class="w-full h-10 px-3 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none">
+            </div>
           </div>
         </div>
+
+        <!-- ========== 모델 C: 부품 조합형 (무볼트앵글) ========== -->
+        <div id="model-c-fields" class="hidden space-y-4">
+          <div class="bg-purple-50 rounded-lg p-3">
+            <p class="text-[10px] font-bold text-purple-600 mb-2">부품 조합형 (무볼트앵글)</p>
+            <!-- 부품 카테고리 -->
+            <label class="block text-xs font-semibold text-gray-500 mb-1">부품 종류</label>
+            <div id="part-cat-chips" class="flex flex-wrap gap-2 mb-3"></div>
+            <!-- 두께 -->
+            <label class="block text-xs font-semibold text-gray-500 mb-1">두께</label>
+            <div id="part-thickness-chips" class="flex gap-2 mb-3"></div>
+            <!-- 길이 + 단가 -->
+            <div class="grid grid-cols-2 gap-2 mb-3">
+              <div>
+                <label class="block text-[10px] text-gray-400 mb-0.5 text-center">길이(mm)</label>
+                <input type="number" id="f-c-length" placeholder="1800" min="1"
+                  class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-[10px] text-gray-400 mb-0.5 text-center">개당 단가 (원)</label>
+                <input type="number" id="f-c-unit-price" placeholder="3600" required
+                  class="w-full h-12 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== 모델 D: 세트 조합형 (곤도라) ========== -->
+        <div id="model-d-fields" class="hidden space-y-4">
+          <div class="bg-amber-50 rounded-lg p-3">
+            <p class="text-[10px] font-bold text-amber-600 mb-2">세트 조합형 (곤도라)</p>
+            <!-- 데이터 유형 선택: 부품 / 세트 -->
+            <label class="block text-xs font-semibold text-gray-500 mb-1">등록 유형</label>
+            <div class="flex gap-2 mb-3">
+              <button type="button" onclick="setDEntryType('part')" id="d-btn-part"
+                class="chip selected">부품 등록</button>
+              <button type="button" onclick="setDEntryType('set')" id="d-btn-set"
+                class="chip">세트 등록</button>
+            </div>
+
+            <!-- D-부품 입력 -->
+            <div id="d-part-fields">
+              <label class="block text-xs font-semibold text-gray-500 mb-1">부품 종류</label>
+              <div id="d-part-cat-chips" class="flex flex-wrap gap-2 mb-3"></div>
+              <div class="grid grid-cols-2 gap-2 mb-3">
+                <div>
+                  <label class="block text-[10px] text-gray-400 mb-0.5 text-center">규격/길이</label>
+                  <input type="text" id="f-d-part-spec" placeholder="1380 또는 900*450"
+                    class="w-full h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-[10px] text-gray-400 mb-0.5 text-center">개당 단가 (원)</label>
+                  <input type="number" id="f-d-part-price" placeholder="9400" required
+                    class="w-full h-12 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+                </div>
+              </div>
+            </div>
+
+            <!-- D-세트 입력 -->
+            <div id="d-set-fields" class="hidden">
+              <label class="block text-xs font-semibold text-gray-500 mb-1">세트명</label>
+              <input type="text" id="f-d-set-name" placeholder="앤드독립"
+                class="w-full h-10 px-3 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none mb-3">
+              <!-- 배치유형 -->
+              <label class="block text-xs font-semibold text-gray-500 mb-1">배치</label>
+              <div id="d-layout-chips" class="flex gap-2 mb-3"></div>
+              <!-- 규격 -->
+              <label class="block text-xs font-semibold text-gray-500 mb-1">규격</label>
+              <input type="text" id="f-d-set-spec" placeholder="900*450*1380*4s"
+                class="w-full h-10 px-3 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none mb-3">
+              <!-- BOM 편집기 -->
+              <label class="block text-xs font-semibold text-gray-500 mb-1">부품 구성 (BOM)</label>
+              <div id="bom-list" class="space-y-1 mb-2"></div>
+              <button type="button" onclick="addBomRow()"
+                class="text-xs text-primary font-bold border border-primary rounded-lg px-3 py-1.5 active:bg-blue-50 mb-3">+ 부품 추가</button>
+              <div class="flex items-center justify-between bg-white rounded-lg px-3 py-2 border mb-3">
+                <span class="text-xs font-semibold text-gray-600">BOM 합계</span>
+                <span class="text-sm font-bold text-primary" id="bom-total">0원</span>
+              </div>
+              <!-- 세트 단가 (자동/수동) -->
+              <div class="grid grid-cols-2 gap-2 mb-3">
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1">세트 단가 (원)</label>
+                  <input type="number" id="f-d-set-price" placeholder="자동계산"
+                    class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-500 mb-1">추가 시공비 (원)</label>
+                  <input type="number" id="f-d-set-install" placeholder="0"
+                    class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== 부속품 체크 (모든 모델 공통) ========== -->
+        <div id="accessory-group" class="hidden">
+          <label class="flex items-center gap-2 text-xs font-semibold text-gray-500">
+            <input type="checkbox" id="f-is-accessory" class="rounded" onchange="toggleAccessoryCategory()">
+            부속품으로 등록 (철망, 소품 등)
+          </label>
+          <div id="accessory-cat-area" class="hidden mt-2">
+            <label class="block text-[10px] text-gray-400 mb-0.5">부속품 카테고리</label>
+            <div id="accessory-cat-chips" class="flex flex-wrap gap-2"></div>
+          </div>
+        </div>
+
+        <!-- ========== 공통: VAT ========== -->
         <div>
           <label class="block text-xs font-semibold text-gray-500 mb-1">VAT 적용</label>
           <select id="f-vat" class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
@@ -187,18 +390,55 @@
       renderPrices();
     }
 
-    // 랙 종류별 형태 매핑
+    // ============================================================
+    // 랙 종류/형태/모델 매핑
+    // ============================================================
     const RACK_TYPES = ['무볼트앵글', '경량랙', '고급경량랙', '아연랙', '중량랙', '파렛트랙', '곤도라 진열대', '하이퍼 진열대'];
     const RACK_FORMS = {
       '무볼트앵글': ['독립', '연결', '벽부착', '이동'],
-      '경량랙': ['독립', '연결', '벽면'],
-      '고급경량랙': ['독립', '연결', '벽면'],
-      '아연랙': ['독립', '연결', '벽면'],
-      '중량랙': ['독립', '연결', '이동'],
+      '경량랙': ['독립', '연결'],
+      '고급경량랙': ['독립', '연결'],
+      '아연랙': ['독립', '연결'],
+      '중량랙': ['독립', '연결'],
       '파렛트랙': ['독립', '연결'],
-      '곤도라 진열대': ['중앙독립', '중앙연결', '벽대독립', '벽대연결', '엔드독립', '엔드연결'],
-      '하이퍼 진열대': ['중앙독립', '중앙연결', '벽대독립', '벽대연결', '엔드독립', '엔드연결'],
+      '곤도라 진열대': ['앤드독립', '앤드연결', '벽대독립', '벽대연결', '중대독립', '중대연결'],
+      '하이퍼 진열대': ['벽면독립', '벽면연결', '앤드독립', '앤드연결', '중앙독립', '중앙연결'],
     };
+
+    // 랙 종류 → 가격 모델 매핑
+    function getPricingModel(type) {
+      if (!type) return '';
+      if (['고급경량랙','MD경량랙','경량랙','아연랙','MD중량랙','KD중량랙','중량랙','파렛트랙'].includes(type)) return 'A';
+      if (type === '하이퍼 진열대' || type.includes('하이퍼')) return 'B';
+      if (type === '곤도라 진열대' || type.includes('곤도라')) return 'D';
+      if (type === '무볼트앵글' || type.includes('앵글')) return 'C';
+      return 'A'; // 기타는 기본 매트릭스형
+    }
+
+    // 모델 B: 배치유형 목록
+    const LAYOUT_TYPES = ['벽면', '앤드', '중앙'];
+    const PANEL_TYPES = ['후면판단면', '후면판양면'];
+
+    // 모델 C: 부품 카테고리
+    const PART_CATEGORIES_C = ['기둥', '받침', '연결형받침', '보강대', '바퀴', '바퀴형브라켓'];
+    const PART_THICKNESSES = ['1.8t', '2.0t'];
+
+    // 모델 D: 곤도라 부품 카테고리
+    const PART_CATEGORIES_D = ['기둥', '상연결대', '하연결대', '앞장', '옆장', '선반', '철망', '받침', '중앙', 'STOPPER', 'DIVIDER', 'HOOK BAR', '라벨홀더'];
+
+    // 부속품 카테고리
+    const ACCESSORY_CATS = ['철망', '가격표시기', 'STOPPER', 'DIVIDER', 'HOOK BAR', '점블박스', '라벨홀더'];
+
+    // 현재 모달 상태
+    let currentModel = '';
+    let dEntryType = 'part'; // 모델 D: 'part' | 'set'
+    let bomRows = []; // BOM 편집기 행 데이터
+    let selectedLayoutType = '';
+    let selectedPanelType = '';
+    let selectedPartCatC = '';
+    let selectedPartThickness = '';
+    let selectedPartCatD = '';
+    let selectedDLayout = '';
 
     document.addEventListener('DOMContentLoaded', () => {
       if (!Auth.guard()) {
@@ -224,22 +464,22 @@
         }, 200);
       });
 
-      // 규격 미리보기 업데이트
-      ['f-w', 'f-d', 'f-h', 'f-tier'].forEach(id => {
+      // 모델 A 규격 미리보기 업데이트
+      ['f-a-depth', 'f-a-width', 'f-a-height', 'f-a-tier'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.addEventListener('input', updateSpecPreview);
+        if (el) el.addEventListener('input', updateSpecPreviewA);
       });
     }
 
-    function updateSpecPreview() {
-      const w = document.getElementById('f-w').value;
-      const d = document.getElementById('f-d').value;
-      const h = document.getElementById('f-h').value;
-      const t = document.getElementById('f-tier').value;
-      const preview = document.getElementById('spec-preview');
+    function updateSpecPreviewA() {
+      const d = document.getElementById('f-a-depth').value;
+      const w = document.getElementById('f-a-width').value;
+      const h = document.getElementById('f-a-height').value;
+      const t = document.getElementById('f-a-tier').value;
+      const preview = document.getElementById('spec-preview-a');
       if (!preview) return;
-      const parts = [w, d, h].filter(Boolean).join('*');
-      const spec = parts + (t ? `*${t}s` : '');
+      const parts = [d, w, h].filter(Boolean).join('*');
+      const spec = parts + (t ? ` (${t}단)` : '');
       preview.textContent = spec ? `규격: ${spec}` : '';
     }
 
@@ -316,11 +556,14 @@
         customInput.classList.remove('hidden');
         customInput.focus();
         document.getElementById('form-group').classList.add('hidden');
+        showModelFields('A');
       } else {
         customInput.classList.add('hidden');
         customInput.value = '';
         document.getElementById('f-form').value = '';
         renderFormChips(type, '');
+        const model = getPricingModel(type);
+        showModelFields(model);
       }
     }
 
@@ -337,6 +580,173 @@
         customInput.value = '';
       }
     }
+
+    // ============================================================
+    // 모델별 폼 필드 표시/숨김
+    // ============================================================
+    function showModelFields(model) {
+      currentModel = model;
+      document.getElementById('f-pricing-model').value = model;
+      // 모든 모델 필드 숨김
+      ['model-a-fields', 'model-b-fields', 'model-c-fields', 'model-d-fields'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+      // 부속품 그룹 — 모델 C/D에서 숨김 (부품 자체가 부속품이므로 별도 체크 불필요할 수 있으나 표시)
+      document.getElementById('accessory-group').classList.remove('hidden');
+
+      if (model === 'A') {
+        document.getElementById('model-a-fields').classList.remove('hidden');
+      } else if (model === 'B') {
+        document.getElementById('model-b-fields').classList.remove('hidden');
+        renderLayoutChips('layout-chips', LAYOUT_TYPES, selectedLayoutType, 'selectLayoutType');
+        renderLayoutChips('panel-chips', PANEL_TYPES, selectedPanelType, 'selectPanelType');
+      } else if (model === 'C') {
+        document.getElementById('model-c-fields').classList.remove('hidden');
+        renderPartCatChips('part-cat-chips', PART_CATEGORIES_C, selectedPartCatC, 'selectPartCatC');
+        renderLayoutChips('part-thickness-chips', PART_THICKNESSES, selectedPartThickness, 'selectPartThickness');
+      } else if (model === 'D') {
+        document.getElementById('model-d-fields').classList.remove('hidden');
+        renderPartCatChips('d-part-cat-chips', PART_CATEGORIES_D, selectedPartCatD, 'selectPartCatD');
+        renderLayoutChips('d-layout-chips', ['앤드', '벽대', '중대'], selectedDLayout, 'selectDLayout');
+        setDEntryType(dEntryType);
+      }
+    }
+
+    // 범용 칩 렌더러 (배치유형, 후면판, 두께 등)
+    function renderLayoutChips(containerId, items, selected, fnName) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = items.map(v =>
+        `<span class="chip ${v === selected ? 'selected' : ''}" onclick="${fnName}('${v}')">${v}</span>`
+      ).join('');
+    }
+
+    function renderPartCatChips(containerId, items, selected, fnName) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = items.map(v =>
+        `<span class="chip ${v === selected ? 'chip-form selected' : ''}" onclick="${fnName}('${v}')">${v}</span>`
+      ).join('');
+    }
+
+    // 모델 B 칩 선택 핸들러
+    function selectLayoutType(v) {
+      selectedLayoutType = v;
+      renderLayoutChips('layout-chips', LAYOUT_TYPES, v, 'selectLayoutType');
+    }
+    function selectPanelType(v) {
+      selectedPanelType = v;
+      renderLayoutChips('panel-chips', PANEL_TYPES, v, 'selectPanelType');
+    }
+
+    // 모델 C 칩 선택 핸들러
+    function selectPartCatC(v) {
+      selectedPartCatC = v;
+      renderPartCatChips('part-cat-chips', PART_CATEGORIES_C, v, 'selectPartCatC');
+    }
+    function selectPartThickness(v) {
+      selectedPartThickness = v;
+      renderLayoutChips('part-thickness-chips', PART_THICKNESSES, v, 'selectPartThickness');
+    }
+
+    // 모델 D 칩 선택 핸들러
+    function selectPartCatD(v) {
+      selectedPartCatD = v;
+      renderPartCatChips('d-part-cat-chips', PART_CATEGORIES_D, v, 'selectPartCatD');
+    }
+    function selectDLayout(v) {
+      selectedDLayout = v;
+      renderLayoutChips('d-layout-chips', ['앤드', '벽대', '중대'], v, 'selectDLayout');
+    }
+
+    // 모델 D: 부품/세트 전환
+    function setDEntryType(type) {
+      dEntryType = type;
+      document.getElementById('d-btn-part').classList.toggle('selected', type === 'part');
+      document.getElementById('d-btn-set').classList.toggle('selected', type === 'set');
+      document.getElementById('d-part-fields').classList.toggle('hidden', type !== 'part');
+      document.getElementById('d-set-fields').classList.toggle('hidden', type !== 'set');
+    }
+
+    // 부속품 토글
+    function toggleAccessoryCategory() {
+      const checked = document.getElementById('f-is-accessory').checked;
+      const area = document.getElementById('accessory-cat-area');
+      area.classList.toggle('hidden', !checked);
+      if (checked) {
+        renderAccessoryCatChips('');
+      }
+    }
+
+    let selectedAccessoryCat = '';
+    function renderAccessoryCatChips(selected) {
+      selectedAccessoryCat = selected;
+      const el = document.getElementById('accessory-cat-chips');
+      el.innerHTML = ACCESSORY_CATS.map(v =>
+        `<span class="chip ${v === selected ? 'chip-form selected' : ''}" onclick="renderAccessoryCatChips('${v}')">${v}</span>`
+      ).join('');
+    }
+
+    // ============================================================
+    // BOM 편집기 (모델 D 세트)
+    // ============================================================
+    function addBomRow(part, qty, price) {
+      bomRows.push({ part: part || '', qty: qty || 1, price: price || 0 });
+      renderBomList();
+    }
+
+    function removeBomRow(idx) {
+      bomRows.splice(idx, 1);
+      renderBomList();
+    }
+
+    function updateBomRow(idx, field, value) {
+      bomRows[idx][field] = field === 'part' ? value : Number(value) || 0;
+      // 수량/단가 변경 시 행 소계도 즉시 반영
+      if (field !== 'part') {
+        const subtotalEl = document.getElementById('bom-subtotal-' + idx);
+        if (subtotalEl) subtotalEl.textContent = UI.formatCurrency(bomRows[idx].qty * bomRows[idx].price);
+      }
+      updateBomTotal();
+    }
+
+    function renderBomList() {
+      const el = document.getElementById('bom-list');
+      if (bomRows.length === 0) {
+        el.innerHTML = '<p class="text-xs text-gray-400 text-center py-2">부품을 추가하세요</p>';
+        updateBomTotal();
+        return;
+      }
+      el.innerHTML = bomRows.map((r, i) => `
+        <div class="flex items-center gap-1 bg-white rounded border p-1.5">
+          <input type="text" value="${r.part}" onchange="updateBomRow(${i},'part',this.value)" placeholder="부품명"
+            class="flex-1 min-w-0 h-8 px-2 border border-gray-200 rounded text-xs focus:border-primary focus:outline-none">
+          <input type="number" value="${r.qty}" onchange="updateBomRow(${i},'qty',this.value)" placeholder="수량" min="1"
+            class="w-12 h-8 px-1 border border-gray-200 rounded text-xs text-center focus:border-primary focus:outline-none">
+          <span class="text-[10px] text-gray-400">×</span>
+          <input type="number" value="${r.price}" onchange="updateBomRow(${i},'price',this.value)" placeholder="단가"
+            class="w-20 h-8 px-1 border border-gray-200 rounded text-xs text-center focus:border-primary focus:outline-none">
+          <span id="bom-subtotal-${i}" class="text-xs font-semibold text-gray-600 w-16 text-right">${UI.formatCurrency(r.qty * r.price)}</span>
+          <button type="button" onclick="removeBomRow(${i})" class="text-red-400 text-lg px-1">&times;</button>
+        </div>
+      `).join('');
+      updateBomTotal();
+    }
+
+    function updateBomTotal() {
+      const total = bomRows.reduce((s, r) => s + (r.qty * r.price), 0);
+      document.getElementById('bom-total').textContent = UI.formatCurrency(total);
+      // 세트 단가 필드가 비어있으면 자동 채움
+      const priceField = document.getElementById('f-d-set-price');
+      if (!priceField.value || priceField.dataset.auto === 'true') {
+        priceField.value = total || '';
+        priceField.dataset.auto = 'true';
+      }
+    }
+
+    // 세트 단가 수동 입력 시 auto 모드 해제
+    document.addEventListener('DOMContentLoaded', () => {
+      const f = document.getElementById('f-d-set-price');
+      if (f) f.addEventListener('input', () => { f.dataset.auto = 'false'; });
+    });
 
     function getSelectedType() {
       const type = document.getElementById('f-type').value;
@@ -447,11 +857,27 @@
         items.forEach(p => {
           const dupeKey = `${p.type}|${p.form || ''}|${p.spec || ''}`;
           const isDupe = dupes.has(dupeKey);
+          const modelBadge = p.pricingModel ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${
+            p.pricingModel === 'A' ? 'bg-blue-50 text-blue-500' :
+            p.pricingModel === 'B' ? 'bg-green-50 text-green-600' :
+            p.pricingModel === 'C' ? 'bg-purple-50 text-purple-600' :
+            'bg-amber-50 text-amber-600'
+          }">${p.pricingModel}</span>` : '';
+          const accessoryBadge = p.isAccessory ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-pink-100 text-pink-600">부속</span>' : '';
+          const setBadge = p.setName ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">세트:${p.setName}</span>` : '';
+          const partBadge = p.partCategory ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700">${p.partCategory}</span>` : '';
+          const layoutBadge = p.layoutType ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">${p.layoutType}</span>` : '';
+          const extraInfo = [];
+          if (p.shelfAddonPrice) extraInfo.push(`선반+${UI.formatCurrency(p.shelfAddonPrice)}`);
+          if (p.loadCapacity) extraInfo.push(p.loadCapacity);
+          if (p.pillarThickness) extraInfo.push(`기둥${p.pillarThickness}`);
           html += `
               <div class="bg-white rounded-lg border ${isDupe ? 'border-orange-300' : 'border-gray-100'} p-3">
                 <div class="flex items-center gap-1.5 mb-1 flex-wrap">
+                  ${modelBadge}
                   <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">${p.type || ''}</span>
                   ${p.form ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-700">${p.form}</span>` : ''}
+                  ${layoutBadge}${partBadge}${setBadge}${accessoryBadge}
                   ${isDupe ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-700">중복?</span>' : ''}
                   <span class="text-xs text-gray-400 ml-auto">VAT ${p.vat || '별도'}</span>
                 </div>
@@ -468,6 +894,7 @@
                       class="px-3 py-1.5 text-xs font-bold text-red-500 border border-red-300 rounded-lg active:bg-red-50">삭제</button>
                   </div>
                 </div>
+                ${extraInfo.length ? `<div class="mt-1 text-[10px] text-gray-400">${extraInfo.join(' · ')}</div>` : ''}
               </div>`;
         });
 
@@ -482,12 +909,28 @@
       document.getElementById('price-form').reset();
       document.getElementById('f-type').value = '';
       document.getElementById('f-form').value = '';
+      document.getElementById('f-pricing-model').value = '';
       document.getElementById('f-type-custom').classList.add('hidden');
       document.getElementById('f-type-custom').value = '';
       document.getElementById('f-form-custom').classList.add('hidden');
       document.getElementById('f-form-custom').value = '';
       document.getElementById('form-group').classList.add('hidden');
-      document.getElementById('spec-preview').textContent = '';
+      // 모델 상태 초기화
+      currentModel = '';
+      selectedLayoutType = '';
+      selectedPanelType = '';
+      selectedPartCatC = '';
+      selectedPartThickness = '';
+      selectedPartCatD = '';
+      selectedDLayout = '';
+      selectedAccessoryCat = '';
+      dEntryType = 'part';
+      bomRows = [];
+      document.getElementById('f-is-accessory').checked = false;
+      document.getElementById('accessory-cat-area').classList.add('hidden');
+      ['model-a-fields', 'model-b-fields', 'model-c-fields', 'model-d-fields', 'accessory-group'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
       renderTypeChips('');
       document.getElementById('price-modal').classList.remove('hidden');
     }
@@ -527,21 +970,163 @@
         }
       }
 
-      // 규격 파싱 (W*D*H 형태)
-      const specParts = (p.spec || '').split(/[*xX×]/);
-      document.getElementById('f-w').value = specParts[0] || '';
-      document.getElementById('f-d').value = specParts[1] || '';
-      document.getElementById('f-h').value = specParts[2] || '';
-      document.getElementById('f-tier').value = p.tier || '';
-      document.getElementById('f-unit-price').value = p.unitPrice || '';
-      document.getElementById('f-install-fee').value = p.installFee || '';
+      // 모델 결정 + 필드 표시
+      const model = p.pricingModel || getPricingModel(p.type);
+      showModelFields(model);
+
+      // 모델별 필드 채우기
+      if (model === 'A') {
+        const specParts = (p.spec || '').split(/[*xX×]/);
+        document.getElementById('f-a-depth').value = specParts[0] || '';
+        document.getElementById('f-a-width').value = specParts[1] || '';
+        document.getElementById('f-a-height').value = specParts[2] || '';
+        document.getElementById('f-a-tier').value = p.tier || '';
+        document.getElementById('f-a-unit-price').value = p.unitPrice || '';
+        document.getElementById('f-a-install-fee').value = p.installFee || '';
+        document.getElementById('f-a-shelf-addon').value = p.shelfAddonPrice || '';
+        document.getElementById('f-a-pillar').value = p.pillarThickness || '';
+        document.getElementById('f-a-shelf-t').value = p.shelfThickness || '';
+        document.getElementById('f-a-load').value = p.loadCapacity || '';
+      } else if (model === 'B') {
+        const specParts = (p.spec || '').split(/[*xX×]/);
+        document.getElementById('f-b-width').value = specParts[0] || '';
+        document.getElementById('f-b-depth').value = specParts[1] || '';
+        document.getElementById('f-b-height').value = specParts[2] || '';
+        document.getElementById('f-b-tier').value = p.tier || '';
+        document.getElementById('f-b-unit-price').value = p.unitPrice || '';
+        document.getElementById('f-b-install-fee').value = p.installFee || '';
+        document.getElementById('f-b-shelf-addon').value = p.shelfAddonPrice || '';
+        selectedLayoutType = p.layoutType || '';
+        selectedPanelType = p.panelType || '';
+        renderLayoutChips('layout-chips', LAYOUT_TYPES, selectedLayoutType, 'selectLayoutType');
+        renderLayoutChips('panel-chips', PANEL_TYPES, selectedPanelType, 'selectPanelType');
+      } else if (model === 'C') {
+        selectedPartCatC = p.partCategory || '';
+        selectedPartThickness = p.partThickness || '';
+        renderPartCatChips('part-cat-chips', PART_CATEGORIES_C, selectedPartCatC, 'selectPartCatC');
+        renderLayoutChips('part-thickness-chips', PART_THICKNESSES, selectedPartThickness, 'selectPartThickness');
+        document.getElementById('f-c-length').value = p.partLength || '';
+        document.getElementById('f-c-unit-price').value = p.unitPrice || '';
+      } else if (model === 'D') {
+        if (p.setName || p.bomJson) {
+          // 세트 수정
+          dEntryType = 'set';
+          setDEntryType('set');
+          document.getElementById('f-d-set-name').value = p.setName || '';
+          document.getElementById('f-d-set-spec').value = p.spec || '';
+          document.getElementById('f-d-set-price').value = p.unitPrice || '';
+          document.getElementById('f-d-set-price').dataset.auto = 'false';
+          document.getElementById('f-d-set-install').value = p.installFee || '';
+          selectedDLayout = p.layoutType || '';
+          renderLayoutChips('d-layout-chips', ['앤드', '벽대', '중대'], selectedDLayout, 'selectDLayout');
+          // BOM 복원
+          bomRows = [];
+          try {
+            const bom = JSON.parse(p.bomJson);
+            if (Array.isArray(bom)) bomRows = bom;
+          } catch {}
+          renderBomList();
+        } else {
+          // 부품 수정
+          dEntryType = 'part';
+          setDEntryType('part');
+          selectedPartCatD = p.partCategory || '';
+          renderPartCatChips('d-part-cat-chips', PART_CATEGORIES_D, selectedPartCatD, 'selectPartCatD');
+          document.getElementById('f-d-part-spec').value = p.spec || '';
+          document.getElementById('f-d-part-price').value = p.unitPrice || '';
+        }
+      }
+
+      // 부속품
+      document.getElementById('f-is-accessory').checked = p.isAccessory || false;
+      if (p.isAccessory) {
+        document.getElementById('accessory-cat-area').classList.remove('hidden');
+        renderAccessoryCatChips(p.accessoryCategory || '');
+      }
+
+      // 공통 VAT
       document.getElementById('f-vat').value = p.vat || '별도';
-      updateSpecPreview();
       document.getElementById('price-modal').classList.remove('hidden');
     }
 
     function closeModal() {
       document.getElementById('price-modal').classList.add('hidden');
+    }
+
+    // ============================================================
+    // 모델별 데이터 수집 → 통합 submit
+    // ============================================================
+    function collectFormData() {
+      const typeName = getSelectedType();
+      const formName = getSelectedForm();
+      const model = currentModel || getPricingModel(typeName);
+
+      // 공통 필드
+      const data = {
+        type: typeName,
+        form: formName,
+        pricingModel: model,
+        vat: document.getElementById('f-vat').value,
+        // 부속품
+        isAccessory: document.getElementById('f-is-accessory').checked,
+        accessoryCategory: document.getElementById('f-is-accessory').checked ? selectedAccessoryCat : '',
+      };
+
+      if (model === 'A') {
+        const depth = document.getElementById('f-a-depth').value;
+        const width = document.getElementById('f-a-width').value;
+        const height = document.getElementById('f-a-height').value;
+        data.spec = [depth, width, height].filter(Boolean).join('*');
+        data.tier = Number(document.getElementById('f-a-tier').value) || 0;
+        data.unitPrice = Number(document.getElementById('f-a-unit-price').value) || 0;
+        data.installFee = Number(document.getElementById('f-a-install-fee').value) || 0;
+        data.shelfAddonPrice = Number(document.getElementById('f-a-shelf-addon').value) || 0;
+        data.pillarThickness = document.getElementById('f-a-pillar').value.trim();
+        data.shelfThickness = document.getElementById('f-a-shelf-t').value.trim();
+        data.loadCapacity = document.getElementById('f-a-load').value.trim();
+
+      } else if (model === 'B') {
+        const width = document.getElementById('f-b-width').value;
+        const depth = document.getElementById('f-b-depth').value;
+        const height = document.getElementById('f-b-height').value;
+        data.spec = [width, depth, height].filter(Boolean).join('*');
+        data.tier = Number(document.getElementById('f-b-tier').value) || 0;
+        data.unitPrice = Number(document.getElementById('f-b-unit-price').value) || 0;
+        data.installFee = Number(document.getElementById('f-b-install-fee').value) || 0;
+        data.shelfAddonPrice = Number(document.getElementById('f-b-shelf-addon').value) || 0;
+        data.layoutType = selectedLayoutType;
+        data.panelType = selectedPanelType;
+
+      } else if (model === 'C') {
+        data.partCategory = selectedPartCatC;
+        data.partThickness = selectedPartThickness;
+        data.partLength = Number(document.getElementById('f-c-length').value) || 0;
+        data.spec = data.partCategory + (data.partThickness ? `(${data.partThickness})` : '');
+        data.unitPrice = Number(document.getElementById('f-c-unit-price').value) || 0;
+        data.tier = '';
+        data.installFee = 0;
+
+      } else if (model === 'D') {
+        if (dEntryType === 'part') {
+          // 곤도라 부품
+          data.partCategory = selectedPartCatD;
+          data.spec = document.getElementById('f-d-part-spec').value.trim();
+          data.unitPrice = Number(document.getElementById('f-d-part-price').value) || 0;
+          data.tier = '';
+          data.installFee = 0;
+        } else {
+          // 곤도라 세트
+          data.setName = document.getElementById('f-d-set-name').value.trim();
+          data.spec = document.getElementById('f-d-set-spec').value.trim();
+          data.layoutType = selectedDLayout;
+          data.unitPrice = Number(document.getElementById('f-d-set-price').value) || 0;
+          data.installFee = Number(document.getElementById('f-d-set-install').value) || 0;
+          data.bomJson = JSON.stringify(bomRows);
+          data.tier = '';
+        }
+      }
+
+      return data;
     }
 
     async function handleSubmit(e) {
@@ -556,28 +1141,11 @@
         return;
       }
 
-      const formName = getSelectedForm();
-
-      // 규격 조합
-      const w = document.getElementById('f-w').value;
-      const d = document.getElementById('f-d').value;
-      const h = document.getElementById('f-h').value;
-      const spec = [w, d, h].filter(Boolean).join('*');
-
-      const data = {
-        type: typeName,
-        form: formName,
-        spec: spec,
-        tier: Number(document.getElementById('f-tier').value) || 0,
-        unitPrice: Number(document.getElementById('f-unit-price').value),
-        installFee: Number(document.getElementById('f-install-fee').value) || 0,
-        vat: document.getElementById('f-vat').value,
-      };
-
+      const data = collectFormData();
       const rowIndex = document.getElementById('edit-row-index').value;
 
-      // 중복 경고
-      const dupeKey = `${typeName}|${formName}|${spec}`;
+      // 중복 경고 (type+form+spec)
+      const dupeKey = `${data.type}|${data.form || ''}|${data.spec || ''}`;
       const existing = prices.filter((p, i) => {
         if (rowIndex !== '' && (p.rowIndex ?? i) === Number(rowIndex)) return false;
         return `${p.type}|${p.form || ''}|${p.spec || ''}` === dupeKey;
