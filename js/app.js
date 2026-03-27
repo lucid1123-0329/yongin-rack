@@ -639,20 +639,20 @@ const App = (() => {
     const specGroup = document.getElementById('sel-spec-group');
     const cardsContainer = document.getElementById('cards-spec');
 
-    const items = priceData.filter(p =>
+    const specs = priceData.filter(p =>
       p.type === _selType &&
       (p.form || '') === _selForm &&
       (p.layoutType || '') === _selLayout &&
       !p.isAccessory
     );
 
-    if (items.length === 0) {
+    if (specs.length === 0) {
       specGroup.classList.remove('hidden');
       cardsContainer.innerHTML = '<p class="text-gray-400 text-xs text-center py-3">해당 조합의 규격이 없습니다</p>';
       return;
     }
 
-    const sorted = [...items].sort((a, b) => {
+    const sorted = [...specs].sort((a, b) => {
       if (_specSortMode === 'price') return (a.unitPrice || 0) - (b.unitPrice || 0);
       return (a.tier || 0) - (b.tier || 0);
     });
@@ -675,13 +675,13 @@ const App = (() => {
   }
 
   function onModelBSpecCard(index) {
-    const items = priceData.filter(p =>
+    const specs = priceData.filter(p =>
       p.type === _selType &&
       (p.form || '') === _selForm &&
       (p.layoutType || '') === _selLayout &&
       !p.isAccessory
     );
-    const sorted = [...items].sort((a, b) => {
+    const sorted = [...specs].sort((a, b) => {
       if (_specSortMode === 'price') return (a.unitPrice || 0) - (b.unitPrice || 0);
       return (a.tier || 0) - (b.tier || 0);
     });
