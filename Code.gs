@@ -3,7 +3,10 @@
  * Google Sheets를 DB로 사용하는 웹 앱 API
  *
  * 시트 구조:
- *   단가표: [랙종류, 형태, 규격, 단수, 기본단가, 추가시공비, VAT적용, 활성]
+ *   단가표: [랙종류, 형태, 규격, 단수, 기본단가, 추가시공비, VAT적용, 활성,
+ *            가격모델, 선반추가단가, 단당하중, 기둥두께, 선반두께,
+ *            배치유형, 후면판유형, 부품카테고리, 부품길이, 부품두께,
+ *            세트명, BOM_JSON, 부속품여부, 부속품카테고리]
  *   견적내역: [견적일시, 견적번호, 고객명, 회사명, 연락처, 주소, 품목상세(JSON), 총액, 진행상태, clientId]
  *   견적요청: [요청일시, 고객명, 연락처, 랙종류, 수량, 메모, 처리상태]
  *   설정: [key, value]
@@ -207,8 +210,87 @@ function findEstimateRow(sheet, estimateId) {
 }
 
 // ============================================================
-// 단가표
+// 단가표 — 확장 스키마 (v2: 4가지 가격 모델 지원)
+// 열 구조: [랙종류(1), 형태(2), 규격(3), 단수(4), 기본단가(5), 추가시공비(6), VAT적용(7), 활성(8),
+//           가격모델(9), 선반추가단가(10), 단당하중(11), 기둥두께(12), 선반두께(13),
+//           배치유형(14), 후면판유형(15), 부품카테고리(16), 부품길이(17), 부품두께(18),
+//           세트명(19), BOM_JSON(20), 부속품여부(21), 부속품카테고리(22)]
 // ============================================================
+
+// 랙 종류 → 가격 모델 자동 매핑
+function _getPricingModel(type) {
+  if (!type) return '';
+  var t = type.trim();
+  // 모델 A: 매트릭스형 (경량/중량 계열)
+  if (['고급경량랙', 'MD경량랙', '경량랙', '아연랙', 'MD중량랙', 'KD중량랙', '중량랙', '파렛트랙'].indexOf(t) >= 0) return 'A';
+  // 모델 B: 진열대형 (하이퍼)
+  if (t === '하이퍼 진열대' || t.indexOf('하이퍼') >= 0) return 'B';
+  // 모델 D: 세트 조합형 (곤도라)
+  if (t === '곤도라 진열대' || t.indexOf('곤도라') >= 0) return 'D';
+  // 모델 C: 부품 조합형 (무볼트앵글)
+  if (t === '무볼트앵글' || t.indexOf('앵글') >= 0) return 'C';
+  return '';
+}
+
+// 단가 행 → JSON 객체 변환 (공통)
+function _priceRowToObj(row, rowIndex) {
+  return {
+    rowIndex: rowIndex,
+    // 기존 필드 (1~7)
+    type: row[0] || '',
+    form: row[1] || '',
+    spec: row[2] || '',
+    tier: row[3],
+    unitPrice: Number(row[4]) || 0,
+    installFee: Number(row[5]) || 0,
+    vat: row[6] || '별도',
+    // 확장 필드 (9~22) — 빈 값이면 생략하지 않고 포함 (클라이언트 호환)
+    pricingModel: row[8] || '',
+    shelfAddonPrice: Number(row[9]) || 0,
+    loadCapacity: row[10] || '',
+    pillarThickness: row[11] || '',
+    shelfThickness: row[12] || '',
+    layoutType: row[13] || '',
+    panelType: row[14] || '',
+    partCategory: row[15] || '',
+    partLength: row[16] ? Number(row[16]) : 0,
+    partThickness: row[17] || '',
+    setName: row[18] || '',
+    bomJson: row[19] || '',
+    isAccessory: row[20] === true || row[20] === 'true' || row[20] === 'TRUE',
+    accessoryCategory: row[21] || '',
+  };
+}
+
+// JSON 객체 → 단가 행 배열 변환 (addPrice/updatePrice 공통)
+function _priceObjToRow(body) {
+  var model = body.pricingModel || _getPricingModel(body.type);
+  return [
+    body.type || '',                          // 1: 랙종류
+    body.form || '',                          // 2: 형태
+    body.spec || '',                          // 3: 규격
+    body.tier || '',                          // 4: 단수
+    Number(body.unitPrice) || 0,              // 5: 기본단가
+    Number(body.installFee) || 0,             // 6: 추가시공비
+    body.vat || '별도',                       // 7: VAT적용
+    true,                                     // 8: 활성
+    model,                                    // 9: 가격모델
+    Number(body.shelfAddonPrice) || 0,        // 10: 선반추가단가
+    body.loadCapacity || '',                  // 11: 단당하중
+    body.pillarThickness || '',               // 12: 기둥두께
+    body.shelfThickness || '',                // 13: 선반두께
+    body.layoutType || '',                    // 14: 배치유형
+    body.panelType || '',                     // 15: 후면판유형
+    body.partCategory || '',                  // 16: 부품카테고리
+    body.partLength ? Number(body.partLength) : '',  // 17: 부품길이
+    body.partThickness || '',                 // 18: 부품두께
+    body.setName || '',                       // 19: 세트명
+    body.bomJson || '',                       // 20: BOM_JSON
+    body.isAccessory ? 'true' : '',           // 21: 부속품여부
+    body.accessoryCategory || '',             // 22: 부속품카테고리
+  ];
+}
+
 function getPrices() {
   var cached = _getCache('cache_prices');
   if (cached) return cached;
@@ -221,16 +303,7 @@ function getPrices() {
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
     if (row[7] === '삭제') continue;
-    prices.push({
-      rowIndex: i + 1,
-      type: row[0] || '',
-      form: row[1] || '',
-      spec: row[2] || '',
-      tier: row[3],
-      unitPrice: Number(row[4]) || 0,
-      installFee: Number(row[5]) || 0,
-      vat: row[6] || '별도',
-    });
+    prices.push(_priceRowToObj(row, i + 1));
   }
   var result = { prices };
   _setCache('cache_prices', result, 300);
@@ -239,11 +312,8 @@ function getPrices() {
 
 function addPrice(body) {
   const sheet = getSheet('단가표');
-  sheet.appendRow([
-    body.type, body.form || '', body.spec, body.tier,
-    Number(body.unitPrice) || 0, Number(body.installFee) || 0,
-    body.vat || '별도', true
-  ]);
+  var rowData = _priceObjToRow(body);
+  sheet.appendRow(rowData);
   _clearCache('cache_prices');
   return { result: 'success' };
 }
@@ -252,11 +322,11 @@ function updatePrice(body) {
   const sheet = getSheet('단가표');
   const row = Number(body.rowIndex);
   if (row < 2) return { error: 'Invalid row' };
-  sheet.getRange(row, 1, 1, 7).setValues([[
-    body.type, body.form || '', body.spec, body.tier,
-    Number(body.unitPrice) || 0, Number(body.installFee) || 0,
-    body.vat || '별도'
-  ]]);
+  var rowData = _priceObjToRow(body);
+  // 활성 필드(col 8)는 업데이트 시 건드리지 않음 — 1~7 + 9~22 업데이트
+  var updateData = rowData.slice(0, 7).concat(rowData.slice(8)); // col 1~7, 9~22 (활성 제외)
+  sheet.getRange(row, 1, 1, 7).setValues([updateData.slice(0, 7)]);
+  sheet.getRange(row, 9, 1, 14).setValues([updateData.slice(7, 21)]);
   _clearCache('cache_prices');
   return { result: 'success' };
 }
@@ -1040,7 +1110,10 @@ function getSheet(name) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName(name);
   var headers = {
-    '단가표': ['랙종류', '형태', '규격', '단수', '기본단가', '추가시공비', 'VAT적용', '활성'],
+    '단가표': ['랙종류', '형태', '규격', '단수', '기본단가', '추가시공비', 'VAT적용', '활성',
+                '가격모델', '선반추가단가', '단당하중', '기둥두께', '선반두께',
+                '배치유형', '후면판유형', '부품카테고리', '부품길이', '부품두께',
+                '세트명', 'BOM_JSON', '부속품여부', '부속품카테고리'],
     '견적내역': ['견적일시', '견적번호', '고객명', '회사명', '연락처', '주소', '품목상세', '총액', '진행상태', 'clientId', '공급가액', '세액'],
     '견적요청': ['요청일시', '고객명', '연락처', '랙종류', '수량', '메모', '처리상태'],
     '설정': ['key', 'value'],
