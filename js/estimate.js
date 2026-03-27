@@ -261,14 +261,14 @@ const Estimate = (() => {
         </tbody>
       </table>
       <!-- 합계금액 (독립 테이블) -->
-      <table style="${S.table}margin-top:-1px;table-layout:fixed;width:100%;">
+      <table style="${S.table}margin-top:-1px;">
         <tr>
-          <td style="${S.th};width:70px;">${w('합계금액')}</td>
-          <td style="${S.tdR};font-weight:bold;font-size:14px;">${w('₩')} ${fmt(total)}</td>
-          <td style="${S.th};width:55px;font-size:10px;">${w('공급가액')}</td>
-          <td style="${S.tdR};font-size:11px;width:80px;">${fmt(supplyTotal)}</td>
-          <td style="${S.th};width:40px;font-size:10px;">${w('세액')}</td>
-          <td style="${S.tdR};font-size:11px;width:70px;">${fmt(vat)}</td>
+          <td style="${S.th};width:60px;">${w('합계금액')}</td>
+          <td style="${S.tdR};font-weight:bold;font-size:13px;width:100px;">${w('₩')} ${fmt(total)}</td>
+          <td style="${S.th};width:60px;">${w('공급가액')}</td>
+          <td style="${S.tdR};font-size:11px;width:100px;">${fmt(supplyTotal)}</td>
+          <td style="${S.th};width:60px;">${w('세액')}</td>
+          <td style="${S.tdR};font-size:11px;width:80px;">${fmt(vat)}</td>
         </tr>
       </table>
 
@@ -424,17 +424,14 @@ const Estimate = (() => {
       </table>
 
       <!-- 하단 합계 -->
-      <table style="${S.table}margin-top:-1px;table-layout:fixed;width:100%;">
-        <colgroup>
-          <col style="width:65px;"><col><col style="width:50px;"><col style="width:75px;"><col style="width:35px;"><col style="width:70px;">
-        </colgroup>
+      <table style="${S.table}margin-top:-1px;">
         <tr>
-          <td style="${S.infoTh}">합계금액</td>
-          <td style="${S.infoTd};text-align:right;font-weight:bold;font-size:14px;">₩ ${fmt(total)}</td>
-          <td style="${S.infoTh};font-size:10px;">공급가액</td>
-          <td style="${S.infoTd};text-align:right;">${fmt(supplyTotal)}</td>
-          <td style="${S.infoTh};font-size:10px;">세 액</td>
-          <td style="${S.infoTd};text-align:right;">${fmt(vat)}</td>
+          <td style="${S.infoTh};width:60px;">합계금액</td>
+          <td style="${S.infoTd};text-align:right;font-weight:bold;font-size:13px;width:100px;">₩ ${fmt(total)}</td>
+          <td style="${S.infoTh};width:60px;">공급가액</td>
+          <td style="${S.infoTd};text-align:right;width:100px;">${fmt(supplyTotal)}</td>
+          <td style="${S.infoTh};width:60px;">세 액</td>
+          <td style="${S.infoTd};text-align:right;width:80px;">${fmt(vat)}</td>
         </tr>
       </table>
 
