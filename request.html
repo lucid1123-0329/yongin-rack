@@ -132,9 +132,9 @@
             </div>
             <div>
               <label class="block text-xs font-semibold text-gray-500 mb-1">현장 사진</label>
-              <input type="file" id="req-space-photo" accept="image/*" capture="environment"
+              <input type="file" id="req-space-photo" accept="image/*" multiple
                 class="w-full text-sm text-gray-500 file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-bold">
-              <img id="req-space-photo-preview" class="hidden mt-2 rounded-lg max-h-48 w-full object-cover">
+              <div id="req-space-photo-preview" class="hidden mt-2 grid grid-cols-3 gap-2"></div>
             </div>
           </div>
         </details>
@@ -202,15 +202,21 @@
   <script>
     // 현장 사진 미리보기
     document.getElementById('req-space-photo').addEventListener('change', function(e) {
-      var file = e.target.files[0];
-      if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function(ev) {
-        var preview = document.getElementById('req-space-photo-preview');
-        preview.src = ev.target.result;
-        preview.classList.remove('hidden');
-      };
-      reader.readAsDataURL(file);
+      var files = e.target.files;
+      var preview = document.getElementById('req-space-photo-preview');
+      preview.innerHTML = '';
+      if (!files.length) { preview.classList.add('hidden'); return; }
+      preview.classList.remove('hidden');
+      Array.from(files).forEach(function(file) {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          var img = document.createElement('img');
+          img.src = ev.target.result;
+          img.className = 'rounded-lg max-h-48 w-full object-cover';
+          preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
     });
 
     function resizeAndEncode(file, maxSize) {
@@ -252,11 +258,11 @@
 
       UI.setLoading(btn, true);
       try {
-        // 현장 사진 인코딩
+        // 현장 사진 인코딩 (여러 장)
         const photoInput = document.getElementById('req-space-photo');
-        let photoData = null;
-        if (photoInput.files[0]) {
-          photoData = await resizeAndEncode(photoInput.files[0], 1024);
+        const photos = [];
+        for (let i = 0; i < photoInput.files.length; i++) {
+          photos.push(await resizeAndEncode(photoInput.files[i], 1024));
         }
 
         const result = await API.submitRequest({
@@ -276,7 +282,8 @@
           spacePurpose: _sf(document.getElementById('req-space-purpose')?.value, 30),
           cargoType: _sf(document.getElementById('req-cargo-type')?.value, 50),
           cargoWeight: _sf(document.getElementById('req-cargo-weight')?.value, 20),
-          ...(photoData ? { imageBase64: photoData.data, imageMimeType: photoData.mimeType } : {}),
+          ...(photos.length === 1 ? { imageBase64: photos[0].data, imageMimeType: photos[0].mimeType } : {}),
+          ...(photos.length > 1 ? { images: photos.map(p => ({ base64: p.data, mimeType: p.mimeType })) } : {}),
         });
 
         if (result.error) {

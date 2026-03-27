@@ -320,9 +320,9 @@
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-500 mb-1">현장 사진</label>
-          <input type="file" id="space-photo" accept="image/*" capture="environment"
+          <input type="file" id="space-photo" accept="image/*" multiple
             class="w-full text-sm text-gray-500 file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-bold">
-          <img id="space-photo-preview" class="hidden mt-2 rounded-lg max-h-48 w-full object-cover">
+          <div id="space-photo-preview" class="hidden mt-2 grid grid-cols-3 gap-2"></div>
         </div>
         <button onclick="handlePhotoAnalysis()" id="btn-photo-analyze"
           class="w-full h-12 bg-purple-600 text-white rounded-xl font-bold text-sm active:scale-[0.98] transition-transform">
@@ -619,15 +619,21 @@
 
     // --- AI 공간 분석 ---
     document.getElementById('space-photo').addEventListener('change', function(e) {
-      var file = e.target.files[0];
-      if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function(ev) {
-        var preview = document.getElementById('space-photo-preview');
-        preview.src = ev.target.result;
-        preview.classList.remove('hidden');
-      };
-      reader.readAsDataURL(file);
+      var files = e.target.files;
+      var preview = document.getElementById('space-photo-preview');
+      preview.innerHTML = '';
+      if (!files.length) { preview.classList.add('hidden'); return; }
+      preview.classList.remove('hidden');
+      Array.from(files).forEach(function(file) {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          var img = document.createElement('img');
+          img.src = ev.target.result;
+          img.className = 'rounded-lg max-h-48 w-full object-cover';
+          preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
     });
 
     function resizeAndEncode(file, maxSize) {
@@ -671,16 +677,23 @@
       btn.innerHTML = '<div class="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full mx-auto"></div>';
 
       try {
-        var encoded = await resizeAndEncode(fileInput.files[0], 1024);
+        var photos = [];
+        for (var i = 0; i < fileInput.files.length; i++) {
+          photos.push(await resizeAndEncode(fileInput.files[i], 1024));
+        }
         var purpose = document.getElementById('space-purpose').value || '';
         var cargoType = document.getElementById('space-cargo-type').value || '';
         var cargoWeight = document.getElementById('space-cargo-weight').value || '';
         var memo = document.getElementById('space-memo').value || '';
-        var result = await API.analyzePhoto({
+        var payload = {
           width: width, depth: depth, height: height,
           purpose: purpose, cargoType: cargoType, cargoWeight: cargoWeight, memo: memo,
-          imageBase64: encoded.data, imageMimeType: encoded.mimeType
-        });
+          imageBase64: photos[0].data, imageMimeType: photos[0].mimeType
+        };
+        if (photos.length > 1) {
+          payload.images = photos.map(function(p) { return { base64: p.data, mimeType: p.mimeType }; });
+        }
+        var result = await API.analyzePhoto(payload);
 
         console.log('[AI Photo] response:', JSON.stringify(result));
         if (result.error) {
