@@ -2,7 +2,7 @@
  * version-check.js — 앱 업데이트 매니저
  *
  * 업데이트 감지 시 토스트 알림을 표시하고, 사용자가 탭하면
- * SW 캐시 정리 후 1회 깔끔하게 새로고침.
+ * 대기 중인 SW를 활성화하고 1회 깔끔하게 새로고침.
  * 자동 새로고침은 하지 않음 (무한 루프 방지 + UX 개선).
  */
 (function () {
@@ -11,10 +11,17 @@
   var VERSION_KEY   = 'yr_app_version';
   var VERSION_URL   = '/version.json';
   var TOAST_ID      = 'yr-update-toast';
+  var UPDATE_FLAG   = 'yr_update_applied'; // 업데이트 적용 후 재표시 방지
 
   // ── 업데이트 토스트 UI ─────────────────────────────
   function showUpdateToast() {
     if (document.getElementById(TOAST_ID)) return; // 이미 표시 중
+
+    // 방금 업데이트를 적용했으면 토스트 재표시 방지
+    if (sessionStorage.getItem(UPDATE_FLAG)) {
+      sessionStorage.removeItem(UPDATE_FLAG);
+      return;
+    }
 
     var toast = document.createElement('div');
     toast.id = TOAST_ID;
@@ -62,28 +69,23 @@
       btn.disabled = true;
     }
 
-    // 1) SW 캐시 정리 (이전 버전 캐시 제거)
-    if ('caches' in window) {
-      try {
-        var keys = await caches.keys();
-        await Promise.all(keys.map(function (k) { return caches.delete(k); }));
-      } catch (e) { /* ignore */ }
-    }
+    // 업데이트 적용 플래그 — reload 후 토스트 재표시 방지
+    sessionStorage.setItem(UPDATE_FLAG, '1');
 
-    // 2) 대기 중인 SW가 있으면 활성화 → controllerchange → reload
+    // 대기 중인 SW가 있으면 활성화 → controllerchange → reload
     if ('serviceWorker' in navigator) {
       try {
         var reg = await navigator.serviceWorker.ready;
         if (reg.waiting) {
           reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-          // controllerchange 리스너가 reload 처리 — 2초 fallback
-          setTimeout(function () { location.reload(); }, 2000);
+          // controllerchange 리스너가 reload 처리 — 3초 fallback
+          setTimeout(function () { location.reload(); }, 3000);
           return;
         }
       } catch (e) { /* ignore */ }
     }
 
-    // 3) 대기 중인 SW가 없으면 직접 reload
+    // 대기 중인 SW가 없으면 직접 reload
     location.reload();
   }
 
