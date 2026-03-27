@@ -94,35 +94,14 @@
     } catch (e) { /* offline */ }
   }
 
-  // ── SW 대기 감지 ──────────────────────────────────
-  function watchServiceWorker() {
-    if (!('serviceWorker' in navigator)) return;
-    navigator.serviceWorker.getRegistration().then(function (reg) {
-      if (!reg) return;
-
-      if (reg.waiting) { showUpdateToast(); return; }
-
-      reg.addEventListener('updatefound', function () {
-        var nw = reg.installing;
-        if (!nw) return;
-        nw.addEventListener('statechange', function () {
-          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-            showUpdateToast();
-          }
-        });
-      });
-    });
-  }
-
   // ── 초기화 ────────────────────────────────────────
   function init() {
     // 업데이트 직후 세션이면 플래그 정리만 하고 토스트 억제
     if (sessionStorage.getItem(UPDATED_KEY)) {
-      // 5초 후 플래그 제거 (다음 번 진짜 업데이트 감지 가능하도록)
       setTimeout(function () { sessionStorage.removeItem(UPDATED_KEY); }, 5000);
     }
+    // version.json 비교만으로 업데이트 감지 (SW 상태 감시 제거)
     checkVersion();
-    watchServiceWorker();
   }
 
   if (document.readyState === 'loading') {
