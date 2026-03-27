@@ -425,13 +425,16 @@ const Estimate = (() => {
 
       <!-- 하단 합계 -->
       <table style="${S.table}margin-top:-1px;table-layout:fixed;width:100%;">
+        <colgroup>
+          <col style="width:65px;"><col><col style="width:50px;"><col style="width:75px;"><col style="width:35px;"><col style="width:70px;">
+        </colgroup>
         <tr>
-          <td style="${S.infoTh};width:70px;">합계금액</td>
+          <td style="${S.infoTh}">합계금액</td>
           <td style="${S.infoTd};text-align:right;font-weight:bold;font-size:14px;">₩ ${fmt(total)}</td>
-          <td style="${S.infoTh};width:55px;font-size:10px;">공급가액</td>
-          <td style="${S.infoTd};text-align:right;width:80px;">${fmt(supplyTotal)}</td>
-          <td style="${S.infoTh};width:40px;font-size:10px;">세 액</td>
-          <td style="${S.infoTd};text-align:right;width:70px;">${fmt(vat)}</td>
+          <td style="${S.infoTh};font-size:10px;">공급가액</td>
+          <td style="${S.infoTd};text-align:right;">${fmt(supplyTotal)}</td>
+          <td style="${S.infoTh};font-size:10px;">세 액</td>
+          <td style="${S.infoTd};text-align:right;">${fmt(vat)}</td>
         </tr>
       </table>
 
