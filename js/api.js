@@ -7,7 +7,11 @@ const API = (() => {
   // GAS 웹 앱 URL
   const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbwyNb3no3gaqH6nl7LWgyFme_BKsaBqMEa1MUdYNpq8ZkqOJQHHTWchsZ_HlfCe_rjN/exec';
   const BASE_URL = localStorage.getItem('yr_gas_url') || DEFAULT_URL;
-  const API_KEY = 'yr-api-key-2026'; // admin 요청 인증용
+
+  // 인증: PIN 해시를 API 토큰으로 사용 (하드코딩 키 제거)
+  function _getAuthToken() {
+    return localStorage.getItem('yr_pin_hash') || '';
+  }
 
   // Request timeouts (ms)
   const GET_TIMEOUT = 10000;
@@ -58,9 +62,9 @@ const API = (() => {
         });
       } else {
         // Content-Type: text/plain + no custom headers = no preflight (CORS safe)
-        // API key is passed in the body, not headers
+        // PIN 해시를 인증 토큰으로 사용 (공개 요청은 제외)
         const body = isAdmin
-          ? { ...params, apiKey: API_KEY }
+          ? { ...params, authToken: _getAuthToken() }
           : params;
         response = await fetch(BASE_URL, {
           method: 'POST',

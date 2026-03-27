@@ -11,7 +11,34 @@
  */
 
 const SPREADSHEET_ID = '1azkq97HM29dyI-d4YC3FamsudWhuUC7FSPB_rGH8aZg';
-const API_KEY = 'yr-api-key-2026';
+
+// 서버 PIN 해시 조회 (캐시 — 동일 요청 내 중복 IO 방지)
+var _cachedServerPinHash = undefined;
+function _getServerPinHash() {
+  if (_cachedServerPinHash !== undefined) return _cachedServerPinHash;
+  _cachedServerPinHash = '';
+  try {
+    var sheet = getSheet('설정');
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] === 'pinHash') {
+        _cachedServerPinHash = String(data[i][1]).trim();
+        break;
+      }
+    }
+  } catch (e) {}
+  return _cachedServerPinHash;
+}
+
+function _hasServerPin() {
+  return !!_getServerPinHash();
+}
+
+function _verifyAuthToken(token) {
+  if (!token) return false;
+  var serverHash = _getServerPinHash();
+  return serverHash && serverHash === String(token).trim();
+}
 
 // ============================================================
 // doGet — 읽기 요청
@@ -57,8 +84,12 @@ function doPost(e) {
     const body = JSON.parse(e.postData.contents);
     const action = body.action || '';
 
-    // API Key 검증 (고객 요청 제외)
-    if (action !== 'submitRequest' && body.apiKey !== API_KEY) {
+    // 인증: PIN 해시 토큰 검증 (고객 요청 제외)
+    if (action === 'submitRequest') {
+      // 공개 요청 — 인증 불필요
+    } else if (action === 'saveSettings' && !_hasServerPin()) {
+      // 최초 온보딩 — 서버에 PIN이 없으므로 인증 불필요
+    } else if (!_verifyAuthToken(body.authToken)) {
       return jsonResponse({ error: 'Unauthorized' });
     }
 
@@ -851,7 +882,7 @@ function saveSettings(body) {
   const sheet = getSheet('설정');
   // NOTE: 대규모 데이터셋에서는 getDataRange 대신 특정 열만 읽는 최적화 가능
   const data = sheet.getDataRange().getValues();
-  const keys = Object.keys(body).filter(k => k !== 'action' && k !== 'apiKey');
+  const keys = Object.keys(body).filter(k => k !== 'action' && k !== 'authToken');
 
   // 메모리에서 업데이트할 행과 새로 추가할 행을 분류
   var updates = []; // { row, value }
