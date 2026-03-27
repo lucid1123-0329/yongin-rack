@@ -1,27 +1,24 @@
 /**
  * version-check.js — 앱 업데이트 매니저
  *
- * 업데이트 감지 시 토스트 알림을 표시하고, 사용자가 탭하면
- * 대기 중인 SW를 활성화하고 1회 깔끔하게 새로고침.
- * 자동 새로고침은 하지 않음 (무한 루프 방지 + UX 개선).
+ * 업데이트 감지 시 토스트 알림 표시 → 사용자 클릭 시 1회 새로고침.
+ * controllerchange 리스너 없이 직접 reload하여 무한 루프 원천 차단.
  */
 (function () {
   'use strict';
 
-  var VERSION_KEY   = 'yr_app_version';
-  var VERSION_URL   = '/version.json';
-  var TOAST_ID      = 'yr-update-toast';
-  var UPDATE_FLAG   = 'yr_update_applied'; // 업데이트 적용 후 재표시 방지
+  var VERSION_KEY = 'yr_app_version';
+  var VERSION_URL = '/version.json';
+  var TOAST_ID    = 'yr-update-toast';
+  var UPDATED_KEY = 'yr_just_updated'; // sessionStorage: reload 직후 토스트 억제
 
-  // ── 업데이트 토스트 UI ─────────────────────────────
+  // ── 토스트 표시 ────────────────────────────────────
   function showUpdateToast() {
-    if (document.getElementById(TOAST_ID)) return; // 이미 표시 중
+    // 이미 표시 중이면 무시
+    if (document.getElementById(TOAST_ID)) return;
 
-    // 방금 업데이트를 적용했으면 토스트 재표시 방지
-    if (sessionStorage.getItem(UPDATE_FLAG)) {
-      sessionStorage.removeItem(UPDATE_FLAG);
-      return;
-    }
+    // 방금 업데이트 적용 직후면 표시 안 함
+    if (sessionStorage.getItem(UPDATED_KEY)) return;
 
     var toast = document.createElement('div');
     toast.id = TOAST_ID;
@@ -45,96 +42,66 @@
         'cursor:pointer;padding:0 0 0 4px;line-height:1' +
       '">&times;</button>';
 
-    // 슬라이드업 애니메이션
     if (!document.getElementById('yr-toast-style')) {
-      var style = document.createElement('style');
-      style.id = 'yr-toast-style';
-      style.textContent = '@keyframes yrSlideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';
-      document.head.appendChild(style);
+      var s = document.createElement('style');
+      s.id = 'yr-toast-style';
+      s.textContent = '@keyframes yrSlideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';
+      document.head.appendChild(s);
     }
 
     document.body.appendChild(toast);
-
     document.getElementById('yr-update-btn').onclick = applyUpdate;
-    document.getElementById('yr-update-close').onclick = function () {
-      toast.remove();
-    };
+    document.getElementById('yr-update-close').onclick = function () { toast.remove(); };
   }
 
   // ── 업데이트 적용 ─────────────────────────────────
   async function applyUpdate() {
+    // 토스트 즉시 제거 + 버튼 비활성화
     var toast = document.getElementById(TOAST_ID);
-    var btn = document.getElementById('yr-update-btn');
-    if (btn) {
-      btn.textContent = '적용 중…';
-      btn.disabled = true;
-    }
-
-    // 업데이트 적용 플래그 — reload 후 토스트 재표시 방지
-    sessionStorage.setItem(UPDATE_FLAG, '1');
-
-    // 토스트 즉시 제거
     if (toast) toast.remove();
 
-    // 대기 중인 SW가 있으면 활성화 → controllerchange → reload
-    if ('serviceWorker' in navigator) {
-      try {
-        var reg = await navigator.serviceWorker.ready;
-        if (reg.waiting) {
-          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-          // controllerchange 리스너가 reload 처리 — 3초 fallback
-          setTimeout(function () { location.reload(); }, 3000);
-          return;
-        }
-      } catch (e) { /* ignore */ }
-    }
+    // reload 후 토스트 재표시 방지 플래그 (이 세션 동안 유지)
+    sessionStorage.setItem(UPDATED_KEY, '1');
 
-    // 대기 중인 SW가 없으면 직접 reload
-    location.reload();
+    // 대기 중인 SW 활성화
+    try {
+      var reg = await navigator.serviceWorker.getRegistration();
+      if (reg && reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+    } catch (e) { /* ignore */ }
+
+    // 1초 후 직접 reload (controllerchange에 의존하지 않음)
+    setTimeout(function () { location.reload(); }, 1000);
   }
 
-  // ── 버전 체크 (version.json 기반) ──────────────────
+  // ── 버전 체크 ─────────────────────────────────────
   async function checkVersion() {
     try {
       var resp = await fetch(VERSION_URL + '?t=' + Date.now(), { cache: 'no-store' });
       if (!resp.ok) return;
-
       var data = await resp.json();
-      var remoteVersion = data.version;
-      var localVersion = localStorage.getItem(VERSION_KEY);
+      var remote = data.version;
+      var local = localStorage.getItem(VERSION_KEY);
 
-      // 최초 방문 — 버전만 저장
-      if (!localVersion) {
-        localStorage.setItem(VERSION_KEY, remoteVersion);
-        return;
-      }
+      if (!local) { localStorage.setItem(VERSION_KEY, remote); return; }
+      if (local === remote) return;
+      if (Number(remote) < Number(local)) return;
 
-      // 같으면 패스
-      if (localVersion === remoteVersion) return;
-
-      // 원격 버전이 로컬보다 낮으면 무시 (CDN 캐시 지연)
-      if (Number(remoteVersion) < Number(localVersion)) return;
-
-      console.log('[Update] ' + localVersion + ' → ' + remoteVersion + ' 감지');
-      localStorage.setItem(VERSION_KEY, remoteVersion);
+      console.log('[Update] ' + local + ' → ' + remote);
+      localStorage.setItem(VERSION_KEY, remote);
       showUpdateToast();
-    } catch (e) {
-      // 오프라인이면 무시
-    }
+    } catch (e) { /* offline */ }
   }
 
-  // ── SW 업데이트 감지 ────────────────────────────────
+  // ── SW 대기 감지 ──────────────────────────────────
   function watchServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.getRegistration().then(function (reg) {
+      if (!reg) return;
 
-    navigator.serviceWorker.ready.then(function (reg) {
-      // 이미 대기 중인 SW가 있으면 토스트 표시
-      if (reg.waiting) {
-        showUpdateToast();
-        return;
-      }
+      if (reg.waiting) { showUpdateToast(); return; }
 
-      // 새 SW 설치 감지
       reg.addEventListener('updatefound', function () {
         var nw = reg.installing;
         if (!nw) return;
@@ -147,8 +114,13 @@
     });
   }
 
-  // ── 초기화 ──────────────────────────────────────────
+  // ── 초기화 ────────────────────────────────────────
   function init() {
+    // 업데이트 직후 세션이면 플래그 정리만 하고 토스트 억제
+    if (sessionStorage.getItem(UPDATED_KEY)) {
+      // 5초 후 플래그 제거 (다음 번 진짜 업데이트 감지 가능하도록)
+      setTimeout(function () { sessionStorage.removeItem(UPDATED_KEY); }, 5000);
+    }
     checkVersion();
     watchServiceWorker();
   }
