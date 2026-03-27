@@ -9,6 +9,8 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', function () {
     // 최초 설치(이전 컨트롤러 없음)나 이미 리프레시 중이면 무시
     if (!_yrHadController || _yrRefreshing) return;
+    // 사용자가 명시적으로 업데이트를 요청한 경우에만 reload
+    if (!sessionStorage.getItem('yr_update_applied')) return;
     _yrRefreshing = true;
     location.reload();
   });

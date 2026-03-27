@@ -63,6 +63,7 @@
 
   // ── 업데이트 적용 ─────────────────────────────────
   async function applyUpdate() {
+    var toast = document.getElementById(TOAST_ID);
     var btn = document.getElementById('yr-update-btn');
     if (btn) {
       btn.textContent = '적용 중…';
@@ -71,6 +72,9 @@
 
     // 업데이트 적용 플래그 — reload 후 토스트 재표시 방지
     sessionStorage.setItem(UPDATE_FLAG, '1');
+
+    // 토스트 즉시 제거
+    if (toast) toast.remove();
 
     // 대기 중인 SW가 있으면 활성화 → controllerchange → reload
     if ('serviceWorker' in navigator) {
