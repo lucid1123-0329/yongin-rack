@@ -260,15 +260,15 @@ const Estimate = (() => {
           ${itemRows}
         </tbody>
       </table>
-      <!-- 합계금액 (독립 테이블 — 품목 테이블 열에 종속되지 않음) -->
-      <table style="${S.table}margin-top:-1px;">
+      <!-- 합계금액 (독립 테이블) -->
+      <table style="${S.table}margin-top:-1px;table-layout:fixed;width:100%;">
         <tr>
           <td style="${S.th};width:70px;">${w('합계금액')}</td>
-          <td style="${S.tdR};font-weight:bold;font-size:13px;width:140px;">₩ ${fmt(total)}</td>
-          <td style="${S.th};width:60px;">${w('공급가액')}</td>
-          <td style="${S.tdR};font-size:11px;width:90px;">${fmt(supplyTotal)}</td>
-          <td style="${S.th};width:45px;">${w('세액')}</td>
-          <td style="${S.tdR};font-size:11px;">${fmt(vat)}</td>
+          <td style="${S.tdR};font-weight:bold;font-size:14px;">${w('₩')} ${fmt(total)}</td>
+          <td style="${S.th};width:55px;font-size:10px;">${w('공급가액')}</td>
+          <td style="${S.tdR};font-size:11px;width:80px;">${fmt(supplyTotal)}</td>
+          <td style="${S.th};width:40px;font-size:10px;">${w('세액')}</td>
+          <td style="${S.tdR};font-size:11px;width:70px;">${fmt(vat)}</td>
         </tr>
       </table>
 
@@ -424,14 +424,14 @@ const Estimate = (() => {
       </table>
 
       <!-- 하단 합계 -->
-      <table style="${S.table}margin-top:-1px;">
+      <table style="${S.table}margin-top:-1px;table-layout:fixed;width:100%;">
         <tr>
           <td style="${S.infoTh};width:70px;">합계금액</td>
-          <td style="${S.infoTd};text-align:right;font-weight:bold;font-size:13px;width:140px;">₩ ${fmt(total)}</td>
-          <td style="${S.infoTh};width:60px;">공급가액</td>
-          <td style="${S.infoTd};text-align:right;width:90px;">${fmt(supplyTotal)}</td>
-          <td style="${S.infoTh};width:45px;">세 액</td>
-          <td style="${S.infoTd};text-align:right;">${fmt(vat)}</td>
+          <td style="${S.infoTd};text-align:right;font-weight:bold;font-size:14px;">₩ ${fmt(total)}</td>
+          <td style="${S.infoTh};width:55px;font-size:10px;">공급가액</td>
+          <td style="${S.infoTd};text-align:right;width:80px;">${fmt(supplyTotal)}</td>
+          <td style="${S.infoTh};width:40px;font-size:10px;">세 액</td>
+          <td style="${S.infoTd};text-align:right;width:70px;">${fmt(vat)}</td>
         </tr>
       </table>
 
