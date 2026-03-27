@@ -71,6 +71,8 @@ function doGet(e) {
         return jsonResponse(getSettings());
       case 'viewEstimate':
         return viewEstimateHtml(e.parameter.id);
+      case 'testGemini':
+        return jsonResponse(_callGemini('한국어로 "안녕하세요"라고 인사해주세요. JSON으로 {"greeting":"인사말"} 형식으로 응답하세요.', {}));
       default:
         return jsonResponse({ error: 'Unknown action' });
     }
@@ -99,6 +101,14 @@ function doPost(e) {
     // 사진 업로드는 Lock 없이 처리 (Drive 작업이 오래 걸림)
     if (action === 'uploadPhoto') {
       return jsonResponse(uploadPhoto(body));
+    }
+
+    // AI 분석은 Lock 없이 처리 (Gemini API 호출이 오래 걸릴 수 있음)
+    if (action === 'analyzeRequest') {
+      return jsonResponse(analyzeRequest(body));
+    }
+    if (action === 'analyzePhoto') {
+      return jsonResponse(analyzePhoto(body));
     }
 
     // 나머지 쓰기 작업은 LockService로 동시 쓰기 보호
@@ -619,6 +629,10 @@ function getEstimates() {
       totalQuantity: totalQty,
       total: Number(row[7]),
       status: row[8],
+      bizNumber: row[12] || '',
+      bizType: row[13] || '',
+      bizItem: row[14] || '',
+      statusChangedAt: row[15] || row[0],
     });
   }
   var result = { estimates };
@@ -635,6 +649,7 @@ function updateStatus(estimateId, newStatus) {
   for (let i = 1; i < data.length; i++) {
     if (data[i][1] === estimateId) {
       sheet.getRange(i + 1, 9).setValue(newStatus);
+      sheet.getRange(i + 1, 16).setValue(Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm'));
       _clearCache('cache_estimates');
       return { result: 'success' };
     }
@@ -1135,4 +1150,484 @@ function getSheet(name) {
   }
 
   return sheet;
+}
+
+// ============================================================
+// 임시: 단가표 데이터 조회 (clasp run 용)
+// ============================================================
+function _debugGetPricesSummary() {
+  var sheet = getSheet('단가표');
+  var data = sheet.getDataRange().getValues();
+  var summary = { totalRows: data.length - 1, byType: {} };
+  for (var i = 1; i < data.length; i++) {
+    var type = data[i][0] || '(빈값)';
+    var active = data[i][7];
+    if (active === '삭제') continue;
+    if (!summary.byType[type]) summary.byType[type] = 0;
+    summary.byType[type]++;
+  }
+  return summary;
+}
+
+// ============================================================
+// 단가 데이터 시딩 (GAS 에디터 또는 clasp run으로 실행)
+// 4번 MD중량Rack 제외, 나머지 7개 단가표 입력
+// ============================================================
+function seedPriceData() {
+  var sheet = getSheet('단가표');
+  var allRows = [];
+
+  // 헬퍼: 매트릭스형 행 생성 (경량/중량/아연 계열 공통)
+  function gridRows(type, model, specs, heights, shelfAddon, load, pillar, shelfT) {
+    var rows = [];
+    for (var s = 0; s < specs.length; s++) {
+      var spec = specs[s][0]; // 규격명
+      var addon = specs[s][specs[s].length - 1]; // 선반추가단가 (마지막 값)
+      var priceIdx = 1; // 가격 시작 인덱스
+      for (var h = 0; h < heights.length; h++) {
+        var hName = heights[h];
+        // 연결형
+        rows.push([type, '연결형', spec, hName, specs[s][priceIdx], 0, '별도', true, model, addon, load, pillar, shelfT, '', '', '', '', '', '', '', '', '']);
+        priceIdx++;
+        // 독립형
+        rows.push([type, '독립형', spec, hName, specs[s][priceIdx], 0, '별도', true, model, addon, load, pillar, shelfT, '', '', '', '', '', '', '', '', '']);
+        priceIdx++;
+      }
+    }
+    return rows;
+  }
+
+  // ─── 1. 고급형 경량Rack ───
+  var t1Heights = ['1200(4단)', '1500(4단)', '1800(5단)', '2100(5단)', '2400(5단)'];
+  // [규격, 1200연결, 1200독립, 1500연결, 1500독립, 1800연결, 1800독립, 2100연결, 2100독립, 2400연결, 2400독립, 선반추가]
+  // 1200과 1500은 동일 가격이므로 복제
+  var t1Specs = [
+    ['450*900',  66900,79300, 66900,79300, 79700,94000, 81700,98000, 83900,102500, 10800],
+    ['450*1200', 81700,94000, 81700,94000, 94700,109000, 96700,113000, 98900,117500, 13300],
+    ['450*1500', 101700,114000, 101700,114000, 118700,133000, 120700,137000, 122900,141500, 17300],
+    ['600*900',  80900,93300, 80900,93300, 97200,111500, 99200,115500, 101400,120000, 14300],
+    ['600*1200', 97400,109800, 97400,109800, 117200,131500, 119200,135500, 121400,140000, 17800],
+    ['300*900',  54400,66800, 54400,66800, 64000,78400, 66000,82400, 68300,86900, 7700],
+    ['300*1200', 62900,75300, 62900,75300, 74000,88400, 76000,92400, 78300,96900, 9200],
+  ];
+  allRows = allRows.concat(gridRows('고급경량랙', 'A', t1Specs, t1Heights, 0, '150Kg', '1.8T', '0.8T'));
+
+  // 고급경량랙 철망
+  var t1Mesh = [
+    ['900*1500', 12700], ['900*1800', 16200], ['900*2100', 17500], ['900*2400', 21800],
+    ['1200*1500', 15600], ['1200*1800', 20000], ['1200*2100', 22800], ['1200*2400', 27800],
+  ];
+  for (var i = 0; i < t1Mesh.length; i++) {
+    allRows.push(['고급경량랙', '', t1Mesh[i][0], '', t1Mesh[i][1], 0, '별도', true, 'A', 0, '', '', '', '', '', '', '', '', '', '', 'true', '철망']);
+  }
+
+  // 고급경량랙 가격표시기(라벨홀더)
+  allRows.push(['고급경량랙', '', '840(900용)', '', 600, 0, '별도', true, 'A', 0, '', '', '', '', '', '', '', '', '', '', 'true', '가격표시기']);
+  allRows.push(['고급경량랙', '', '1140(1200용)', '', 800, 0, '별도', true, 'A', 0, '', '', '', '', '', '', '', '', '', '', 'true', '가격표시기']);
+
+  // ─── 2. KD하이퍼 (중선반380) ───
+  // 추가선반(받침포함)
+  var t2Shelves = [
+    ['1000*380', 10700], ['1200*380', 12300],
+    ['1000*450', 13600], ['1200*450', 15300],
+    ['1000*540', 16800], ['1200*540', 19600],
+  ];
+  for (var i = 0; i < t2Shelves.length; i++) {
+    allRows.push(['하이퍼 진열대', '', t2Shelves[i][0], '', t2Shelves[i][1], 0, '별도', true, 'B', 0, '', '', '', '', '', '', '', '', '', '', 'true', '추가선반']);
+  }
+
+  // 하이퍼 품목별 단가표
+  // heights: 975(3단), 1250(4단), 1360(4단), 1530(5단), 1800(5단), 2080(5단), 2350(5단)
+  var t2Heights = ['975(3단)', '1250(4단)', '1360(4단)', '1530(5단)', '1800(5단)', '2080(5단)', '2350(5단)'];
+  // [규격기준, 배치유형, 후면판유형, 형태, prices...]
+  var t2Items = [
+    // 1000*500 / 1000*1000 계열
+    ['1000', '벽면', '후면판단면', '독립형', 81100,98700,105100,117500,125600,133700,143100],
+    ['1000', '벽면', '후면판단면', '연결형', 66900,83200,87800,100100,106300,112600,119500],
+    ['1000', '앤드', '후면판양면', '독립형', 89900,111800,121000,135000,147500,160000,173700],
+    ['1000', '앤드', '후면판양면', '연결형', 75600,96300,103600,117600,128200,138800,150100],
+    ['1000', '중앙', '후면판양면', '독립형', 135700,168300,177500,202100,214600,227100,240900],
+    ['1000', '중앙', '후면판양면', '연결형', 115400,146700,154000,178600,189200,199900,211100],
+    // 1200*500 / 1200*1000 계열
+    ['1200', '벽면', '후면판단면', '독립형', 89500,109500,116400,130600,139500,148400,158500],
+    ['1200', '벽면', '후면판단면', '연결형', 75300,94000,99000,113200,120200,127200,134900],
+    ['1200', '앤드', '후면판양면', '독립형', 99800,124800,135000,151100,165100,179100,194400],
+    ['1200', '앤드', '후면판양면', '연결형', 85500,109300,117600,133700,145900,158000,170700],
+    ['1200', '중앙', '후면판양면', '독립형', 150900,188200,198400,226800,240800,254800,270100],
+    ['1200', '중앙', '후면판양면', '연결형', 130500,166600,174900,203300,215400,227600,240300],
+    // 1000*600 / 1000*1200 계열
+    ['1000(깊이600)', '벽면', '후면판단면', '독립형', 85400,102900,109400,121700,129800,138000,147300],
+    ['1000(깊이600)', '벽면', '후면판단면', '연결형', 70100,86400,91000,103300,109600,115800,122700],
+    ['1000(깊이600)', '앤드', '후면판양면', '독립형', 94100,116000,125200,139200,151700,164200,178000],
+    ['1000(깊이600)', '앤드', '후면판양면', '연결형', 78900,99500,106800,120800,131500,142100,153300],
+    ['1000(깊이600)', '중앙', '후면판양면', '독립형', 144200,176800,186000,210600,223100,235600,249400],
+    ['1000(깊이600)', '중앙', '후면판양면', '연결형', 121900,153200,160500,185100,195700,206400,217600],
+    // 1200*600 / 1200*1200 계열
+    ['1200(깊이600)', '벽면', '후면판단면', '독립형', 94800,114700,121700,135900,144700,153600,163700],
+    ['1200(깊이600)', '벽면', '후면판단면', '연결형', 79500,98200,103300,117500,124500,131500,139100],
+    ['1200(깊이600)', '앤드', '후면판양면', '독립형', 105000,130100,140200,156400,170400,184400,199600],
+    ['1200(깊이600)', '앤드', '후면판양면', '연결형', 89800,113600,121900,138000,150100,162200,175000],
+    ['1200(깊이600)', '중앙', '후면판양면', '독립형', 161400,198700,208900,237300,251300,265300,280600],
+    ['1200(깊이600)', '중앙', '후면판양면', '연결형', 139000,175100,183400,211800,223900,236100,248800],
+    // 1000*800 프로
+    ['1000(깊이800)', '프로', '후면판양면', '독립형', 101500,112800,122600,125300,137800,150300,164000],
+  ];
+  for (var i = 0; i < t2Items.length; i++) {
+    var item = t2Items[i];
+    for (var h = 0; h < t2Heights.length; h++) {
+      allRows.push(['하이퍼 진열대', item[3], item[0], t2Heights[h], item[4 + h], 0, '별도', true, 'B', 0, '', '', '', item[1], item[2], '', '', '', '', '', '', '']);
+    }
+  }
+
+  // 하이퍼 소품
+  var t2Acc = [
+    ['STOPPER', '1000', 1600], ['STOPPER', '1200', 1900],
+    ['DIVIDER', '380', 1850], ['DIVIDER', '450', 1850],
+    ['HOOK BAR', '1000', 4800], ['HOOK BAR', '1200', 5200],
+    ['점블박스', '1000*400', 23000], ['점블박스', '1200*400', 26000],
+  ];
+  for (var i = 0; i < t2Acc.length; i++) {
+    allRows.push(['하이퍼 진열대', '', t2Acc[i][1], '', t2Acc[i][2], 0, '별도', true, 'B', 0, '', '', '', '', '', t2Acc[i][0], '', '', '', '', 'true', '소품']);
+  }
+
+  // ─── 3. 신형곤도라 ───
+  // 부품 단가
+  var t3Parts = [
+    ['기둥', 1980, 12500], ['기둥', 1880, 11800], ['기둥', 1580, 10300],
+    ['기둥', 1380, 9400], ['기둥', 1180, 8500],
+    ['상연결대', 900, 2200], ['하연결대', 900, 2900],
+    ['앞장', 900, 2300],
+    ['옆장', 450, 4500], ['옆장', 400, 4500], ['옆장', 350, 4500], ['옆장', 320, 4500],
+    ['선반', '900*450', 8200], ['선반', '900*400', 6800], ['선반', '900*350', 6300], ['선반', '900*320', 5800],
+    ['중앙', 1245, 11600], ['철망', 1445, 13500], ['철망', 1745, 16200], ['철망', 1845, 17500],
+    ['받침', 450, 1000], ['받침', 350, 750], ['받침', 320, 650],
+    ['STOPPER', '', 1450], ['DIVIDER', '', 1750], ['HOOK BAR', '', 6500], ['라벨홀더', '', 600],
+  ];
+  for (var i = 0; i < t3Parts.length; i++) {
+    var p = t3Parts[i];
+    allRows.push(['곤도라 진열대', '', String(p[1]), '', p[2], 0, '별도', true, 'D', 0, '', '', '', '', '', p[0], p[1] ? Number(p[1]) || '' : '', '', '', '', '', '']);
+  }
+
+  // 곤도라 세트 조합 (BOM)
+  var t3Sets = [
+    ['앤드(900*450*1380*4s)', '독립형', 78700, '{"기둥(1380)":2,"상연결대(900)":1,"하연결대(900)":1,"앞장(900)":1,"옆장(450)":2,"선반(900*450)":1,"선반(900*320)":3,"중앙(1245)":1,"320받침":6,"라벨홀더":4}'],
+    ['앤드(900*450*1380*4s)', '연결형', 64800, '{"기둥(1380)":1,"상연결대(900)":1,"하연결대(900)":1,"앞장(900)":1,"옆장(450)":1,"선반(900*450)":1,"선반(900*320)":3,"중앙(1245)":1,"320받침":6,"라벨홀더":4}'],
+    ['벽대(900*450*1880*5s)', '독립형', 95800, '{"기둥(1880)":2,"상연결대(900)":1,"하연결대(900)":1,"앞장(900)":1,"옆장(450)":2,"선반(900*450)":1,"선반(900*320)":4,"철망(1745)":1,"320받침":8,"라벨홀더":5}'],
+    ['벽대(900*450*1880*5s)', '연결형', 79500, '{"기둥(1880)":1,"상연결대(900)":1,"하연결대(900)":1,"앞장(900)":1,"옆장(450)":1,"선반(900*450)":1,"선반(900*320)":4,"철망(1745)":1,"320받침":8,"라벨홀더":5}'],
+    ['중대(900*900*1380*4s)', '독립형', 121900, '{"기둥(1380)":2,"상연결대(900)":1,"하연결대(900)":1,"앞장(900)":2,"옆장(450)":4,"선반(900*320)":6,"중앙(1245)":1,"320받침":12,"라벨홀더":8}'],
+    ['중대(900*900*1380*4s)', '연결형', 103500, '{"기둥(1380)":1,"상연결대(900)":1,"하연결대(900)":1,"앞장(900)":2,"옆장(450)":2,"선반(900*320)":6,"중앙(1245)":1,"320받침":12,"라벨홀더":8}'],
+  ];
+  for (var i = 0; i < t3Sets.length; i++) {
+    var s = t3Sets[i];
+    allRows.push(['곤도라 진열대', s[1], s[0], '', s[2], 0, '별도', true, 'D', 0, '', '', '', '', '', '', '', '', s[0], s[3], '', '']);
+  }
+
+  // ─── 5. KD 중량Rack ───
+  var t5Heights = ['1500(4단)', '1800(4단)', '2100(4단)', '2400(4단)'];
+  // [규격, 1500연결, 1500독립, 1800연결, 1800독립, 2100연결, 2100독립, 2400연결, 2400독립, 선반추가]
+  var t5Specs = [
+    ['450*900',  84000,99500, 86500,104500, 89300,110000, 92000,115500, 13400],
+    ['450*1200', 100500,116000, 103000,121000, 105800,126500, 108500,132000, 16400],
+    ['450*1500', 118500,134000, 121000,139000, 123800,144500, 126500,150000, 19800],
+    ['450*1800', 136500,152000, 139000,157000, 141800,162500, 144500,168000, 23000],
+    ['600*900',  101500,117000, 104000,122000, 106800,127500, 109500,133000, 17800],
+    ['600*1200', 123500,139000, 126000,144000, 128800,149500, 131500,155000, 22200],
+    ['600*1500', 146500,162000, 149000,167000, 151800,172500, 154500,178000, 26800],
+    ['600*1800', 170500,186000, 173000,191000, 175800,196500, 178500,202000, 31500],
+    ['900*900',  136500,152000, 139000,157000, 141800,162500, 144500,168000, 26500],
+    ['900*1200', 165000,180500, 167500,185500, 170300,191000, 173000,196500, 32500],
+    ['900*1500', 196500,212000, 199000,217000, 201800,222500, 204500,228000, 39300],
+    ['900*1800', 227500,243000, 230000,248000, 232800,253500, 235500,259000, 45800],
+  ];
+  allRows = allRows.concat(gridRows('KD중량랙', 'A', t5Specs, t5Heights, 0, '300Kg', '2.0T', '1.0T'));
+
+  // ─── 6. KD신형 MD 경량Rack ───
+  var t6Heights = ['1200(4단)', '1500(4단)', '1800(5단)', '2100(5단)', '2400(5단)'];
+  var t6Specs = [
+    ['450*900',  59400,71500, 59400,71500, 70700,85000, 72800,89200, 75000,93600, 9200],
+    ['450*1200', 71000,83100, 71000,83100, 84400,98700, 86500,102900, 88700,107200, 11200],
+    ['450*1500', 84800,96900, 84800,96900, 100600,114900, 102700,119100, 104800,123400, 13700],
+    ['600*900',  72500,84600, 72500,84600, 87100,101400, 89200,105600, 91400,110000, 12500],
+    ['600*1200', 87300,99400, 87300,99400, 104700,119000, 106800,123200, 109000,127600, 15300],
+    ['300*900',  51600,63700, 51600,63700, 61000,75300, 63100,79500, 65300,83800, 7200],
+    ['300*1200', 61300,73400, 61300,73400, 72300,86600, 74400,90800, 76500,95100, 8800],
+  ];
+  allRows = allRows.concat(gridRows('MD경량랙', 'A', t6Specs, t6Heights, 0, '100Kg', '1.6T', '0.65T'));
+
+  // MD경량랙 철망
+  var t6Mesh = [
+    ['900*1500', 12700], ['900*1800', 16200], ['900*2100', 17500], ['900*2400', 21800],
+    ['1200*1500', 15600], ['1200*1800', 20000], ['1200*2100', 22800], ['1200*2400', 27800],
+  ];
+  for (var i = 0; i < t6Mesh.length; i++) {
+    allRows.push(['MD경량랙', '', t6Mesh[i][0], '', t6Mesh[i][1], 0, '별도', true, 'A', 0, '', '', '', '', '', '', '', '', '', '', 'true', '철망']);
+  }
+
+  // ─── 7. 아연Rack ───
+  var t7Heights = ['1200(4단)', '1500(4단)', '1800(5단)', '2100(5단)', '2400(5단)'];
+  var t7Specs = [
+    ['450*900',  49600,59000, 49600,59000, 59000,69900, 60900,73700, 63500,78900, 8000],
+    ['450*1200', 62800,72100, 62800,72100, 72800,83700, 74700,87400, 77300,92700, 10100],
+    ['600*900',  61300,70700, 61300,70700, 73700,84500, 75500,88300, 78200,93500, 10900],
+    ['600*1200', 75300,84700, 75300,84700, 90400,101300, 92300,105000, 94900,110300, 13600],
+    ['300*900',  43400,52700, 43400,52700, 51000,61900, 52900,65700, 55500,70900, 6200],
+    ['300*1200', 53900,63200, 53900,63200, 63400,74300, 65300,78000, 67900,83300, 8100],
+  ];
+  allRows = allRows.concat(gridRows('아연랙', 'A', t7Specs, t7Heights, 0, '150Kg', '1.6T', '0.8T'));
+
+  // ─── 8. 스마트 앵글랙(무볼트앵글) ───
+  // 기둥 (1.8t)
+  var t8Pillars = [[900,1800],[1200,2400],[1500,3000],[1800,3600],[2100,4200],[2400,4800]];
+  for (var i = 0; i < t8Pillars.length; i++) {
+    allRows.push(['무볼트앵글', '', String(t8Pillars[i][0]), '', t8Pillars[i][1], 0, '별도', true, 'C', 0, '', '1.8T', '', '', '', '기둥', t8Pillars[i][0], '1.8T', '', '', '', '']);
+  }
+  // 안전좌
+  allRows.push(['무볼트앵글', '', '안전좌', '', 80, 0, '별도', true, 'C', 0, '', '', '', '', '', '안전좌', '', '', '', '', 'true', '부속품']);
+
+  // 받침 (1.8t)
+  var t8Shelf18 = [[300,600],[400,800],[450,900],[500,1000],[600,1200],[700,1400],[800,1600],[900,1800],[1000,2000],[1100,2200],[1200,2400]];
+  for (var i = 0; i < t8Shelf18.length; i++) {
+    allRows.push(['무볼트앵글', '', String(t8Shelf18[i][0]), '', t8Shelf18[i][1], 0, '별도', true, 'C', 0, '', '', '', '', '', '받침', t8Shelf18[i][0], '1.8T', '', '', '', '']);
+  }
+
+  // 받침 (2.0t)
+  allRows.push(['무볼트앵글', '', '1500', '', 3220, 0, '별도', true, 'C', 0, '', '', '', '', '', '받침', 1500, '2.0T', '', '', '', '']);
+
+  // 연결형 받침 (1.8t)
+  var t8ConnShelf = [[300,1000],[400,1200],[450,1300],[500,1400],[600,1600],[700,1800],[800,2000],[900,2200]];
+  for (var i = 0; i < t8ConnShelf.length; i++) {
+    allRows.push(['무볼트앵글', '연결형', String(t8ConnShelf[i][0]), '', t8ConnShelf[i][1], 0, '별도', true, 'C', 0, '', '', '', '', '', '연결형받침', t8ConnShelf[i][0], '1.8T', '', '', '', '']);
+  }
+
+  // 보강대 (백색)
+  var t8Brace = [[400,1550],[500,1650],[600,1750],[700,1950],[800,2150],[900,2350],[1000,2550]];
+  for (var i = 0; i < t8Brace.length; i++) {
+    allRows.push(['무볼트앵글', '', String(t8Brace[i][0]), '', t8Brace[i][1], 0, '별도', true, 'C', 0, '', '', '', '', '', '보강대', t8Brace[i][0], '', '', '', '', '']);
+  }
+
+  // 바퀴형브라켓
+  allRows.push(['무볼트앵글', '', '바퀴형브라켓', '', 6000, 0, '별도', true, 'C', 0, '', '', '', '', '', '바퀴형브라켓', '', '', '', '', 'true', '부속품']);
+
+  // 바퀴 (적색 우레탄)
+  allRows.push(['무볼트앵글', '', '2.5 BK회전', '', 3300, 0, '별도', true, 'C', 0, '', '', '', '', '', '바퀴', '', '', '', '', 'true', '부속품']);
+  allRows.push(['무볼트앵글', '', '2.5 일반회전', '', 3000, 0, '별도', true, 'C', 0, '', '', '', '', '', '바퀴', '', '', '', '', 'true', '부속품']);
+
+  // ─── 일괄 쓰기 ───
+  if (allRows.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, allRows.length, 22).setValues(allRows);
+  }
+
+  _clearCache('cache_prices');
+  return { result: 'success', rowsInserted: allRows.length };
+}
+
+// ============================================================
+// Gemini API 연동
+// ============================================================
+
+function _getGeminiApiKey() {
+  var data = getSheet('설정').getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === 'geminiApiKey') return String(data[i][1]).trim();
+  }
+  return '';
+}
+
+function _callGemini(prompt, options) {
+  var apiKey = _getGeminiApiKey();
+  if (!apiKey) return { error: 'Gemini API 키가 설정되지 않았습니다. 설정 페이지에서 입력하세요.' };
+
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=' + apiKey;
+
+  var parts = [];
+  if (options && options.imageBase64) {
+    parts.push({
+      inlineData: {
+        mimeType: options.imageMimeType || 'image/jpeg',
+        data: options.imageBase64
+      }
+    });
+  }
+  parts.push({ text: prompt });
+
+  var genConfig = {
+    responseMimeType: 'application/json',
+    temperature: 0.3,
+    maxOutputTokens: 2048
+  };
+
+  if (options && options.schema) {
+    genConfig.responseSchema = options.schema;
+  }
+
+  var body = {
+    contents: [{ parts: parts }],
+    generationConfig: genConfig
+  };
+
+  try {
+    var response = UrlFetchApp.fetch(url, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(body),
+      muteHttpExceptions: true
+    });
+
+    var raw = response.getContentText();
+    var json = JSON.parse(raw);
+    if (json.error) return { error: json.error.message };
+    if (!json.candidates || !json.candidates[0]) return { error: '응답이 비어있습니다', _raw: raw.substring(0, 500) };
+
+    // Gemini 3 응답에서 text 파트 찾기 (thinking 파트 건너뛰기)
+    var contentParts = json.candidates[0].content.parts || [];
+    var text = '';
+    for (var p = 0; p < contentParts.length; p++) {
+      if (contentParts[p].text) {
+        text = contentParts[p].text;
+      }
+    }
+    if (!text) return { error: '텍스트 응답이 비어있습니다', _raw: raw.substring(0, 500) };
+
+    // 마크다운 코드블록 제거 (```json ... ```)
+    text = text.replace(/^```json?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+
+    try { return JSON.parse(text); }
+    catch(e) {
+      // 잘린 JSON 복구 시도: 부족한 중괄호/대괄호 닫기
+      var open = (text.match(/\{/g) || []).length;
+      var close = (text.match(/\}/g) || []).length;
+      var openArr = (text.match(/\[/g) || []).length;
+      var closeArr = (text.match(/\]/g) || []).length;
+      var fixed = text;
+      // 마지막 불완전 키-값 제거
+      fixed = fixed.replace(/,\s*"[^"]*"?\s*:?\s*"?[^"{}[\]]*$/, '');
+      for (var a = 0; a < openArr - closeArr; a++) fixed += ']';
+      for (var b = 0; b < open - close; b++) fixed += '}';
+      try { return JSON.parse(fixed); }
+      catch(e2) { return { rawText: text }; }
+    }
+  } catch (e) {
+    return { error: 'Gemini API 호출 실패: ' + e.message };
+  }
+}
+
+// ─── 견적 요청 AI 분석 ───
+function analyzeRequest(body) {
+  var memo = body.memo || '';
+  var rackType = body.rackType || '';
+  var quantity = body.quantity || 0;
+
+  // 단가표에서 랙 종류 목록과 대표 가격 추출
+  var prices = getPrices();
+  var typeMap = {};
+  (prices.prices || []).forEach(function(p) {
+    if (p.isAccessory) return;
+    if (!typeMap[p.type]) typeMap[p.type] = [];
+    if (typeMap[p.type].length < 3) {
+      typeMap[p.type].push(p.form + ' ' + p.spec + ' ' + p.tier + ' = ' + p.unitPrice + '원');
+    }
+  });
+  var priceContext = Object.keys(typeMap).map(function(t) {
+    return t + ':\n  ' + typeMap[t].join('\n  ');
+  }).join('\n');
+
+  var prompt = '당신은 산업용 랙(선반) 설치 전문 견적 컨설턴트입니다.\n' +
+    '고객이 견적 요청 시 남긴 정보를 분석하여 최적의 랙을 추천하세요.\n\n' +
+    '【고객 요청 정보】\n' +
+    '- 선택한 랙종류: ' + (rackType || '미선택') + '\n' +
+    '- 예상 수량: ' + (quantity || '미정') + '\n' +
+    '- 메모: ' + (memo || '없음') + '\n\n' +
+    '【현재 취급 랙 종류 및 대표 가격】\n' + priceContext + '\n\n' +
+    '위 정보를 바탕으로 분석 결과를 아래 JSON 형식으로 반환하세요:\n' +
+    '{"analysis":"메모 분석 요약","recommendedType":"추천 랙종류(단가표의 정확한 이름)","recommendedForm":"연결형 또는 독립형","recommendedSpec":"추천 규격(예: 450*900)","recommendedQty":수량숫자,"estimatedPriceRange":"예상 가격 범위","reasoning":"추천 이유","confidence":"high/medium/low"}';
+
+  // schema는 더 이상 API에 전달하지 않고 프롬프트에서 형식 지정
+  var schema = {
+    type: 'object',
+    properties: {
+      analysis: { type: 'string' },
+      recommendedType: { type: 'string' },
+      recommendedForm: { type: 'string' },
+      recommendedSpec: { type: 'string' },
+      recommendedQty: { type: 'integer' },
+      estimatedPriceRange: { type: 'string' },
+      reasoning: { type: 'string' },
+      confidence: { type: 'string', enum: ['high', 'medium', 'low'] }
+    },
+    required: ['analysis', 'recommendedType', 'recommendedQty', 'confidence']
+  };
+
+  return _callGemini(prompt, { schema: schema });
+}
+
+// ─── 사진 + 치수 AI 분석 ───
+function analyzePhoto(body) {
+  var width = body.width || 0;
+  var depth = body.depth || 0;
+  var height = body.height || 0;
+  var purpose = body.purpose || '';
+  var cargoType = body.cargoType || '';
+  var cargoWeight = body.cargoWeight || '';
+  var memo = body.memo || '';
+  var imageBase64 = body.imageBase64 || '';
+
+  if (!imageBase64) return { error: '사진이 필요합니다' };
+
+  var prices = getPrices();
+  var typeList = [];
+  var seen = {};
+  (prices.prices || []).forEach(function(p) {
+    if (!p.isAccessory && !seen[p.type]) {
+      typeList.push(p.type + ' (내하중: ' + (p.loadCapacity || '미정') + ')');
+      seen[p.type] = true;
+    }
+  });
+
+  var prompt = '당신은 창고/물류센터 랙 설치 전문가입니다.\n' +
+    '첨부된 현장 사진과 공간 정보를 분석하여 랙 설치를 추천하세요.\n\n' +
+    '【공간 치수】\n' +
+    '- 가로: ' + width + 'm / 세로: ' + depth + 'm / 높이: ' + height + 'm\n' +
+    (purpose ? '- 용도/환경: ' + purpose + '\n' : '') +
+    (cargoType ? '- 보관물: ' + cargoType + '\n' : '') +
+    (cargoWeight ? '- 보관물 무게: ' + cargoWeight + '\n' : '') +
+    (memo ? '- 요구사항: ' + memo + '\n' : '') +
+    '\n【취급 랙 종류】\n' + typeList.join(', ') + '\n\n' +
+    '사진에서 다음을 분석하세요:\n' +
+    '1. 바닥 유형 (콘크리트, 에폭시 등)\n' +
+    '2. 기존 랙/설비 유무\n' +
+    '3. 장애물 (기둥, 배관 등)\n' +
+    '4. 환경 (일반 창고, 냉동/냉장 등)\n\n' +
+    '분석 결과를 아래 JSON 형식으로 반환하세요:\n' +
+    '{"photoAnalysis":{"floorType":"바닥유형","existingRacks":"기존랙유무","obstacles":"장애물","environment":"환경유형"},"recommendation":{"rackType":"추천 랙종류(단가표의 정확한 이름)","layout":"배치 설명","estimatedQty":수량숫자,"reasoning":"추천 이유"},"warnings":["주의사항1","주의사항2"]}';
+
+  var schema = {
+    type: 'object',
+    properties: {
+      photoAnalysis: {
+        type: 'object',
+        properties: {
+          floorType: { type: 'string' },
+          existingRacks: { type: 'string' },
+          obstacles: { type: 'string' },
+          environment: { type: 'string' }
+        }
+      },
+      recommendation: {
+        type: 'object',
+        properties: {
+          rackType: { type: 'string' },
+          layout: { type: 'string' },
+          estimatedQty: { type: 'integer' },
+          reasoning: { type: 'string' }
+        }
+      },
+      warnings: { type: 'array', items: { type: 'string' } }
+    }
+  };
+
+  return _callGemini(prompt, {
+    imageBase64: imageBase64,
+    imageMimeType: body.imageMimeType || 'image/jpeg',
+    schema: schema
+  });
 }

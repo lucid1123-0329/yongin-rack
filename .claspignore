@@ -1,0 +1,44 @@
+# GitHub Pages 프론트엔드 파일 (Apps Script에 불필요)
+index.html
+admin.html
+admin-push.html
+dashboard.html
+estimate-preview.html
+history.html
+more.html
+portfolio.html
+portfolio-public.html
+request.html
+requests.html
+settings.html
+view.html
+
+# JS 프론트엔드 파일
+js/**
+
+# Service Worker & PWA
+sw.js
+OneSignalSDKWorker.js
+manifest.json
+
+# Assets
+assets/**
+favicon.ico
+
+# 설정/문서 파일
+.clasp.json
+.claspignore
+.gitignore
+.git/**
+.claude/**
+.gstack/**
+CLAUDE.md
+CHANGELOG.md
+CNAME
+version.json
+desktop.ini
+*.md
+*.token
+
+# 테스트
+test/**

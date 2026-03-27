@@ -381,7 +381,7 @@
 
     function _parseDims(spec) {
       if (!spec) return [9999, 9999, 9999];
-      const parts = spec.split('*').map(s => parseInt(s, 10) || 9999);
+      const parts = String(spec).split('*').map(s => parseInt(s, 10) || 9999);
       return [parts[0] || 9999, parts[1] || 9999, parts[2] || 9999];
     }
 

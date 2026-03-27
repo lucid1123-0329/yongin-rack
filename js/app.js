@@ -121,11 +121,68 @@ const App = (() => {
 
   function addRecentItem(item) {
     const recents = getRecentItems();
-    // 중복 제거 (type+form+spec+tier 기준)
     const key = `${item.type}|${item.form || ''}|${item.spec}|${item.tier}`;
     const filtered = recents.filter(r => `${r.type}|${r.form || ''}|${r.spec}|${r.tier}` !== key);
     filtered.unshift({ type: item.type, form: item.form || '', spec: item.spec, tier: item.tier, unitPrice: item.unitPrice, installFee: item.installFee, vat: item.vat });
     _lsSet(RECENT_KEY, JSON.stringify(filtered.slice(0, 5)));
+  }
+
+  // --- 빈도 기반 추천 ---
+  var FREQ_KEY = 'yr_item_freq';
+
+  function addItemFrequency(item) {
+    try {
+      var freq = JSON.parse(_lsGet(FREQ_KEY) || '{}');
+      var key = item.type + '|' + (item.form || '') + '|' + item.spec + '|' + item.tier;
+      freq[key] = (freq[key] || 0) + 1;
+      _lsSet(FREQ_KEY, JSON.stringify(freq));
+    } catch {}
+  }
+
+  function getTopItems(n) {
+    try {
+      var freq = JSON.parse(_lsGet(FREQ_KEY) || '{}');
+      var entries = Object.entries(freq).sort(function(a, b) { return b[1] - a[1]; });
+      var tops = [];
+      for (var i = 0; i < Math.min(entries.length, n || 3); i++) {
+        var parts = entries[i][0].split('|');
+        var match = priceData.find(function(p) {
+          return p.type === parts[0] && (p.form || '') === parts[1] && String(p.spec) === parts[2] && String(p.tier) === parts[3];
+        });
+        if (match) {
+          tops.push({ type: match.type, form: match.form, spec: match.spec, tier: match.tier,
+            unitPrice: match.unitPrice, installFee: match.installFee, vat: match.vat, _count: entries[i][1] });
+        }
+      }
+      return tops;
+    } catch { return []; }
+  }
+
+  // --- 고객 패턴 추천 ---
+  var _customerPatternItems = [];
+
+  function setCustomerPatternItems(estimates) {
+    _customerPatternItems = [];
+    if (!estimates || !estimates.length) return;
+    var seen = {};
+    estimates.forEach(function(est) {
+      var estItems = est.items || [];
+      if (typeof estItems === 'string') { try { estItems = JSON.parse(estItems); } catch { estItems = []; } }
+      estItems.forEach(function(item) {
+        if (item.itemType === 'custom') return;
+        var key = item.type + '|' + (item.form || '') + '|' + String(item.spec) + '|' + String(item.tier);
+        if (!seen[key]) {
+          seen[key] = true;
+          var match = priceData.find(function(p) {
+            return p.type === item.type && (p.form || '') === (item.form || '') && String(p.spec) === String(item.spec) && String(p.tier) === String(item.tier);
+          });
+          if (match) {
+            _customerPatternItems.push({ type: match.type, form: match.form, spec: match.spec, tier: match.tier,
+              unitPrice: match.unitPrice, installFee: match.installFee, vat: match.vat });
+          }
+        }
+      });
+    });
   }
 
   // --- 칩/카드 기반 렌더링 ---
@@ -147,20 +204,41 @@ const App = (() => {
 
     let html = '';
 
-    // 최근 사용
-    const recents = getRecentItems();
-    if (recents.length > 0) {
+    // 자주 사용하는 품목 (빈도 기반 TOP3, 없으면 최근 사용)
+    var topItems = getTopItems(3);
+    var quickItems = topItems.length > 0 ? topItems : getRecentItems();
+    var quickLabel = topItems.length > 0 ? '자주 사용하는 품목' : '최근 사용';
+    if (quickItems.length > 0) {
       html += `<div class="mb-4">
-        <label class="block text-xs font-semibold text-gray-500 mb-2">최근 사용</label>
+        <label class="block text-xs font-semibold text-gray-500 mb-2">${quickLabel}</label>
         <div class="flex flex-wrap gap-2">
-          ${recents.map((r, i) => {
-            const specShort = r.spec || '';
-            const tierStr = r.tier ? `*${r.tier}s` : '';
-            const label = `${r.type}${r.form ? '(' + r.form + ')' : ''} ${specShort}${tierStr}`;
+          ${quickItems.map((r, i) => {
+            const specShort = String(r.spec || '');
+            const tierStr = r.tier ? '*' + r.tier + 's' : '';
+            const label = r.type + (r.form ? '(' + r.form + ')' : '') + ' ' + specShort + tierStr;
+            const countBadge = r._count ? ' (' + r._count + '회)' : '';
             return `<button type="button" onclick="App.addRecentQuick(${i})"
               class="px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl text-xs font-semibold text-blue-700 active:bg-blue-100 text-left">
-              <span class="block">${label}</span>
+              <span class="block">${label}${countBadge}</span>
               <span class="block text-blue-500 text-[10px]">${UI.formatCurrency(r.unitPrice || 0)}</span>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }
+
+    // 이 고객 패턴
+    if (_customerPatternItems.length > 0) {
+      html += `<div class="mb-4">
+        <label class="block text-xs font-semibold text-gray-500 mb-2">이 고객이 사용한 품목</label>
+        <div class="flex flex-wrap gap-2">
+          ${_customerPatternItems.slice(0, 5).map((r, i) => {
+            const specShort = String(r.spec || '');
+            const label = r.type + (r.form ? '(' + r.form + ')' : '') + ' ' + specShort;
+            return `<button type="button" onclick="App._addPatternItem(${i})"
+              class="px-3 py-2 bg-green-50 border border-green-200 rounded-xl text-xs font-semibold text-green-700 active:bg-green-100 text-left">
+              <span class="block">${label}</span>
+              <span class="block text-green-500 text-[10px]">${UI.formatCurrency(r.unitPrice || 0)}</span>
             </button>`;
           }).join('')}
         </div>
@@ -732,7 +810,7 @@ const App = (() => {
 
   function _parseSpecDims(spec) {
     if (!spec) return [9999, 9999, 9999];
-    const parts = spec.split('*').map(s => parseInt(s, 10) || 9999);
+    const parts = String(spec).split('*').map(s => parseInt(s, 10) || 9999);
     return [parts[0] || 9999, parts[1] || 9999, parts[2] || 9999]; // 가로, 세로, 높이
   }
 
@@ -810,14 +888,25 @@ const App = (() => {
   }
 
   function addRecentQuick(index) {
-    const recents = getRecentItems();
-    const r = recents[index];
+    // topItems(빈도 기반) 또는 recentItems에서 선택
+    var topItems = getTopItems(3);
+    var quickItems = topItems.length > 0 ? topItems : getRecentItems();
+    const r = quickItems[index];
     if (!r) return;
+    _addQuickItem(r);
+  }
 
+  function _addPatternItem(index) {
+    var r = _customerPatternItems[index];
+    if (!r) return;
+    _addQuickItem(r);
+  }
+
+  function _addQuickItem(r) {
     items.push({
       type: r.type,
       form: r.form || '',
-      spec: r.spec,
+      spec: String(r.spec),
       tier: r.tier,
       unitPrice: Number(r.unitPrice) || 0,
       installFee: Number(r.installFee) || 0,
@@ -828,7 +917,7 @@ const App = (() => {
       setName: r.setName || '',
       partCategory: r.partCategory || '',
     });
-
+    addItemFrequency(r);
     renderItems();
     updateTotal();
     saveDraft();
@@ -871,6 +960,7 @@ const App = (() => {
     };
     items.push(newItem);
     addRecentItem(newItem);
+    addItemFrequency(newItem);
 
     // 모델 A: 선반 추가 처리
     const chkShelf = document.getElementById('chk-shelf-addon');
@@ -1265,7 +1355,7 @@ const App = (() => {
     removeItem, renderItems,
     calculate, updateTotal, saveEstimate, resetEstimate,
     loadDraft, clearDraft, getCustomerInfo,
-    onTypeChip, onFormChip, onFormChipCustom, onSpecCard, addRecentQuick, sortSpecs,
+    onTypeChip, onFormChip, onFormChipCustom, onSpecCard, addRecentQuick, sortSpecs, _addPatternItem, setCustomerPatternItems, renderRackSelector,
     // 모델 B
     onLayoutChip, onModelBSpecCard,
     // 모델 C

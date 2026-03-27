@@ -86,6 +86,8 @@
         class="status-tab flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500">시공중</button>
       <button onclick="setFilter('시공완료')" data-status="시공완료"
         class="status-tab flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500">시공완료</button>
+      <button onclick="setFilter('후속필요')" data-status="후속필요"
+        class="status-tab flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500">후속 필요</button>
     </div>
 
     <!-- 견적 목록 -->
@@ -229,9 +231,29 @@
 
     function filterEstimates() { renderList(); }
 
+    function getOverdueDays(e) {
+      var ref = e.statusChangedAt || e.date;
+      if (!ref) return 0;
+      var d = new Date(ref);
+      if (isNaN(d.getTime())) return 0;
+      return Math.floor((Date.now() - d.getTime()) / 86400000);
+    }
+
+    function overdueBadge(e) {
+      if (e.status === '시공완료') return '';
+      var days = getOverdueDays(e);
+      if (days >= 7) return '<span class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600">' + days + '일 경과</span>';
+      if (days >= 3) return '<span class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-600">' + days + '일 경과</span>';
+      return '';
+    }
+
     function getFiltered() {
       const query = (document.getElementById('search-input').value || '').trim().toLowerCase();
       return allEstimates.filter(e => {
+        if (currentFilter === '후속필요') {
+          return e.status !== '시공완료' && getOverdueDays(e) >= 3 &&
+            (!query || (e.customerName || '').toLowerCase().includes(query));
+        }
         const matchStatus = currentFilter === '전체' || e.status === currentFilter;
         const matchSearch = !query || (e.customerName || '').toLowerCase().includes(query);
         return matchStatus && matchSearch;
@@ -264,7 +286,7 @@
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-0.5">
                   <span class="text-sm font-bold text-gray-800 truncate">${e.customerName || '미지정'}</span>
-                  ${UI.statusBadge(e.status || '상담완료')}
+                  ${UI.statusBadge(e.status || '상담완료')}${overdueBadge(e)}
                 </div>
                 <p class="text-xs text-gray-400">${UI.formatDate(e.date || '')} · ${e.itemSummary || '랙'} · ${e.totalQuantity || 0}대</p>
               </div>

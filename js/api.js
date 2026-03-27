@@ -46,7 +46,7 @@ const API = (() => {
   }
 
   async function _doRequest(method, params, isAdmin, options) {
-    const timeout = method === 'GET' ? GET_TIMEOUT : POST_TIMEOUT;
+    const timeout = options.timeout || (method === 'GET' ? GET_TIMEOUT : POST_TIMEOUT);
 
     try {
       const controller = new AbortController();
@@ -202,6 +202,15 @@ const API = (() => {
     return request('POST', { action: 'saveSettings', ...data });
   }
 
+  // AI 분석
+  async function analyzeRequest(data) {
+    return request('POST', { action: 'analyzeRequest', ...data }, { timeout: 30000 });
+  }
+
+  async function analyzePhoto(data) {
+    return request('POST', { action: 'analyzePhoto', ...data }, { timeout: 60000 });
+  }
+
   return {
     request,
     getPrices, addPrice, updatePrice, deletePrice,
@@ -209,6 +218,7 @@ const API = (() => {
     submitRequest, getRequests, updateRequestStatus, deleteRequest, linkEstimateToRequest,
     uploadPhoto, getPortfolio, deletePhoto, getBlogPosts,
     getSettings, saveSettings,
+    analyzeRequest, analyzePhoto,
     get baseUrl() { return BASE_URL; },
   };
 })();
