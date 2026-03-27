@@ -191,7 +191,8 @@ const Auth = (() => {
 
     const modal = document.createElement('div');
     modal.id = 'pin-modal';
-    modal.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center';
+    modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center';
+    modal.style.zIndex = '10000';
     modal.innerHTML = `
       <div class="bg-white rounded-2xl p-6 mx-4 w-full max-w-sm text-center">
         <div class="text-4xl mb-4">🔒</div>
@@ -214,6 +215,10 @@ const Auth = (() => {
     `;
 
     document.body.appendChild(modal);
+
+    // 인증 오버레이가 있으면 제거 (PIN 모달이 대체)
+    var authOverlay = document.getElementById('auth-overlay');
+    if (authOverlay) authOverlay.remove();
 
     let pin = '';
     const dots = modal.querySelectorAll('.pin-dot');
