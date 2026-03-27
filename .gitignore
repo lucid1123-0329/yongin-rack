@@ -13,3 +13,4 @@ Thumbs.db
 .env.*
 credentials.json
 *_token
+.clasp.json
