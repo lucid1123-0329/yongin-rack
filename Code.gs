@@ -229,7 +229,8 @@ function _getPricingModel(type) {
   if (t === '곤도라 진열대' || t.indexOf('곤도라') >= 0) return 'D';
   // 모델 C: 부품 조합형 (무볼트앵글)
   if (t === '무볼트앵글' || t.indexOf('앵글') >= 0) return 'C';
-  return '';
+  // 기타: 기본 매트릭스형 (클라이언트와 동일)
+  return 'A';
 }
 
 // 단가 행 → JSON 객체 변환 (공통)

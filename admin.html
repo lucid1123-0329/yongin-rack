@@ -700,6 +700,11 @@
 
     function updateBomRow(idx, field, value) {
       bomRows[idx][field] = field === 'part' ? value : Number(value) || 0;
+      // 수량/단가 변경 시 행 소계도 즉시 반영
+      if (field !== 'part') {
+        const subtotalEl = document.getElementById('bom-subtotal-' + idx);
+        if (subtotalEl) subtotalEl.textContent = UI.formatCurrency(bomRows[idx].qty * bomRows[idx].price);
+      }
       updateBomTotal();
     }
 
@@ -719,7 +724,7 @@
           <span class="text-[10px] text-gray-400">×</span>
           <input type="number" value="${r.price}" onchange="updateBomRow(${i},'price',this.value)" placeholder="단가"
             class="w-20 h-8 px-1 border border-gray-200 rounded text-xs text-center focus:border-primary focus:outline-none">
-          <span class="text-xs font-semibold text-gray-600 w-16 text-right">${UI.formatCurrency(r.qty * r.price)}</span>
+          <span id="bom-subtotal-${i}" class="text-xs font-semibold text-gray-600 w-16 text-right">${UI.formatCurrency(r.qty * r.price)}</span>
           <button type="button" onclick="removeBomRow(${i})" class="text-red-400 text-lg px-1">&times;</button>
         </div>
       `).join('');
