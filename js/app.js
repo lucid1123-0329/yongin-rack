@@ -84,7 +84,32 @@ const App = (() => {
   }
 
   function getSpecsForTypeAndForm(type, form) {
-    return priceData.filter(p => p.type === type && (p.form || '') === (form || ''));
+    return priceData.filter(p => p.type === type && (p.form || '') === (form || '') && !p.isAccessory);
+  }
+
+  // --- 가격 모델 판별 ---
+  function _getPricingModel(type) {
+    if (!type) return 'A';
+    var t = type.trim();
+    if (['고급경량랙','MD경량랙','경량랙','아연랙','MD중량랙','KD중량랙','중량랙','파렛트랙'].indexOf(t) >= 0) return 'A';
+    if (t === '하이퍼 진열대' || t.indexOf('하이퍼') >= 0) return 'B';
+    if (t === '곤도라 진열대' || t.indexOf('곤도라') >= 0) return 'D';
+    if (t === '무볼트앵글' || t.indexOf('앵글') >= 0) return 'C';
+    return 'A';
+  }
+
+  // --- 부속품 필터 ---
+  function getAccessoriesForType(type) {
+    return priceData.filter(p => p.type === type && p.isAccessory);
+  }
+
+  // --- 세트 필터 (모델 D) ---
+  function getSetsForType(type) {
+    return priceData.filter(p => p.type === type && p.setName && !p.isAccessory);
+  }
+
+  function getPartsForType(type) {
+    return priceData.filter(p => p.type === type && p.partCategory && !p.setName && !p.isAccessory);
   }
 
   // --- 최근 사용 관리 ---
@@ -152,13 +177,19 @@ const App = (() => {
       </div>
     </div>`;
 
-    // 형태 영역 (hidden)
+    // 형태 영역 (hidden) — 모델 A/B 공통
     html += `<div id="sel-form-group" class="mb-3 hidden">
       <label class="block text-xs font-semibold text-gray-500 mb-2">형태</label>
       <div id="chips-form" class="flex flex-wrap gap-2"></div>
     </div>`;
 
-    // 규격 카드 영역 (hidden)
+    // 모델 B 배치유형 칩 (hidden)
+    html += `<div id="sel-layout-group" class="mb-3 hidden">
+      <label class="block text-xs font-semibold text-gray-500 mb-2">배치유형</label>
+      <div id="chips-layout" class="flex flex-wrap gap-2"></div>
+    </div>`;
+
+    // 규격 카드 영역 (hidden) — 모델 A/B 공통
     html += `<div id="sel-spec-group" class="mb-3 hidden">
       <div class="flex items-center justify-between mb-2">
         <label class="block text-xs font-semibold text-gray-500">규격 선택</label>
@@ -172,32 +203,115 @@ const App = (() => {
       <div id="cards-spec" class="flex flex-col gap-1 max-h-[280px] overflow-y-auto overscroll-contain rounded-lg border border-gray-200"></div>
     </div>`;
 
+    // 선반 추가 옵션 (모델 A — hidden)
+    html += `<div id="sel-shelf-addon" class="mb-3 hidden">
+      <div class="bg-blue-50 rounded-lg p-3">
+        <label class="flex items-center gap-2 text-xs font-semibold text-gray-700">
+          <input type="checkbox" id="chk-shelf-addon" onchange="App.onShelfAddonToggle()">
+          선반 추가 (받침 포함)
+        </label>
+        <div id="shelf-addon-detail" class="hidden mt-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-500">추가 수량:</span>
+            <input type="number" id="shelf-addon-qty" value="1" min="1" max="20"
+              class="w-16 h-8 px-2 border border-gray-300 rounded-lg text-sm text-center" onchange="App.updateShelfAddonPreview()">
+            <span class="text-xs text-gray-500">단</span>
+            <span class="ml-auto text-xs font-bold text-blue-600" id="shelf-addon-price-label"></span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    // 모델 C: 부품 조합 영역 (hidden)
+    html += `<div id="sel-parts-group" class="mb-3 hidden">
+      <label class="block text-xs font-semibold text-gray-500 mb-2">부품 종류</label>
+      <div id="chips-part-cat" class="flex flex-wrap gap-2 mb-3"></div>
+      <div id="parts-thickness-area" class="hidden mb-3">
+        <label class="block text-xs font-semibold text-gray-500 mb-2">두께</label>
+        <div id="chips-part-thickness" class="flex flex-wrap gap-2"></div>
+      </div>
+      <div id="parts-list" class="hidden">
+        <label class="block text-xs font-semibold text-gray-500 mb-2">길이별 단가</label>
+        <div id="cards-parts" class="flex flex-col gap-1 max-h-[280px] overflow-y-auto overscroll-contain rounded-lg border border-gray-200"></div>
+      </div>
+    </div>`;
+
+    // 모델 D: 세트/부품 선택 영역 (hidden)
+    html += `<div id="sel-sets-group" class="mb-3 hidden">
+      <div class="flex gap-2 mb-3">
+        <button type="button" onclick="App.onDModeSwitch('set')" id="d-mode-set"
+          class="chip selected">세트 선택</button>
+        <button type="button" onclick="App.onDModeSwitch('part')" id="d-mode-part"
+          class="chip">부품 개별</button>
+      </div>
+      <div id="d-set-cards" class="flex flex-col gap-1 max-h-[300px] overflow-y-auto overscroll-contain rounded-lg border border-gray-200"></div>
+      <div id="d-part-area" class="hidden">
+        <label class="block text-xs font-semibold text-gray-500 mb-2">부품 종류</label>
+        <div id="d-chips-part-cat" class="flex flex-wrap gap-2 mb-3"></div>
+        <div id="d-parts-list" class="flex flex-col gap-1 max-h-[280px] overflow-y-auto overscroll-contain rounded-lg border border-gray-200"></div>
+      </div>
+    </div>`;
+
+    // 부속품 추가 영역 (모든 모델 공통 — hidden)
+    html += `<div id="sel-accessories" class="mb-3 hidden">
+      <label class="block text-xs font-semibold text-gray-500 mb-2">부속품 추가</label>
+      <div id="cards-accessories" class="flex flex-col gap-1 max-h-[200px] overflow-y-auto overscroll-contain rounded-lg border border-gray-200"></div>
+    </div>`;
+
     container.innerHTML = html;
   }
+
+  // 모든 하위 선택 영역 숨기기
+  function _hideAllSubGroups() {
+    ['sel-form-group','sel-layout-group','sel-spec-group','sel-shelf-addon',
+     'sel-parts-group','sel-sets-group','sel-accessories'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
+    const addSection = document.getElementById('add-section');
+    if (addSection) addSection.classList.add('hidden');
+  }
+
+  let _selLayout = ''; // 모델 B: 배치유형
+  let _selPartCat = ''; // 모델 C: 부품 카테고리
+  let _selPartThickness = ''; // 모델 C: 두께
+  let _dMode = 'set'; // 모델 D: set / part
 
   function onTypeChip(type) {
     _selType = type;
     _selForm = '';
+    _selLayout = '';
+    _selPartCat = '';
+    _selPartThickness = '';
     currentSelection = null;
-    const addSection = document.getElementById('add-section');
-    if (addSection) addSection.classList.add('hidden');
+    _hideAllSubGroups();
 
     // 타입 칩 활성 상태
     document.querySelectorAll('#chips-type .chip').forEach(el => {
       el.classList.toggle('selected', el.textContent === type);
     });
 
-    // 형태 칩 렌더
-    const formGroup = document.getElementById('sel-form-group');
-    const specGroup = document.getElementById('sel-spec-group');
-    specGroup.classList.add('hidden');
+    const model = _getPricingModel(type);
 
+    switch (model) {
+      case 'B': _renderModelB(type); break;
+      case 'C': _renderModelC(type); break;
+      case 'D': _renderModelD(type); break;
+      default:  _renderModelA(type); break;
+    }
+
+    // 부속품 표시
+    _renderAccessories(type);
+  }
+
+  // ======== 모델 A: 기존 흐름 + 선반추가 ========
+  function _renderModelA(type) {
+    const formGroup = document.getElementById('sel-form-group');
     const dataForms = getFormsForType(type);
     const presetForms = RACK_FORMS[type] || [];
     const allForms = [...new Set([...presetForms, ...dataForms])];
 
     if (allForms.length === 0) {
-      // 형태 없이 바로 규격 표시
       formGroup.classList.add('hidden');
       _selForm = '';
       renderSpecCards(type, '');
@@ -211,18 +325,377 @@ const App = (() => {
     formGroup.classList.remove('hidden');
   }
 
+  // ======== 모델 B: 배치 → 형태 → 규격 ========
+  function _renderModelB(type) {
+    // 배치유형 칩 (벽면/앤드/중앙)
+    const layoutGroup = document.getElementById('sel-layout-group');
+    const layoutChips = document.getElementById('chips-layout');
+    const layouts = [...new Set(priceData.filter(p => p.type === type && p.layoutType).map(p => p.layoutType))];
+    if (layouts.length === 0) {
+      // layoutType이 없으면 기존 form 기반으로 fallback
+      _renderModelA(type);
+      return;
+    }
+    layoutChips.innerHTML = layouts.map(l =>
+      `<span class="chip" onclick="App.onLayoutChip('${l}')">${l}</span>`
+    ).join('');
+    layoutGroup.classList.remove('hidden');
+
+    // 형태 칩도 표시 (독립/연결)
+    const formGroup = document.getElementById('sel-form-group');
+    const forms = [...new Set(priceData.filter(p => p.type === type).map(p => p.form).filter(Boolean))];
+    const chipsContainer = document.getElementById('chips-form');
+    chipsContainer.innerHTML = forms.map(f =>
+      `<span class="chip chip-form" onclick="App.onFormChip('${f}')">${f}</span>`
+    ).join('');
+    formGroup.classList.remove('hidden');
+  }
+
+  function onLayoutChip(layout) {
+    _selLayout = layout;
+    document.querySelectorAll('#chips-layout .chip').forEach(el => {
+      el.classList.toggle('selected', el.textContent === layout);
+    });
+    if (_selForm) _renderModelBSpecs();
+  }
+
+  // ======== 모델 C: 부품 카테고리 → 두께 → 길이별 카드 ========
+  function _renderModelC(type) {
+    const partsGroup = document.getElementById('sel-parts-group');
+    const catChips = document.getElementById('chips-part-cat');
+    const parts = getPartsForType(type);
+    const categories = [...new Set(parts.map(p => p.partCategory).filter(Boolean))];
+
+    catChips.innerHTML = categories.map(c =>
+      `<span class="chip" onclick="App.onPartCatChip('${c}')">${c}</span>`
+    ).join('');
+    partsGroup.classList.remove('hidden');
+  }
+
+  function onPartCatChip(cat) {
+    _selPartCat = cat;
+    _selPartThickness = '';
+    document.querySelectorAll('#chips-part-cat .chip').forEach(el => {
+      el.classList.toggle('selected', el.textContent === cat);
+    });
+
+    // 두께 옵션
+    const parts = getPartsForType(_selType).filter(p => p.partCategory === cat);
+    const thicknesses = [...new Set(parts.map(p => p.partThickness).filter(Boolean))];
+
+    const thicknessArea = document.getElementById('parts-thickness-area');
+    if (thicknesses.length > 1) {
+      const thicknessChips = document.getElementById('chips-part-thickness');
+      thicknessChips.innerHTML = thicknesses.map(t =>
+        `<span class="chip" onclick="App.onPartThicknessChip('${t}')">${t}</span>`
+      ).join('');
+      thicknessArea.classList.remove('hidden');
+    } else {
+      thicknessArea.classList.add('hidden');
+      _selPartThickness = thicknesses[0] || '';
+      _renderPartCards();
+    }
+  }
+
+  function onPartThicknessChip(thickness) {
+    _selPartThickness = thickness;
+    document.querySelectorAll('#chips-part-thickness .chip').forEach(el => {
+      el.classList.toggle('selected', el.textContent === thickness);
+    });
+    _renderPartCards();
+  }
+
+  function _renderPartCards() {
+    const listArea = document.getElementById('parts-list');
+    const cardsContainer = document.getElementById('cards-parts');
+    let parts = getPartsForType(_selType).filter(p => p.partCategory === _selPartCat);
+    if (_selPartThickness) parts = parts.filter(p => p.partThickness === _selPartThickness);
+
+    parts.sort((a, b) => (a.partLength || 0) - (b.partLength || 0));
+
+    cardsContainer.innerHTML = parts.map((p, i) => {
+      const label = p.spec || (p.partLength ? p.partLength + 'mm' : '');
+      return `<button type="button" onclick="App.onPartCard('${_selPartCat}','${_selPartThickness}',${i})" data-idx="${i}"
+        class="part-card flex items-center justify-between px-3 py-2.5 bg-white border-b border-gray-100 text-left active:bg-purple-50 transition-colors">
+        <span class="text-sm font-bold text-gray-800">${label}</span>
+        <span class="text-sm font-extrabold text-purple-600">${UI.formatCurrency(p.unitPrice)}</span>
+      </button>`;
+    }).join('') || '<p class="text-gray-400 text-xs text-center py-3">등록된 부품이 없습니다</p>';
+    listArea.classList.remove('hidden');
+  }
+
+  function onPartCard(cat, thickness, index) {
+    let parts = getPartsForType(_selType).filter(p => p.partCategory === cat);
+    if (thickness) parts = parts.filter(p => p.partThickness === thickness);
+    parts.sort((a, b) => (a.partLength || 0) - (b.partLength || 0));
+    currentSelection = parts[index] || null;
+    if (!currentSelection) return;
+
+    document.querySelectorAll('.part-card').forEach(el => {
+      const isSelected = parseInt(el.dataset.idx) === index;
+      el.classList.toggle('bg-purple-50', isSelected);
+      el.classList.toggle('bg-white', !isSelected);
+      el.classList.toggle('border-l-[3px]', isSelected);
+      el.classList.toggle('border-l-purple-600', isSelected);
+    });
+
+    const addSection = document.getElementById('add-section');
+    if (addSection) addSection.classList.remove('hidden');
+  }
+
+  // ======== 모델 D: 세트 선택 / 부품 개별 ========
+  function _renderModelD(type) {
+    const setsGroup = document.getElementById('sel-sets-group');
+    setsGroup.classList.remove('hidden');
+    _dMode = 'set';
+    _renderDSetCards(type);
+  }
+
+  function onDModeSwitch(mode) {
+    _dMode = mode;
+    document.getElementById('d-mode-set').classList.toggle('selected', mode === 'set');
+    document.getElementById('d-mode-part').classList.toggle('selected', mode === 'part');
+
+    if (mode === 'set') {
+      document.getElementById('d-set-cards').classList.remove('hidden');
+      document.getElementById('d-part-area').classList.add('hidden');
+      _renderDSetCards(_selType);
+    } else {
+      document.getElementById('d-set-cards').classList.add('hidden');
+      document.getElementById('d-part-area').classList.remove('hidden');
+      _renderDPartCats(_selType);
+    }
+  }
+
+  function _renderDSetCards(type) {
+    const container = document.getElementById('d-set-cards');
+    const sets = getSetsForType(type);
+
+    if (sets.length === 0) {
+      container.innerHTML = '<p class="text-gray-400 text-xs text-center py-3">등록된 세트가 없습니다</p>';
+      return;
+    }
+
+    container.innerHTML = sets.map((s, i) => {
+      const layoutBadge = s.layoutType ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">${s.layoutType}</span>` : '';
+      const formBadge = s.form ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-700">${s.form}</span>` : '';
+      return `<button type="button" onclick="App.onDSetCard(${i})" data-idx="${i}"
+        class="d-set-card flex items-center justify-between px-3 py-3 bg-white border-b border-gray-100 text-left active:bg-amber-50 transition-colors">
+        <div>
+          <div class="flex items-center gap-1 mb-0.5">${layoutBadge}${formBadge}</div>
+          <span class="text-sm font-bold text-gray-800">${s.setName || s.spec || '세트'}</span>
+          <span class="text-[10px] text-gray-400 ml-1">${s.spec || ''}</span>
+        </div>
+        <span class="text-sm font-extrabold text-amber-600">${UI.formatCurrency(s.unitPrice)}</span>
+      </button>`;
+    }).join('');
+  }
+
+  function onDSetCard(index) {
+    const sets = getSetsForType(_selType);
+    currentSelection = sets[index] || null;
+    if (!currentSelection) return;
+
+    document.querySelectorAll('.d-set-card').forEach(el => {
+      const isSelected = parseInt(el.dataset.idx) === index;
+      el.classList.toggle('bg-amber-50', isSelected);
+      el.classList.toggle('bg-white', !isSelected);
+      el.classList.toggle('border-l-[3px]', isSelected);
+      el.classList.toggle('border-l-amber-500', isSelected);
+    });
+
+    const addSection = document.getElementById('add-section');
+    if (addSection) addSection.classList.remove('hidden');
+  }
+
+  function _renderDPartCats(type) {
+    const catChips = document.getElementById('d-chips-part-cat');
+    const parts = getPartsForType(type);
+    const categories = [...new Set(parts.map(p => p.partCategory).filter(Boolean))];
+
+    catChips.innerHTML = categories.map(c =>
+      `<span class="chip" onclick="App.onDPartCatChip('${c}')">${c}</span>`
+    ).join('');
+  }
+
+  function onDPartCatChip(cat) {
+    _selPartCat = cat;
+    document.querySelectorAll('#d-chips-part-cat .chip').forEach(el => {
+      el.classList.toggle('selected', el.textContent === cat);
+    });
+
+    const container = document.getElementById('d-parts-list');
+    let parts = getPartsForType(_selType).filter(p => p.partCategory === cat);
+    parts.sort((a, b) => (a.partLength || a.unitPrice || 0) - (b.partLength || b.unitPrice || 0));
+
+    container.innerHTML = parts.map((p, i) => {
+      const label = p.spec || (p.partLength ? p.partLength + 'mm' : p.partCategory);
+      return `<button type="button" onclick="App.onDPartCard('${cat}',${i})" data-idx="${i}"
+        class="d-part-card flex items-center justify-between px-3 py-2.5 bg-white border-b border-gray-100 text-left active:bg-amber-50 transition-colors">
+        <span class="text-sm font-bold text-gray-800">${label}</span>
+        <span class="text-sm font-extrabold text-amber-600">${UI.formatCurrency(p.unitPrice)}</span>
+      </button>`;
+    }).join('') || '<p class="text-gray-400 text-xs text-center py-3">등록된 부품이 없습니다</p>';
+    container.classList.remove('hidden');
+  }
+
+  function onDPartCard(cat, index) {
+    let parts = getPartsForType(_selType).filter(p => p.partCategory === cat);
+    parts.sort((a, b) => (a.partLength || a.unitPrice || 0) - (b.partLength || b.unitPrice || 0));
+    currentSelection = parts[index] || null;
+    if (!currentSelection) return;
+
+    document.querySelectorAll('.d-part-card').forEach(el => {
+      const isSelected = parseInt(el.dataset.idx) === index;
+      el.classList.toggle('bg-amber-50', isSelected);
+      el.classList.toggle('bg-white', !isSelected);
+    });
+
+    const addSection = document.getElementById('add-section');
+    if (addSection) addSection.classList.remove('hidden');
+  }
+
+  // ======== 부속품 공통 ========
+  function _renderAccessories(type) {
+    const accGroup = document.getElementById('sel-accessories');
+    const accCards = document.getElementById('cards-accessories');
+    const accessories = getAccessoriesForType(type);
+    if (accessories.length === 0) {
+      accGroup.classList.add('hidden');
+      return;
+    }
+    accCards.innerHTML = accessories.map((a, i) => {
+      const cat = a.accessoryCategory || a.partCategory || '';
+      const label = cat + (a.spec ? ' ' + a.spec : '') + (a.partLength ? ' ' + a.partLength + 'mm' : '');
+      return `<button type="button" onclick="App.onAccessoryCard(${i})" data-idx="${i}"
+        class="acc-card flex items-center justify-between px-3 py-2 bg-white border-b border-gray-100 text-left active:bg-green-50 transition-colors">
+        <span class="text-xs font-bold text-gray-700">${label || '부속품'}</span>
+        <span class="text-xs font-extrabold text-green-600">${UI.formatCurrency(a.unitPrice)}</span>
+      </button>`;
+    }).join('');
+    accGroup.classList.remove('hidden');
+  }
+
+  function onAccessoryCard(index) {
+    const accessories = getAccessoriesForType(_selType);
+    const acc = accessories[index];
+    if (!acc) return;
+
+    items.push({
+      type: acc.type,
+      itemType: 'accessory',
+      name: (acc.accessoryCategory || acc.partCategory || '부속품') + (acc.spec ? ' ' + acc.spec : ''),
+      spec: acc.spec || '',
+      unitPrice: Number(acc.unitPrice) || 0,
+      installFee: 0,
+      quantity: 1,
+    });
+
+    renderItems();
+    updateTotal();
+    saveDraft();
+    UI.toast('부속품이 추가되었습니다', 'success');
+  }
+
+  // ======== 선반 추가 옵션 (모델 A) ========
+  function onShelfAddonToggle() {
+    const checked = document.getElementById('chk-shelf-addon')?.checked;
+    const detail = document.getElementById('shelf-addon-detail');
+    if (detail) detail.classList.toggle('hidden', !checked);
+    if (checked) updateShelfAddonPreview();
+  }
+
+  function updateShelfAddonPreview() {
+    if (!currentSelection || !currentSelection.shelfAddonPrice) return;
+    const qty = Number(document.getElementById('shelf-addon-qty')?.value) || 1;
+    const label = document.getElementById('shelf-addon-price-label');
+    if (label) label.textContent = `@${UI.formatCurrency(currentSelection.shelfAddonPrice)} × ${qty} = ${UI.formatCurrency(currentSelection.shelfAddonPrice * qty)}`;
+  }
+
   function onFormChip(form) {
     _selForm = form;
     currentSelection = null;
     const addSection = document.getElementById('add-section');
     if (addSection) addSection.classList.add('hidden');
+    const shelfAddon = document.getElementById('sel-shelf-addon');
+    if (shelfAddon) shelfAddon.classList.add('hidden');
 
     // 형태 칩 활성 상태
     document.querySelectorAll('#chips-form .chip').forEach(el => {
       el.classList.toggle('selected', el.textContent === form);
     });
 
-    renderSpecCards(_selType, form);
+    const model = _getPricingModel(_selType);
+    if (model === 'B') {
+      _renderModelBSpecs();
+    } else {
+      renderSpecCards(_selType, form);
+    }
+  }
+
+  // 모델 B 규격 카드: 배치 + 형태 조합으로 필터
+  function _renderModelBSpecs() {
+    if (!_selLayout || !_selForm) return;
+    const specGroup = document.getElementById('sel-spec-group');
+    const cardsContainer = document.getElementById('cards-spec');
+
+    const specs = priceData.filter(p =>
+      p.type === _selType &&
+      (p.form || '') === _selForm &&
+      (p.layoutType || '') === _selLayout &&
+      !p.isAccessory
+    );
+
+    if (specs.length === 0) {
+      specGroup.classList.remove('hidden');
+      cardsContainer.innerHTML = '<p class="text-gray-400 text-xs text-center py-3">해당 조합의 규격이 없습니다</p>';
+      return;
+    }
+
+    const sorted = [...specs].sort((a, b) => {
+      if (_specSortMode === 'price') return (a.unitPrice || 0) - (b.unitPrice || 0);
+      return (a.tier || 0) - (b.tier || 0);
+    });
+
+    specGroup.classList.remove('hidden');
+    cardsContainer.innerHTML = sorted.map((p, i) => {
+      const heightStr = p.spec || '';
+      const tierStr = p.tier ? `${p.tier}단` : '';
+      const panelStr = p.panelType ? `<span class="text-[10px] text-gray-400">${p.panelType}</span>` : '';
+      return `<button type="button" onclick="App.onModelBSpecCard(${i})" data-idx="${i}"
+        class="spec-card flex items-center justify-between px-3 py-2.5 bg-white border-b border-gray-100 text-left active:bg-green-50 transition-colors">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-bold text-gray-800">${heightStr}</span>
+          <span class="text-[10px] text-gray-400">${tierStr}</span>
+          ${panelStr}
+        </div>
+        <span class="text-sm font-extrabold text-green-600">${UI.formatCurrency(p.unitPrice)}</span>
+      </button>`;
+    }).join('');
+  }
+
+  function onModelBSpecCard(index) {
+    const specs = priceData.filter(p =>
+      p.type === _selType &&
+      (p.form || '') === _selForm &&
+      (p.layoutType || '') === _selLayout &&
+      !p.isAccessory
+    );
+    const sorted = [...specs].sort((a, b) => {
+      if (_specSortMode === 'price') return (a.unitPrice || 0) - (b.unitPrice || 0);
+      return (a.tier || 0) - (b.tier || 0);
+    });
+    currentSelection = sorted[index] || null;
+    if (!currentSelection) return;
+
+    document.querySelectorAll('.spec-card').forEach(el => {
+      const isSelected = parseInt(el.dataset.idx) === index;
+      el.classList.toggle('bg-green-50', isSelected);
+      el.classList.toggle('bg-white', !isSelected);
+    });
+
+    const addSection = document.getElementById('add-section');
+    if (addSection) addSection.classList.remove('hidden');
   }
 
   function onFormChipCustom() {
@@ -315,6 +788,23 @@ const App = (() => {
       el.classList.toggle('border-l-[#1e3a5f]', isSelected);
     });
 
+    // 모델 A: 선반 추가 옵션 표시
+    const shelfAddon = document.getElementById('sel-shelf-addon');
+    if (shelfAddon) {
+      if (currentSelection.shelfAddonPrice > 0) {
+        shelfAddon.classList.remove('hidden');
+        const chk = document.getElementById('chk-shelf-addon');
+        if (chk) chk.checked = false;
+        const detail = document.getElementById('shelf-addon-detail');
+        if (detail) detail.classList.add('hidden');
+        const qtyInput = document.getElementById('shelf-addon-qty');
+        if (qtyInput) qtyInput.value = 1;
+        updateShelfAddonPreview();
+      } else {
+        shelfAddon.classList.add('hidden');
+      }
+    }
+
     const addSection = document.getElementById('add-section');
     if (addSection) addSection.classList.remove('hidden');
   }
@@ -333,6 +823,10 @@ const App = (() => {
       installFee: Number(r.installFee) || 0,
       vat: r.vat || '별도',
       quantity: 1,
+      pricingModel: r.pricingModel || _getPricingModel(r.type),
+      layoutType: r.layoutType || '',
+      setName: r.setName || '',
+      partCategory: r.partCategory || '',
     });
 
     renderItems();
@@ -359,23 +853,41 @@ const App = (() => {
       return;
     }
 
+    const sel = currentSelection;
     const newItem = {
-      type: currentSelection.type,
-      form: currentSelection.form || '',
-      spec: currentSelection.spec,
-      tier: currentSelection.tier,
-      unitPrice: Number(currentSelection.unitPrice) || 0,
-      installFee: Number(currentSelection.installFee) || 0,
-      vat: currentSelection.vat || '별도',
+      type: sel.type,
+      form: sel.form || '',
+      spec: sel.spec,
+      tier: sel.tier,
+      unitPrice: Number(sel.unitPrice) || 0,
+      installFee: Number(sel.installFee) || 0,
+      vat: sel.vat || '별도',
       quantity: currentQuantity,
+      // 확장 필드 (모델별)
+      pricingModel: sel.pricingModel || _getPricingModel(sel.type),
+      layoutType: sel.layoutType || '',
+      setName: sel.setName || '',
+      partCategory: sel.partCategory || '',
     };
     items.push(newItem);
     addRecentItem(newItem);
 
+    // 모델 A: 선반 추가 처리
+    const chkShelf = document.getElementById('chk-shelf-addon');
+    if (chkShelf && chkShelf.checked && sel.shelfAddonPrice > 0) {
+      const shelfQty = Number(document.getElementById('shelf-addon-qty')?.value) || 1;
+      items.push({
+        type: sel.type,
+        itemType: 'custom',
+        name: `선반 추가 (${sel.spec || ''})`,
+        unitPrice: Number(sel.shelfAddonPrice),
+        installFee: 0,
+        quantity: shelfQty,
+      });
+    }
+
     currentSelection = null;
     currentQuantity = 1;
-    _selType = '';
-    _selForm = '';
 
     // 선택 UI 초기화
     const addSection = document.getElementById('add-section');
@@ -383,12 +895,13 @@ const App = (() => {
     const qtyInput = document.getElementById('qty-input');
     if (qtyInput) qtyInput.value = 1;
 
-    // 칩/카드 초기화
+    // 칩/카드 전체 초기화
+    _selType = '';
+    _selForm = '';
+    _selLayout = '';
+    _selPartCat = '';
     document.querySelectorAll('#chips-type .chip').forEach(el => el.classList.remove('selected'));
-    const formGroup = document.getElementById('sel-form-group');
-    const specGroup = document.getElementById('sel-spec-group');
-    if (formGroup) formGroup.classList.add('hidden');
-    if (specGroup) specGroup.classList.add('hidden');
+    _hideAllSubGroups();
 
     renderItems();
     updateTotal();
@@ -561,11 +1074,12 @@ const App = (() => {
             : ((Number(item.unitPrice) || 0) + (Number(item.installFee) || 0)) * (Number(item.quantity) || 0);
           const isNegative = itemTotal < 0;
 
-          if (isCustom) {
+          if (isCustom || item.itemType === 'accessory') {
+            const label = item.name || item.type || '항목';
             return `
               <div class="px-4 py-3 border-t border-gray-100 flex items-center gap-3 ${isNegative ? 'bg-red-50/50' : ''}">
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-bold ${isNegative ? 'text-red-600' : 'text-gray-800'}">${item.name}</p>
+                  <p class="text-sm font-bold ${isNegative ? 'text-red-600' : 'text-gray-800'}">${label}</p>
                   <p class="text-xs text-gray-500">${item.quantity > 1 ? `@${UI.formatNumber(item.unitPrice)} × ${item.quantity}` : ''}</p>
                   <p class="text-sm font-bold ${isNegative ? 'text-red-600' : 'text-[#1e3a5f]'} mt-0.5">${UI.formatCurrency(itemTotal)}</p>
                 </div>
@@ -574,11 +1088,19 @@ const App = (() => {
               </div>
             `;
           }
+          // 랙 품목 (모델 A/B/C/D)
+          const model = item.pricingModel || _getPricingModel(item.type);
+          let itemLabel = `${item.type}${item.form ? '(' + item.form + ')' : ''} ${item.spec || ''}${item.tier ? '*' + item.tier + 's' : ''}`;
+          if (model === 'D' && item.setName) itemLabel = `${item.type} ${item.setName} ${item.spec || ''}`;
+          if (model === 'C' && item.partCategory) itemLabel = `${item.type} ${item.partCategory} ${item.spec || ''}`;
+          if (item.layoutType) itemLabel += ` [${item.layoutType}]`;
+          const feeStr = (Number(item.installFee) || 0) > 0 ? ` + 시공비 ${UI.formatCurrency((Number(item.installFee) || 0) * item.quantity)}` : '';
+          const unitLabel = (model === 'C') ? '개' : '대';
           return `
             <div class="px-4 py-3 border-t border-gray-100 flex items-center gap-3">
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold text-gray-800 truncate">${item.type}${item.form ? '(' + item.form + ')' : ''} ${item.spec}${item.tier ? '*' + item.tier + 's' : ''}</p>
-                <p class="text-xs text-gray-500">@${UI.formatNumber(item.unitPrice)} × ${item.quantity}대 + 시공비 ${UI.formatCurrency((Number(item.installFee) || 0) * item.quantity)}</p>
+                <p class="text-sm font-bold text-gray-800 truncate">${itemLabel}</p>
+                <p class="text-xs text-gray-500">@${UI.formatNumber(item.unitPrice)} × ${item.quantity}${unitLabel}${feeStr}</p>
                 <p class="text-sm font-bold text-[#1e3a5f] mt-0.5">${UI.formatCurrency(itemTotal)}</p>
               </div>
               <button onclick="App.removeItem(${i})"
@@ -744,6 +1266,14 @@ const App = (() => {
     calculate, updateTotal, saveEstimate, resetEstimate,
     loadDraft, clearDraft, getCustomerInfo,
     onTypeChip, onFormChip, onFormChipCustom, onSpecCard, addRecentQuick, sortSpecs,
+    // 모델 B
+    onLayoutChip, onModelBSpecCard,
+    // 모델 C
+    onPartCatChip, onPartThicknessChip, onPartCard,
+    // 모델 D
+    onDModeSwitch, onDSetCard, onDPartCatChip, onDPartCard,
+    // 부속품 + 선반
+    onAccessoryCard, onShelfAddonToggle, updateShelfAddonPreview,
     get priceData() { return priceData; },
     get items() { return items; },
     set items(v) { items = v; },
