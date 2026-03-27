@@ -4,3 +4,12 @@ desktop.ini
 Thumbs.db
 *.log
 .gstack/
+
+# 보안 — 비밀 파일 제외
+*.token
+*.secret
+*.key
+.env
+.env.*
+credentials.json
+*_token

@@ -7,6 +7,9 @@
 
 const Estimate = (() => {
 
+  // HTML 이스케이프 (XSS 방지) — UI.escapeHtml 참조
+  const esc = (s) => UI.escapeHtml(s);
+
   let _brandingCache = null;
   let _brandingCacheTs = 0;
   const BRANDING_CACHE_TTL = 60000; // 1 minute
@@ -34,27 +37,9 @@ const Estimate = (() => {
     return items;
   }
 
-  function calcTotals(items, data) {
-    let supply = 0;
-    let dcTotal = 0; // D/C 총액 (음수, VAT 포함 기준)
-    items.forEach(item => {
-      const isCustom = item.itemType === 'custom';
-      const isDC = isCustom && (item.name || '').includes('D/C');
-      if (isDC) {
-        dcTotal += (Number(item.unitPrice) || 0) * (Number(item.quantity) || 1);
-      } else if (isCustom) {
-        supply += (Number(item.unitPrice) || 0) * (Number(item.quantity) || 1);
-      } else {
-        supply += ((Number(item.unitPrice) || 0) + (Number(item.installFee) || 0)) * (Number(item.quantity) || 0);
-      }
-    });
-    // D/C는 총액(VAT포함) 기준 → 공급가액/세액 역산 분리
-    const dcSupply = Math.round(dcTotal * 10 / 11);
-    const dcVat = dcTotal - dcSupply;
-    const supplyTotal = supply + dcSupply;
-    const vat = Math.round(supply * 0.1) + dcVat;
-    const total = supplyTotal + vat;
-    return { supplyTotal, vat, total, dcTotal };
+  // 계산 로직은 calc.js의 Calc.calcTotals 사용
+  function calcTotals(items) {
+    return Calc.calcTotals(items);
   }
 
   function formatDateKr(dateStr) {
@@ -68,14 +53,14 @@ const Estimate = (() => {
   }
 
   function getItemName(item) {
-    if (item.itemType === 'custom') return item.name || '';
-    return `${item.type || ''}${item.form ? `(${item.form})` : ''}`;
+    if (item.itemType === 'custom') return esc(item.name);
+    return `${esc(item.type)}${item.form ? `(${esc(item.form)})` : ''}`;
   }
 
   function getItemSpec(item) {
     if (item.itemType === 'custom') return '';
-    const spec = item.spec || '';
-    const tierStr = item.tier ? `*${item.tier}s` : '';
+    const spec = esc(item.spec);
+    const tierStr = item.tier ? `*${esc(item.tier)}s` : '';
     return spec + tierStr;
   }
 
@@ -160,7 +145,7 @@ const Estimate = (() => {
     const brand = getBranding();
     let items = parseItems(data);
     if (options && options.hideMargin) items = applyMarginToUnitPrices(items);
-    const { supplyTotal, vat, total } = calcTotals(items, { ...data, supplyTotal: 0, vat: 0, total: 0 });
+    const { supplyTotal, vat, total } = calcTotals(items);
     const dateKr = formatDateKr(data.date);
     const koreanAmount = UI.numberToKorean ? `일금 ${UI.numberToKorean(total)}원정` : '';
 
@@ -209,11 +194,11 @@ const Estimate = (() => {
             <table style="${S.table}">
               <tr>
                 <td style="${S.infoTd};padding:8px 10px;" colspan="2">
-                  <strong style="font-size:14px;">${data.customerName || data.name || ''}</strong>
-                  ${data.company ? ` (${data.company})` : ''} 귀하
+                  <strong style="font-size:14px;">${esc(data.customerName || data.name)}</strong>
+                  ${data.company ? ` (${esc(data.company)})` : ''} 귀하
                 </td>
               </tr>
-              ${data.address ? `<tr><td style="${S.infoTd};padding:8px 10px;" colspan="2"><span style="font-size:11px;color:#666;">현장: ${data.address}</span></td></tr>` : ''}
+              ${data.address ? `<tr><td style="${S.infoTd};padding:8px 10px;" colspan="2"><span style="font-size:11px;color:#666;">현장: ${esc(data.address)}</span></td></tr>` : ''}
             </table>
             <p style="font-size:12px;margin:8px 0 2px;">아래와 같이 견적합니다.</p>
             <table style="${S.table}">
@@ -312,7 +297,7 @@ const Estimate = (() => {
     const brand = getBranding();
     let items = parseItems(data);
     if (options && options.hideMargin) items = applyMarginToUnitPrices(items);
-    const { supplyTotal, vat, total } = calcTotals(items, { ...data, supplyTotal: 0, vat: 0, total: 0 });
+    const { supplyTotal, vat, total } = calcTotals(items);
     const dateKr = formatDateKr(data.date);
 
     const minRows = 15;
@@ -367,23 +352,23 @@ const Estimate = (() => {
               <tr><td style="${S.thHeader}" colspan="4">공 급 받 는 자</td></tr>
               <tr>
                 <td style="${S.infoTh}">등록번호</td>
-                <td style="${S.infoTd}" colspan="3">${data.bizNumber || ''}</td>
+                <td style="${S.infoTd}" colspan="3">${esc(data.bizNumber)}</td>
               </tr>
               <tr>
                 <td style="${S.infoTh}">상 호</td>
-                <td style="${S.infoTd}">${data.company || data.customerName || data.name || ''}</td>
+                <td style="${S.infoTd}">${esc(data.company || data.customerName || data.name)}</td>
                 <td style="${S.infoTh}">성 명</td>
-                <td style="${S.infoTd}">${data.customerName || data.name || ''}</td>
+                <td style="${S.infoTd}">${esc(data.customerName || data.name)}</td>
               </tr>
               <tr>
                 <td style="${S.infoTh}">주 소</td>
-                <td style="${S.infoTd}" colspan="3">${data.address || ''}</td>
+                <td style="${S.infoTd}" colspan="3">${esc(data.address)}</td>
               </tr>
               <tr>
                 <td style="${S.infoTh}">업 태</td>
-                <td style="${S.infoTd}">${data.bizType || ''}</td>
+                <td style="${S.infoTd}">${esc(data.bizType)}</td>
                 <td style="${S.infoTh}">종 목</td>
-                <td style="${S.infoTd}">${data.bizItem || ''}</td>
+                <td style="${S.infoTd}">${esc(data.bizItem)}</td>
               </tr>
             </table>
           </td>
@@ -473,7 +458,7 @@ const Estimate = (() => {
     const brand = getBranding();
     let items = parseItems(data);
     if (options && options.hideMargin) items = applyMarginToUnitPrices(items);
-    const { supplyTotal, vat, total } = calcTotals(items, { ...data, supplyTotal: 0, vat: 0, total: 0 });
+    const { supplyTotal, vat, total } = calcTotals(items);
     const hasVat = Number(data.vat) > 0 || Number(data.supplyTotal) > 0;
 
     return `
@@ -489,8 +474,8 @@ const Estimate = (() => {
           </div>
           ${data.customerName || data.name ? `
           <div class="bg-gray-50 rounded-xl p-3 mb-4 text-sm">
-            <p class="font-bold text-gray-800">${data.customerName || data.name || ''}${data.company ? ` (${data.company})` : ''}</p>
-            ${data.address ? `<p class="text-gray-500 mt-1">${data.address}</p>` : ''}
+            <p class="font-bold text-gray-800">${esc(data.customerName || data.name)}${data.company ? ` (${esc(data.company)})` : ''}</p>
+            ${data.address ? `<p class="text-gray-500 mt-1">${esc(data.address)}</p>` : ''}
           </div>` : ''}
           <div class="border-t border-gray-100 pt-3">
             <p class="text-xs font-bold text-gray-500 mb-2">품목 내역</p>
@@ -505,7 +490,7 @@ const Estimate = (() => {
               return `
                 <div class="mb-3 ${i > 0 ? 'border-t border-dashed border-gray-200 pt-3' : ''}">
                   <div class="flex justify-between text-sm">
-                    <span class="font-semibold ${isNeg ? 'text-red-600' : 'text-gray-800'}">${isCustom ? item.name : `${item.type} ${item.spec} ${item.tier}단`}</span>
+                    <span class="font-semibold ${isNeg ? 'text-red-600' : 'text-gray-800'}">${isCustom ? esc(item.name) : `${esc(item.type)} ${esc(item.spec)} ${esc(item.tier)}단`}</span>
                     <span class="text-gray-600">${isCustom ? (qty > 1 ? qty+'식' : '') : qty+'대'}</span>
                   </div>
                   <div class="flex justify-between text-xs text-gray-500 mt-1">
@@ -566,7 +551,7 @@ const Estimate = (() => {
     const docName = docType === 'transaction' ? '거래명세표' : '견적서';
     const title = `[${brand.company || '중용'}] ${docName}`;
     const items = parseItems(data);
-    const { total } = calcTotals(items, data);
+    const { total } = calcTotals(items);
 
     const rackItems = items.filter(i => i.itemType !== 'custom');
     const totalQty = rackItems.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
@@ -667,7 +652,7 @@ const Estimate = (() => {
     applyMarginToUnitPrices, share, downloadImage, getBranding,
     calcTotals: (data) => {
       const items = parseItems(data);
-      return calcTotals(items, { supplyTotal: 0, vat: 0, total: 0 });
+      return calcTotals(items);
     },
   };
 })();

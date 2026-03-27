@@ -94,6 +94,17 @@ const UI = (() => {
     };
   }
 
+  // --- HTML 이스케이프 (XSS 방지) ---
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   // --- 숫자 포맷 ---
   function formatNumber(n) {
     return Number(n).toLocaleString('ko-KR');
@@ -255,7 +266,7 @@ const UI = (() => {
 
   return {
     toast, setLoading, skeleton, empty, confirm,
-    formatNumber, formatCurrency, formatDate,
+    escapeHtml, formatNumber, formatCurrency, formatDate,
     renderTabBar, renderHeader, statusBadge, numberToKorean, updateRequestBadge, markRequestsSeen,
   };
 })();

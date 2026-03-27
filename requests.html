@@ -8,7 +8,7 @@
   <title>견적 요청 확인 - 중용</title>
   <meta name="description" content="고객 견적 요청 확인">
 
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script>
     tailwind.config = {
       theme: { extend: { colors: { primary: '#1e3a5f', accent: '#f97316' },
@@ -270,32 +270,6 @@
     }
   </script>
 
-  <!-- Service Worker 등록 + 자동 업데이트 -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      const hadController = !!navigator.serviceWorker.controller;
-      navigator.serviceWorker.register('sw.js').then(reg => {
-        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        reg.addEventListener('updatefound', () => {
-          const nw = reg.installing;
-          if (!nw) return;
-          nw.addEventListener('statechange', () => {
-            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-              nw.postMessage({ type: 'SKIP_WAITING' });
-            }
-          });
-        });
-      }).catch(() => {});
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!hadController || refreshing) return;
-        // 쿨다운 가드: version-check 등에서 이미 reload 했으면 스킵
-        if (window.__yr_reloadGuard && !window.__yr_reloadGuard.canReload()) return;
-        refreshing = true;
-        if (window.__yr_reloadGuard) window.__yr_reloadGuard.markReload();
-        location.reload();
-      });
-    }
-  </script>
+  <script src="js/sw-register.js"></script>
 </body>
 </html>

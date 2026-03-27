@@ -593,37 +593,8 @@ const App = (() => {
   // --- 계산 (공급가액 + 세액) ---
   // D/C는 총액(공급가액+세액) 기준으로 차감
   function calculate() {
-    if (items.length === 0) return { supplyTotal: 0, vat: 0, total: 0, items: null };
-
-    let supply = 0;
-    let dcTotal = 0; // D/C 합산 (음수, VAT포함 총액 기준)
-    const itemDetails = items.map(item => {
-      const isCustom = item.itemType === 'custom';
-      const isDC = isCustom && (item.name || '').includes('D/C');
-      if (isDC) {
-        const amount = (Number(item.unitPrice) || 0) * (Number(item.quantity) || 1);
-        dcTotal += amount; // 음수값 합산
-        return { ...item, itemTotal: amount };
-      } else if (isCustom) {
-        const amount = (Number(item.unitPrice) || 0) * (Number(item.quantity) || 1);
-        supply += amount;
-        return { ...item, itemTotal: amount };
-      } else {
-        const subtotal = (Number(item.unitPrice) || 0) * (Number(item.quantity) || 0);
-        const installTotal = (Number(item.installFee) || 0) * (Number(item.quantity) || 0);
-        const itemTotal = subtotal + installTotal;
-        supply += itemTotal;
-        return { ...item, subtotal, installTotal, itemTotal };
-      }
-    });
-
-    // D/C는 총액(VAT포함) 기준 → 공급가액/세액 역산 분리
-    const dcSupply = Math.round(dcTotal * 10 / 11);
-    const dcVat = dcTotal - dcSupply;
-    const supplyTotal = supply + dcSupply;
-    const vat = Math.round(supply * 0.1) + dcVat;
-    const total = supplyTotal + vat;
-    return { supplyTotal, vat, total, dcTotal, items: itemDetails };
+    if (items.length === 0) return { supplyTotal: 0, vat: 0, total: 0, dcTotal: 0, items: [] };
+    return Calc.calcTotals(items);
   }
 
   // --- 금액 표시 업데이트 ---
@@ -686,15 +657,19 @@ const App = (() => {
   }
 
   // --- 고객 정보 ---
+  function _sanitizeField(val, maxLen) {
+    return String(val || '').trim().slice(0, maxLen || 100);
+  }
+
   function getCustomerInfo() {
     return {
-      name: document.getElementById('cust-name')?.value || '',
-      company: document.getElementById('cust-company')?.value || '',
-      phone: document.getElementById('cust-phone')?.value || '',
-      address: document.getElementById('cust-address')?.value || '',
-      bizNumber: document.getElementById('cust-biz-number')?.value || '',
-      bizType: document.getElementById('cust-biz-type')?.value || '',
-      bizItem: document.getElementById('cust-biz-item')?.value || '',
+      name: _sanitizeField(document.getElementById('cust-name')?.value, 50),
+      company: _sanitizeField(document.getElementById('cust-company')?.value, 50),
+      phone: _sanitizeField(document.getElementById('cust-phone')?.value, 20),
+      address: _sanitizeField(document.getElementById('cust-address')?.value, 200),
+      bizNumber: _sanitizeField(document.getElementById('cust-biz-number')?.value, 20),
+      bizType: _sanitizeField(document.getElementById('cust-biz-type')?.value, 30),
+      bizItem: _sanitizeField(document.getElementById('cust-biz-item')?.value, 30),
     };
   }
 

@@ -1,45 +1,101 @@
 /**
- * version-check.js — 앱 버전 자동 감지 + 강제 새로고침
+ * version-check.js — 앱 업데이트 매니저
  *
- * 매 페이지 로드 시 version.json을 캐시 우회로 fetch하여
- * 로컬 저장 버전과 비교. 다르면 SW 캐시 삭제 후 강제 새로고침.
- * 견적 작성 중(items 존재)이면 새로고침 스킵.
+ * 업데이트 감지 시 토스트 알림을 표시하고, 사용자가 탭하면
+ * SW 캐시 정리 후 1회 깔끔하게 새로고침.
+ * 자동 새로고침은 하지 않음 (무한 루프 방지 + UX 개선).
  */
 (function () {
-  const VERSION_KEY = 'yr_app_version';
-  const RELOAD_GUARD_KEY = 'yr_reload_ts';
-  const VERSION_URL = '/version.json';
-  const RELOAD_COOLDOWN = 30000; // 30초 내 재새로고침 방지
+  'use strict';
 
-  // 다른 스크립트(controllerchange 핸들러)에서도 쿨다운 체크에 사용
-  window.__yr_reloadGuard = {
-    key: RELOAD_GUARD_KEY,
-    cooldown: RELOAD_COOLDOWN,
-    canReload: function () {
-      var lastReload = Number(localStorage.getItem(RELOAD_GUARD_KEY) || 0);
-      return Date.now() - lastReload >= RELOAD_COOLDOWN;
-    },
-    markReload: function () {
-      localStorage.setItem(RELOAD_GUARD_KEY, String(Date.now()));
+  var VERSION_KEY   = 'yr_app_version';
+  var VERSION_URL   = '/version.json';
+  var TOAST_ID      = 'yr-update-toast';
+
+  // ── 업데이트 토스트 UI ─────────────────────────────
+  function showUpdateToast() {
+    if (document.getElementById(TOAST_ID)) return; // 이미 표시 중
+
+    var toast = document.createElement('div');
+    toast.id = TOAST_ID;
+    toast.style.cssText = [
+      'position:fixed', 'bottom:24px', 'left:50%', 'transform:translateX(-50%)',
+      'background:#1e3a5f', 'color:#fff', 'padding:12px 20px',
+      'border-radius:12px', 'box-shadow:0 4px 20px rgba(0,0,0,.25)',
+      'display:flex', 'align-items:center', 'gap:12px',
+      'font-size:14px', 'z-index:99999', 'max-width:calc(100vw - 32px)',
+      'animation:yrSlideUp .3s ease-out'
+    ].join(';');
+
+    toast.innerHTML =
+      '<span style="flex:1">새 버전이 있습니다</span>' +
+      '<button id="yr-update-btn" style="' +
+        'background:#fff;color:#1e3a5f;border:none;padding:6px 16px;' +
+        'border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap' +
+      '">업데이트</button>' +
+      '<button id="yr-update-close" style="' +
+        'background:none;border:none;color:rgba(255,255,255,.6);font-size:18px;' +
+        'cursor:pointer;padding:0 0 0 4px;line-height:1' +
+      '">&times;</button>';
+
+    // 슬라이드업 애니메이션
+    if (!document.getElementById('yr-toast-style')) {
+      var style = document.createElement('style');
+      style.id = 'yr-toast-style';
+      style.textContent = '@keyframes yrSlideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}';
+      document.head.appendChild(style);
     }
-  };
 
+    document.body.appendChild(toast);
+
+    document.getElementById('yr-update-btn').onclick = applyUpdate;
+    document.getElementById('yr-update-close').onclick = function () {
+      toast.remove();
+    };
+  }
+
+  // ── 업데이트 적용 ─────────────────────────────────
+  async function applyUpdate() {
+    var btn = document.getElementById('yr-update-btn');
+    if (btn) {
+      btn.textContent = '적용 중…';
+      btn.disabled = true;
+    }
+
+    // 1) SW 캐시 정리 (이전 버전 캐시 제거)
+    if ('caches' in window) {
+      try {
+        var keys = await caches.keys();
+        await Promise.all(keys.map(function (k) { return caches.delete(k); }));
+      } catch (e) { /* ignore */ }
+    }
+
+    // 2) 대기 중인 SW가 있으면 활성화 → controllerchange → reload
+    if ('serviceWorker' in navigator) {
+      try {
+        var reg = await navigator.serviceWorker.ready;
+        if (reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          // controllerchange 리스너가 reload 처리 — 2초 fallback
+          setTimeout(function () { location.reload(); }, 2000);
+          return;
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    // 3) 대기 중인 SW가 없으면 직접 reload
+    location.reload();
+  }
+
+  // ── 버전 체크 (version.json 기반) ──────────────────
   async function checkVersion() {
     try {
-      // 새로고침 루프 방지: 30초 내 이미 새로고침 했으면 스킵
-      if (!window.__yr_reloadGuard.canReload()) {
-        console.log('[VersionCheck] 쿨다운 중, 스킵');
-        return;
-      }
-
-      const resp = await fetch(VERSION_URL + '?t=' + Date.now(), {
-        cache: 'no-store',
-      });
+      var resp = await fetch(VERSION_URL + '?t=' + Date.now(), { cache: 'no-store' });
       if (!resp.ok) return;
 
-      const data = await resp.json();
-      const remoteVersion = data.version;
-      const localVersion = localStorage.getItem(VERSION_KEY);
+      var data = await resp.json();
+      var remoteVersion = data.version;
+      var localVersion = localStorage.getItem(VERSION_KEY);
 
       // 최초 방문 — 버전만 저장
       if (!localVersion) {
@@ -51,49 +107,49 @@
       if (localVersion === remoteVersion) return;
 
       // 원격 버전이 로컬보다 낮으면 무시 (CDN 캐시 지연)
-      if (Number(remoteVersion) < Number(localVersion)) {
-        console.log('[VersionCheck] 원격 버전이 낮음 (CDN 지연), 스킵');
-        return;
-      }
+      if (Number(remoteVersion) < Number(localVersion)) return;
 
-      // 견적 작성 중이면 스킵
-      const cartData = localStorage.getItem('yr_draft_estimate');
-      if (cartData) {
-        try {
-          const cart = JSON.parse(cartData);
-          if (Array.isArray(cart) && cart.length > 0) {
-            console.log('[VersionCheck] 업데이트 감지했으나 견적 작성 중이라 스킵');
-            return;
-          }
-        } catch {}
-      }
-
-      console.log(`[VersionCheck] ${localVersion} → ${remoteVersion} 업데이트 감지`);
-
-      // 버전 저장 + 새로고침 타임스탬프 기록
+      console.log('[Update] ' + localVersion + ' → ' + remoteVersion + ' 감지');
       localStorage.setItem(VERSION_KEY, remoteVersion);
-      window.__yr_reloadGuard.markReload();
-
-      // SW 캐시 전체 삭제 (SW 등록은 해제하지 않음 — 해제 시 재등록 루프 위험)
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map(k => caches.delete(k)));
-        console.log('[VersionCheck] SW 캐시 삭제 완료');
-      }
-
-      // 강제 새로고침 (SW 업데이트는 reload 후 자동으로 진행됨)
-      // 주의: reg.update() + location.reload() 동시 호출 시
-      // controllerchange와 경쟁하여 무한 루프 발생 가능하므로 reload만 수행
-      location.reload(true);
+      showUpdateToast();
     } catch (e) {
-      console.log('[VersionCheck] 체크 실패 (오프라인?)', e.message);
+      // 오프라인이면 무시
     }
   }
 
-  // DOM 로드 후 실행 (렌더링 차단 방지)
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', checkVersion);
-  } else {
+  // ── SW 업데이트 감지 ────────────────────────────────
+  function watchServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+
+    navigator.serviceWorker.ready.then(function (reg) {
+      // 이미 대기 중인 SW가 있으면 토스트 표시
+      if (reg.waiting) {
+        showUpdateToast();
+        return;
+      }
+
+      // 새 SW 설치 감지
+      reg.addEventListener('updatefound', function () {
+        var nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', function () {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdateToast();
+          }
+        });
+      });
+    });
+  }
+
+  // ── 초기화 ──────────────────────────────────────────
+  function init() {
     checkVersion();
+    watchServiceWorker();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
 })();

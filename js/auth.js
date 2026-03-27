@@ -7,7 +7,11 @@
 const Auth = (() => {
   const SESSION_KEY = 'yr_authenticated';
   const PIN_HASH_KEY = 'yr_pin_hash';
+  const PIN_SALT_KEY = 'yr_pin_salt';
   const ONBOARDING_KEY = 'yr_onboarding_done';
+  const ATTEMPT_KEY = 'yr_pin_attempts';
+  const MAX_ATTEMPTS = 5;
+  const LOCKOUT_MS = 60000; // 1분 잠금
 
   async function sha256(text) {
     const encoder = new TextEncoder();
@@ -18,6 +22,18 @@ const Auth = (() => {
       .join('');
   }
 
+  // 랜덤 솔트 생성 (16바이트 hex)
+  function generateSalt() {
+    const arr = new Uint8Array(16);
+    crypto.getRandomValues(arr);
+    return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  // 솔트 + PIN → SHA-256 해시
+  async function hashWithSalt(pin, salt) {
+    return sha256(salt + ':' + pin);
+  }
+
   function isAuthenticated() {
     return sessionStorage.getItem(SESSION_KEY) === 'true';
   }
@@ -26,24 +42,59 @@ const Auth = (() => {
     return !!localStorage.getItem(PIN_HASH_KEY);
   }
 
-  // PIN 설정 — localStorage + 서버(구글시트) 동시 저장
-  async function setPin(pin) {
-    const hash = await sha256(pin);
-    localStorage.setItem(PIN_HASH_KEY, hash);
-    localStorage.setItem(ONBOARDING_KEY, 'true');
+  // 시도 횟수 확인 — 잠금 상태면 남은 초 반환, 아니면 0
+  function getLockoutRemaining() {
     try {
-      await API.saveSettings({ pinHash: hash });
+      const data = JSON.parse(localStorage.getItem(ATTEMPT_KEY) || '{}');
+      if (data.count >= MAX_ATTEMPTS && data.ts) {
+        const remaining = LOCKOUT_MS - (Date.now() - data.ts);
+        if (remaining > 0) return Math.ceil(remaining / 1000);
+        // 잠금 해제
+        localStorage.removeItem(ATTEMPT_KEY);
+      }
+    } catch {}
+    return 0;
+  }
+
+  function recordFailedAttempt() {
+    try {
+      const data = JSON.parse(localStorage.getItem(ATTEMPT_KEY) || '{}');
+      const count = (data.count || 0) + 1;
+      localStorage.setItem(ATTEMPT_KEY, JSON.stringify({ count, ts: Date.now() }));
     } catch {}
   }
 
-  // PIN 검증 — localStorage의 해시와 비교
+  function resetAttempts() {
+    localStorage.removeItem(ATTEMPT_KEY);
+  }
+
+  // PIN 설정 — 솔트 생성 + localStorage + 서버(구글시트) 동시 저장
+  async function setPin(pin) {
+    const salt = generateSalt();
+    const hash = await hashWithSalt(pin, salt);
+    localStorage.setItem(PIN_SALT_KEY, salt);
+    localStorage.setItem(PIN_HASH_KEY, hash);
+    localStorage.setItem(ONBOARDING_KEY, 'true');
+    try {
+      await API.saveSettings({ pinHash: hash, pinSalt: salt });
+    } catch {}
+  }
+
+  // PIN 검증 — 솔트 + 해시 비교 + 시도 횟수 제한
   async function verifyPin(pin) {
-    const hash = await sha256(pin);
+    // 잠금 확인
+    const lockout = getLockoutRemaining();
+    if (lockout > 0) return false;
+
+    const salt = localStorage.getItem(PIN_SALT_KEY) || '';
+    const hash = salt ? await hashWithSalt(pin, salt) : await sha256(pin);
     const stored = localStorage.getItem(PIN_HASH_KEY);
     if (hash === stored) {
       sessionStorage.setItem(SESSION_KEY, 'true');
+      resetAttempts();
       return true;
     }
+    recordFailedAttempt();
     return false;
   }
 
@@ -52,9 +103,10 @@ const Auth = (() => {
     try {
       const data = await API.getSettings();
       if (data.settings) {
-        // PIN 동기화
+        // PIN + 솔트 동기화
         if (data.settings.pinHash) {
           localStorage.setItem(PIN_HASH_KEY, data.settings.pinHash);
+          if (data.settings.pinSalt) localStorage.setItem(PIN_SALT_KEY, data.settings.pinSalt);
           localStorage.setItem(ONBOARDING_KEY, 'true');
         }
         // 브랜딩 정보도 동기화
@@ -92,6 +144,7 @@ const Auth = (() => {
         syncBrandingFromSettings(data.settings);
         if (data.settings.pinHash) {
           localStorage.setItem(PIN_HASH_KEY, data.settings.pinHash);
+          if (data.settings.pinSalt) localStorage.setItem(PIN_SALT_KEY, data.settings.pinSalt);
         }
       }
     } catch {}
@@ -190,6 +243,15 @@ const Auth = (() => {
       });
 
       if (pin.length === 4) {
+        // 잠금 확인
+        const lockout = getLockoutRemaining();
+        if (lockout > 0) {
+          pin = '';
+          dots.forEach(d => { d.textContent = ''; d.classList.remove('border-[#1e3a5f]', 'bg-blue-50'); });
+          error.textContent = `${lockout}초 후 다시 시도하세요`;
+          error.classList.remove('hidden');
+          return;
+        }
         const ok = await verifyPin(pin);
         if (ok) {
           modal.remove();
@@ -201,6 +263,8 @@ const Auth = (() => {
             d.textContent = '';
             d.classList.remove('border-[#1e3a5f]', 'bg-blue-50');
           });
+          const remaining = MAX_ATTEMPTS - (JSON.parse(localStorage.getItem(ATTEMPT_KEY) || '{}').count || 0);
+          error.textContent = remaining > 0 ? `비밀번호가 틀렸습니다 (${remaining}회 남음)` : '1분간 잠금됩니다';
           error.classList.remove('hidden');
           modal.querySelector('.bg-white').classList.add('animate-shake');
           setTimeout(() => modal.querySelector('.bg-white').classList.remove('animate-shake'), 500);

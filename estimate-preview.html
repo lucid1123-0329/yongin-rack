@@ -11,7 +11,7 @@
   <meta property="og:title" content="용인 랙 - 견적서 미리보기">
   <meta property="og:description" content="경량랙, 중량랙, 파렛트랙 맞춤형 최저가 견적을 즉시 확인하세요.">
   <meta property="og:image" content="assets/og-image.jpg">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script>
     tailwind.config = {
       theme: { extend: { colors: { primary: '#1e3a5f', accent: '#f97316' }, fontFamily: { sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'] } } }
@@ -109,6 +109,7 @@
   <script src="js/api.js?v=63"></script>
   <script src="js/auth.js?v=63"></script>
   <script src="js/ui.js?v=63"></script>
+  <script src="js/calc.js?v=63"></script>
   <script src="js/app.js?v=63"></script>
   <script src="js/estimate.js?v=63"></script>
   <script>
@@ -239,32 +240,6 @@
       Estimate.downloadImage(currentDoc);
     }
   </script>
-  <!-- Service Worker 등록 + 자동 업데이트 -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      const hadController = !!navigator.serviceWorker.controller;
-      navigator.serviceWorker.register('sw.js').then(reg => {
-        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        reg.addEventListener('updatefound', () => {
-          const nw = reg.installing;
-          if (!nw) return;
-          nw.addEventListener('statechange', () => {
-            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-              nw.postMessage({ type: 'SKIP_WAITING' });
-            }
-          });
-        });
-      }).catch(() => {});
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!hadController || refreshing) return;
-        // 쿨다운 가드: version-check 등에서 이미 reload 했으면 스킵
-        if (window.__yr_reloadGuard && !window.__yr_reloadGuard.canReload()) return;
-        refreshing = true;
-        if (window.__yr_reloadGuard) window.__yr_reloadGuard.markReload();
-        location.reload();
-      });
-    }
-  </script>
+  <script src="js/sw-register.js"></script>
 </body>
 </html>
