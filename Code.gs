@@ -727,12 +727,44 @@ function submitRequest(body) {
   if (recentCount >= 5) return { error: '요청이 너무 많습니다. 잠시 후 다시 시도하세요.' };
 
   const now = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm');
+
+  // 사진 → Google Drive 저장
+  var photoUrls = '';
+  try {
+    var images = [];
+    if (body.images && body.images.length > 0) {
+      images = body.images;
+    } else if (body.imageBase64) {
+      images = [{ base64: body.imageBase64, mimeType: body.imageMimeType || 'image/jpeg' }];
+    }
+    if (images.length > 0) {
+      var mainFolder = DriveApp.getFolderById('1xAU_HedTcFk_HiZiq415a8UzqEXZRwxg');
+      var subFolders = mainFolder.getFoldersByName('견적요청_사진');
+      var folder = subFolders.hasNext() ? subFolders.next() : mainFolder.createFolder('견적요청_사진');
+      var urls = [];
+      for (var pi = 0; pi < images.length; pi++) {
+        var blob = Utilities.newBlob(Utilities.base64Decode(images[pi].base64), images[pi].mimeType || 'image/jpeg',
+          (body.name || 'photo') + '_' + now.replace(/[:\s]/g, '') + '_' + (pi + 1) + '.jpg');
+        var file = folder.createFile(blob);
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        urls.push('https://drive.google.com/uc?id=' + file.getId());
+      }
+      photoUrls = urls.join(',');
+    }
+  } catch (e) {
+    // 사진 저장 실패해도 요청은 저장
+  }
+
   sheet.appendRow([
     now, body.name || '', body.phone || '',
     body.rackType || '', Number(body.quantity) || 0,
     body.memo || '', '미처리',
     body.bizNumber || '', body.bizType || '', body.bizItem || '',
-    body.company || '', body.address || ''
+    body.company || '', body.address || '',
+    '',  // estimateId (12번 컬럼)
+    body.spaceWidth || '', body.spaceDepth || '', body.spaceHeight || '',
+    body.spacePurpose || '', body.cargoType || '', body.cargoWeight || '',
+    photoUrls  // 사진 URL들
   ]);
 
   return { result: 'success' };
@@ -798,6 +830,9 @@ function getRequests() {
       bizNumber: data[i][7] || '', bizType: data[i][8] || '', bizItem: data[i][9] || '',
       company: data[i][10] || '', address: data[i][11] || '',
       estimateId: data[i][12] || '',
+      spaceWidth: data[i][13] || '', spaceDepth: data[i][14] || '', spaceHeight: data[i][15] || '',
+      spacePurpose: data[i][16] || '', cargoType: data[i][17] || '', cargoWeight: data[i][18] || '',
+      photoUrls: data[i][19] || '',
     });
   }
   var result = { requests };
@@ -1131,7 +1166,7 @@ function getSheet(name) {
                 '배치유형', '후면판유형', '부품카테고리', '부품길이', '부품두께',
                 '세트명', 'BOM_JSON', '부속품여부', '부속품카테고리'],
     '견적내역': ['견적일시', '견적번호', '고객명', '회사명', '연락처', '주소', '품목상세', '총액', '진행상태', 'clientId', '공급가액', '세액'],
-    '견적요청': ['요청일시', '고객명', '연락처', '랙종류', '수량', '메모', '처리상태'],
+    '견적요청': ['요청일시', '고객명', '연락처', '랙종류', '수량', '메모', '처리상태', '사업자번호', '업태', '종목', '회사명', '주소', '견적번호', '가로', '세로', '높이', '용도', '보관물', '무게', '사진URL'],
     '설정': ['key', 'value'],
     '포트폴리오': ['날짜', '견적번호', '설명', '사진URL', '장소'],
   };

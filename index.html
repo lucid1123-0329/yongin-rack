@@ -454,9 +454,29 @@
         var aiSpec = p.get('aiSpec');
         var aiQty = parseInt(p.get('aiQty')) || 1;
         if (aiType && App.priceData && App.priceData.length > 0) {
+          // 1차: 정확 매칭 (type + form + spec)
           var match = App.priceData.find(function(pr) {
             return pr.type === aiType && (!aiForm || pr.form === aiForm) && (!aiSpec || String(pr.spec) === aiSpec);
           });
+          // 2차: type + form만 매칭 (spec 무시)
+          if (!match && aiForm) {
+            match = App.priceData.find(function(pr) {
+              return pr.type === aiType && pr.form === aiForm && !pr.isAccessory;
+            });
+          }
+          // 3차: type만 매칭 (부속품 제외)
+          if (!match) {
+            match = App.priceData.find(function(pr) {
+              return pr.type === aiType && !pr.isAccessory;
+            });
+          }
+          // 4차: 부분 문자열 매칭 (AI가 약간 다른 이름 반환 시)
+          if (!match) {
+            var aiTypeLower = aiType.replace(/\s/g, '').toLowerCase();
+            match = App.priceData.find(function(pr) {
+              return pr.type && pr.type.replace(/\s/g, '').toLowerCase().includes(aiTypeLower) && !pr.isAccessory;
+            });
+          }
           if (match) {
             App.items.push({
               type: match.type, form: match.form || '', spec: String(match.spec), tier: match.tier,
@@ -468,6 +488,8 @@
             App.renderItems();
             App.updateTotal();
             UI.toast('AI 추천 품목이 추가되었습니다', 'success');
+          } else {
+            UI.toast('추천 랙(' + aiType + ')을 단가표에서 찾을 수 없습니다. 직접 선택하세요.', 'warning', 5000);
           }
         }
       }

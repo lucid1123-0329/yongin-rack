@@ -180,6 +180,28 @@
             <p class="text-gray-500">${r.rackType || '-'} · ${r.quantity || 0}대</p>
             ${bizInfo ? `<p class="text-gray-400 text-xs">${bizInfo}</p>` : ''}
             ${r.memo ? `<p class="text-gray-400 text-xs">${r.memo}</p>` : ''}
+            ${hasDetail(r) ? `
+            <button onclick="toggleDetail(${r.rowIndex})" class="mt-1 flex items-center gap-1 text-xs font-bold text-primary active:opacity-70">
+              <span id="detail-arrow-${r.rowIndex}">▶</span> 상세 정보
+            </button>
+            <div id="detail-${r.rowIndex}" class="hidden mt-2 p-3 bg-gray-50 rounded-lg space-y-2 text-xs text-gray-600">
+              ${r.spaceWidth || r.spaceDepth || r.spaceHeight ? `
+              <div>
+                <p class="font-bold text-gray-500 mb-0.5">공간 치수</p>
+                <p>가로 ${r.spaceWidth || '-'}m × 세로 ${r.spaceDepth || '-'}m × 높이 ${r.spaceHeight || '-'}m</p>
+              </div>` : ''}
+              ${r.spacePurpose ? `<p><span class="font-bold text-gray-500">용도:</span> ${r.spacePurpose}</p>` : ''}
+              ${r.cargoType ? `<p><span class="font-bold text-gray-500">보관물:</span> ${r.cargoType}</p>` : ''}
+              ${r.cargoWeight ? `<p><span class="font-bold text-gray-500">무게:</span> ${r.cargoWeight}</p>` : ''}
+              ${r.photoUrls ? `
+              <div>
+                <p class="font-bold text-gray-500 mb-1">현장 사진</p>
+                <div class="grid grid-cols-3 gap-2">
+                  ${r.photoUrls.split(',').map(function(url) { return '<a href="' + url.trim() + '" target="_blank"><img src="' + url.trim() + '" class="rounded-lg w-full h-20 object-cover border border-gray-200"></a>'; }).join('')}
+                </div>
+              </div>` : ''}
+            </div>
+            ` : ''}
           </div>
           ${r.memo && !r.estimateId ? `
           <div class="mb-3">
@@ -277,6 +299,19 @@
         renderRequests();
         UI.markRequestsSeen(allRequests.length);
       } catch { UI.toast('상태 변경 실패', 'error'); }
+    }
+
+    // --- 상세 정보 토글 ---
+    function hasDetail(r) {
+      return r.spaceWidth || r.spaceDepth || r.spaceHeight || r.spacePurpose || r.cargoType || r.cargoWeight || r.photoUrls;
+    }
+
+    function toggleDetail(rowIndex) {
+      var el = document.getElementById('detail-' + rowIndex);
+      var arrow = document.getElementById('detail-arrow-' + rowIndex);
+      if (!el) return;
+      el.classList.toggle('hidden');
+      arrow.textContent = el.classList.contains('hidden') ? '▶' : '▼';
     }
 
     // --- AI 분석 ---
