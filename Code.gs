@@ -747,7 +747,7 @@ function submitRequest(body) {
           (body.name || 'photo') + '_' + now.replace(/[:\s]/g, '') + '_' + (pi + 1) + '.jpg');
         var file = folder.createFile(blob);
         file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-        urls.push('https://drive.google.com/uc?id=' + file.getId());
+        urls.push('https://lh3.googleusercontent.com/d/' + file.getId());
       }
       photoUrls = urls.join(',');
     }

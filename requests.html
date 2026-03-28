@@ -197,7 +197,7 @@
               <div>
                 <p class="font-bold text-gray-500 mb-1">현장 사진</p>
                 <div class="grid grid-cols-3 gap-2">
-                  ${r.photoUrls.split(',').map(function(url) { return '<a href="' + url.trim() + '" target="_blank"><img src="' + url.trim() + '" class="rounded-lg w-full h-20 object-cover border border-gray-200"></a>'; }).join('')}
+                  ${r.photoUrls.split(',').map(function(url) { var u = url.trim(); var id = u.match(/[/=]([a-zA-Z0-9_-]{20,})/); var thumbUrl = id ? 'https://lh3.googleusercontent.com/d/' + id[1] : u; return '<a href="' + u + '" target="_blank"><img src="' + thumbUrl + '" class="rounded-lg w-full h-20 object-cover border border-gray-200" onerror="this.parentElement.innerHTML=\'<div class=rounded-lg w-full h-20 bg-gray-100 flex items-center justify-center text-xs text-gray-400>사진 보기</div>\'"></a>'; }).join('')}
                 </div>
               </div>` : ''}
             </div>
