@@ -14,3 +14,6 @@ Thumbs.db
 credentials.json
 *_token
 .clasp.json
+node_modules/
+package.json
+package-lock.json
