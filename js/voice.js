@@ -1,4 +1,4 @@
-/** voice.js — Web Speech API 기반 음성 품목 담기 */
+/** voice.js — 녹음 오디오를 서버의 Gemini로 전사한 뒤 확인하여 품목 담기 */
 (function (root) {
   function appRef() { try { if (typeof App!=='undefined' && App) return App; } catch (_) {} return null; }
   function wizardRef() { try { if (typeof EstimateWizard!=='undefined' && EstimateWizard) return EstimateWizard; } catch (_) {} return null; }
@@ -229,41 +229,65 @@
     var element=root.document&&root.document.getElementById('voice-support-message');
     if (element) { element.textContent=message; element.classList.toggle('is-error',Boolean(isError)); }
   }
-  function stopRecognition() {
-    if (state.timer) root.clearTimeout(state.timer);
+  var recorder=null, audioStream=null, voicePhase='idle', cancelled=false;
+  function releaseMicrophone() {
+    if (audioStream) audioStream.getTracks().forEach(function(t){t.stop();});
+    audioStream=null;
+    if(state.timer) root.clearTimeout(state.timer);
     state.timer=null;
-    try { if (state.recognition) state.recognition.stop(); } catch (_) {}
   }
-
-  function start() {
-    var Recognition=root.SpeechRecognition||root.webkitSpeechRecognition;
-    if (!Recognition) { setCardMessage('이 브라우저는 음성 입력을 지원하지 않습니다',true); return; }
-    stopRecognition();
-    var recognition=new Recognition();
-    state.recognition=recognition;
-    recognition.lang='ko-KR'; recognition.interimResults=false; recognition.maxAlternatives=1;
-    var received=false, failed=false;
-    recognition.onstart=function () { setCardMessage('듣고 있어요. 품목을 말씀하세요',false); };
-    recognition.onresult=function (event) {
-      received=true; stopRecognition();
-      var transcript=event.results&&event.results[0]&&event.results[0][0]?event.results[0][0].transcript:'';
-      if (transcript) openResult(transcript);
-    };
-    recognition.onerror=function (event) {
-      failed=true;
-      var denied=event&&(event.error==='not-allowed'||event.error==='service-not-allowed');
-      var message=denied?'마이크 권한이 필요합니다. 브라우저 설정에서 허용해 주세요':'음성 입력 중 오류가 발생했습니다. 다시 시도해 주세요';
-      setCardMessage(message,true);
-      if (uiRef()) uiRef().toast(message,'error',4000);
-    };
-    recognition.onend=function () {
-      if (state.timer) root.clearTimeout(state.timer);
-      state.timer=null;
-      if (!received&&!failed) setCardMessage('말로 품목을 빠르게 담아보세요',false);
-    };
+  function voiceButton(phase) {
+    voicePhase=phase;
+    var button=root.document&&root.document.getElementById('voice-start');
+    if(button) {
+      if(!button.dataset.idleHtml) button.dataset.idleHtml=button.innerHTML;
+      button.innerHTML=phase==='idle'?button.dataset.idleHtml:(phase==='recording'?'종료':'처리 중');
+      button.disabled=phase==='starting'||phase==='processing';
+      button.setAttribute('aria-label',phase==='recording'?'녹음 종료 후 변환':'말로 품목 담기 시작');
+    }
+  }
+  function stopRecognition() {
+    if(state.timer) root.clearTimeout(state.timer);
+    state.timer=null;
+    if(recorder&&recorder.state==='recording') recorder.stop();
+    releaseMicrophone();
+  }
+  async function start() {
+    if(voicePhase==='recording'){stopRecognition();return;}
+    if(voicePhase!=='idle')return;
+    if(!root.MediaRecorder||!root.navigator?.mediaDevices?.getUserMedia){setCardMessage('이 브라우저에서는 녹음할 수 없습니다. HTTPS와 마이크 권한을 확인해 주세요.',true);return;}
+    voiceButton('starting');cancelled=false;
+    var chunks=[], bytes=0;
     try {
-      recognition.start(); state.timer=root.setTimeout(stopRecognition,8000);
-    } catch (_) { setCardMessage('음성 입력을 시작하지 못했습니다. 다시 시도해 주세요',true); }
+      audioStream=await root.navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true},video:false});
+      if(cancelled){releaseMicrophone();voiceButton('idle');return;}
+      var mime=['audio/webm;codecs=opus','audio/mp4','audio/ogg;codecs=opus'].find(function(m){return root.MediaRecorder.isTypeSupported(m);});
+      if(!mime)throw Error('이 기기의 녹음 형식을 지원하지 않습니다.');
+      recorder=new root.MediaRecorder(audioStream,{mimeType:mime,audioBitsPerSecond:64000});
+      recorder.ondataavailable=function(e){if(e.data.size){chunks.push(e.data);bytes+=e.data.size;if(bytes>2000000){cancelled=true;stopRecognition();setCardMessage('녹음 용량을 초과했습니다. 짧게 나눠 말씀해 주세요.',true);}}};
+      recorder.onerror=function(){cancelled=true;stopRecognition();voiceButton('idle');setCardMessage('녹음 중 오류가 발생했습니다. 다시 시도해 주세요.',true);};
+      recorder.onstop=async function(){
+        releaseMicrophone();
+        if(cancelled){voiceButton('idle');return;}
+        voiceButton('processing');setCardMessage('Gemini로 음성을 변환하는 중입니다...',false);
+        try {
+          var blob=new root.Blob(chunks,{type:mime});
+          if(!blob.size||blob.size>2000000)throw Error('녹음된 음성이 없거나 용량을 초과했습니다.');
+          var base64=await new Promise(function(resolve,reject){var reader=new root.FileReader();reader.onload=function(){resolve(String(reader.result).split(',')[1]);};reader.onerror=function(){reject(Error('녹음 파일을 읽지 못했습니다.'));};reader.readAsDataURL(blob);});
+          if(cancelled)return;
+          var result=await API.request('POST',{action:'transcribeVoice',audioBase64:base64,mimeType:mime.split(';')[0]},{timeout:60000});
+          if(cancelled)return;
+          if(!result||typeof result.transcript!=='string'||!result.transcript.trim())throw Error('음성을 인식하지 못했습니다. 다시 말씀해 주세요.');
+          if(result.uncertain!==false)throw Error('치수 또는 품목이 불명확합니다. 숫자를 나눠 또렷하게 다시 말씀해 주세요.');
+          openResult(result.transcript);
+          setCardMessage('변환 완료. 규격과 수량을 확인한 뒤 담아 주세요.',false);
+        }catch(error){if(!cancelled)setCardMessage(error.message||'음성 변환에 실패했습니다. 다시 시도해 주세요.',true);}
+        finally{chunks=[];voiceButton('idle');}
+      };
+      recorder.start(500);voiceButton('recording');
+      setCardMessage('녹음 중 · 말을 마치면 녹음 종료를 누르세요. 최대 30초',false);
+      state.timer=root.setTimeout(stopRecognition,30000);
+    }catch(error){releaseMicrophone();voiceButton('idle');setCardMessage(error.name==='NotAllowedError'?'마이크 권한을 허용해 주세요.':error.message||'녹음을 시작하지 못했습니다.',true);}
   }
 
   function toggleForm(index) {
@@ -308,11 +332,12 @@
   }
   function init() {
     if (!root.document) return;
-    if (!(root.SpeechRecognition||root.webkitSpeechRecognition)) {
+    if (!(root.MediaRecorder&&root.navigator?.mediaDevices?.getUserMedia)) {
       setCardMessage('이 브라우저는 음성 입력을 지원하지 않습니다',true);
       var button=root.document.getElementById('voice-start');
       if (button) button.disabled=true;
     }
+    root.addEventListener('pagehide',function(){cancelled=true;stopRecognition();});
   }
 
   root.VoiceAdd={

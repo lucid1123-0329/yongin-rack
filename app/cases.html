@@ -16,7 +16,7 @@
     } } };
   </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/design.css?v=77">
+  <link rel="stylesheet" href="/css/design.css?v=78">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1e3a5f">
   <link rel="icon" type="image/png" href="/assets/favicon.png">
@@ -38,7 +38,7 @@
     @media(min-width:560px){.cases-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.cases-grid>div{margin:0!important}}
   </style>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <script src="/js/onesignal-init.js?v=77" defer></script>
+  <script src="/js/onesignal-init.js?v=78" defer></script>
   <script src="/js/version-check.js" defer></script>
 </head>
 <body class="yr-admin-app bg-[#F2F4F6] min-h-screen">
@@ -106,6 +106,7 @@
     </section>
     <section class="cases-section" aria-labelledby="send-heading">
       <div class="cases-section-head"><h2 id="send-heading">시공 사례 보내기</h2><p>최근 블로그 글을 골라 고객에게 바로 보냅니다.</p></div>
+      <div class="px-5 pt-4"><button type="button" class="cases-chip" onclick="this.disabled=true; loadBlogPosts(true).finally(() => {this.disabled=false;})">사진·목록 새로고침</button></div>
       <div class="px-5 pt-4">
         <div id="blog-filters" class="cases-chip-row" aria-label="랙 종류 필터">
           <button type="button" class="cases-chip is-selected" data-blog-filter="전체" aria-pressed="true">전체</button>
@@ -121,16 +122,16 @@
       <div id="blog-list" class="mt-3"><p class="p-5 text-sm text-gray-500">블로그 글을 불러오는 중입니다.</p></div>
     </section>
   </main>
-  <script src="/js/api.js?v=77"></script>
-  <script src="/js/auth.js?v=77"></script>
-  <script src="/js/ui.js?v=77"></script>
-  <script src="/js/blog-draft.js?v=77"></script>
+  <script src="/js/api.js?v=78"></script>
+  <script src="/js/auth.js?v=78"></script>
+  <script src="/js/ui.js?v=78"></script>
+  <script src="/js/blog-draft.js?v=78"></script>
   <script>
     const BLOG_RSS_URL = 'https://api.rss2json.com/v1/api.json?rss_url=https://rss.blog.naver.com/yongin_rack.xml';
     const ESTIMATE_CACHE_KEY = 'yr_estimates_cache';
     const ESTIMATE_CACHE_TS_KEY = 'yr_estimates_cache_ts';
     const ESTIMATE_CACHE_TTL = 2 * 60 * 1000;
-    const BLOG_CACHE_KEY = 'yr_blog_posts_cache';
+    const BLOG_CACHE_KEY = 'yr_blog_posts_cache_v2';
     const BLOG_CACHE_TTL = 60 * 60 * 1000;
     const DRAFTS_KEY = 'yr_blog_drafts';
     let recentEstimates = [], blogPosts = [], blogFilter = '전체', currentDraft = null, selectedTitleIndex = 0;
@@ -261,12 +262,12 @@
         document.querySelectorAll('[data-blog-filter]').forEach(item => { const selected = item === button; item.classList.toggle('is-selected', selected); item.setAttribute('aria-pressed', String(selected)); }); renderBlogPosts();
       });
     }
-    async function loadBlogPosts() {
+    async function loadBlogPosts(force = false) {
       let cached = null; try { cached = JSON.parse(localStorage.getItem(BLOG_CACHE_KEY) || 'null'); } catch {}
-      if (cached && Array.isArray(cached.items) && cached.items.length) { blogPosts = cached.items.slice(0, 20); renderBlogPosts(); if (Date.now() - Number(cached.ts || 0) < BLOG_CACHE_TTL) return; }
+      if (!force && cached && Array.isArray(cached.items) && cached.items.length) { blogPosts = cached.items.slice(0, 20); renderBlogPosts(); if (Date.now() - Number(cached.ts || 0) < BLOG_CACHE_TTL && blogPosts.some(post => postThumbnail(post))) return; }
       try {
-        const response = await fetch(BLOG_RSS_URL), data = await response.json(); if (data.status !== 'ok' || !Array.isArray(data.items)) throw new Error('rss');
-        blogPosts = data.items.slice(0, 20); localStorage.setItem(BLOG_CACHE_KEY, JSON.stringify({ ts: Date.now(), items: blogPosts })); renderBlogPosts();
+        const response = await fetch(BLOG_RSS_URL + '&_refresh=' + Date.now(), {cache:'no-store'}), data = await response.json(); if (data.status !== 'ok' || !Array.isArray(data.items)) throw new Error('rss');
+        blogPosts = data.items.slice(0, 20); renderBlogPosts(); try { localStorage.setItem(BLOG_CACHE_KEY, JSON.stringify({ ts: Date.now(), items: blogPosts })); } catch {}
       } catch { if (!blogPosts.length) renderBlogFallback(); }
     }
     function postCategories(post) { return Array.isArray(post.categories) ? post.categories.filter(Boolean) : []; }
@@ -287,7 +288,7 @@
       if (!filtered.length) { document.getElementById('blog-list').innerHTML = '<p class="p-5 text-sm text-gray-500">선택한 종류의 최근 글이 없습니다.</p>'; return; }
       document.getElementById('blog-list').innerHTML = filtered.map(post => {
         const index = blogPosts.indexOf(post), link = safeHttpUrl(post.link), thumbnail = postThumbnail(post), category = postCategories(post)[0] || '시공 사례', parsedDate = new Date(post.pubDate || ''), date = Number.isNaN(parsedDate.getTime()) ? '' : parsedDate.toLocaleDateString('ko-KR');
-        return `<article class="blog-row">${thumbnail ? `<img class="blog-thumb" src="${UI.escapeHtml(thumbnail)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="var d=document.createElement('div');d.className='blog-thumb';d.setAttribute('aria-hidden','true');this.replaceWith(d)">` : '<div class="blog-thumb" aria-hidden="true"></div>'}<div class="blog-copy"><span class="blog-badge">${UI.escapeHtml(category)}</span><h3 class="blog-title">${UI.escapeHtml(post.title || '시공 사례')}</h3>${date ? `<p class="mt-1 text-xs text-gray-400">${UI.escapeHtml(date)}</p>` : ''}<div class="blog-actions"><button type="button" data-share-post="${index}">카톡으로 보내기</button>${link ? `<a href="${UI.escapeHtml(link)}" target="_blank" rel="noopener">열기</a>` : ''}</div></div></article>`;
+        return `<article class="blog-row">${thumbnail ? `<img class="blog-thumb" src="${UI.escapeHtml(thumbnail)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="var d=document.createElement('div');d.className='blog-thumb';d.setAttribute('role','img');d.setAttribute('aria-label','사진 불러오기 실패');d.textContent='사진 연결 실패';this.replaceWith(d)">` : '<div class="blog-thumb" role="img" aria-label="등록된 사진 없음">사진 없음</div>'}<div class="blog-copy"><span class="blog-badge">${UI.escapeHtml(category)}</span><h3 class="blog-title">${UI.escapeHtml(post.title || '시공 사례')}</h3>${date ? `<p class="mt-1 text-xs text-gray-400">${UI.escapeHtml(date)}</p>` : ''}<div class="blog-actions"><button type="button" data-share-post="${index}">카톡으로 보내기</button>${link ? `<a href="${UI.escapeHtml(link)}" target="_blank" rel="noopener">열기</a>` : ''}</div></div></article>`;
       }).join('');
     }
     async function shareBlogPost(index) {
