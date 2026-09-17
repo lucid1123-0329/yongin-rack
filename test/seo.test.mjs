@@ -3,6 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const publicPages=['index.html','request.html','portfolio-public.html'];
+test('public pages show call labels instead of phone digits while preserving dial links',()=>{
+ for(const p of publicPages){
+  const html=read(p),visible=html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g,'').replace(/<[^>]*>/g,'');
+  assert.doesNotMatch(visible,/010[-\s]?3776[-\s]?1230/);
+  assert.match(html,/href="tel:010-?3776-?1230"/);
+ }
+});
 test('public pages have unique titles, descriptions, canonical URLs and absolute social images',()=>{
  const titles=new Set(),descs=new Set();
  for(const p of publicPages){const html=read(p),url='https://yongin-rack.com/'+(p==='index.html'?'':p);
