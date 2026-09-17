@@ -452,7 +452,7 @@ const App = (() => {
   let _dimSelection = { W: '', D: '', H: '' };
 
   function _isPriced(item) {
-    return Number(item && item.unitPrice) > 0;
+    return Number.isFinite(Number(item && item.unitPrice)) && Number(item && item.unitPrice) > 0;
   }
 
   function _priceVisible(items) {
@@ -1055,6 +1055,7 @@ const App = (() => {
     const accessories = getAccessoriesForType(_selType);
     const acc = accessories[index];
     if (!acc) return;
+    if (_rejectUnpriced(acc)) return;
 
     items.push({
       type: acc.type,
@@ -1070,7 +1071,7 @@ const App = (() => {
     updateTotal();
     saveDraft();
     UI.toast('부속품이 추가되었습니다', 'success');
-    notifyItemAdded(items[items.length - 1]);
+    _wizardCall('onItemAdded', items[items.length - 1]);
   }
 
   // ======== 선반 추가 옵션 (모델 A) ========
@@ -1246,6 +1247,7 @@ const App = (() => {
   }
 
   function filterSpecsByWidth(width) {
+    _clearCardSelection();
     _specWidthFilter = String(width || '');
     _dimSelection.W = _specWidthFilter;
     _dimSelection.D = '';
@@ -1393,6 +1395,18 @@ const App = (() => {
   }
 
   function _addQuickItem(r) {
+    // Stored shortcuts are hints, not a second price table.
+    const matches = priceData.filter(p => !p.isAccessory && p.type === r.type &&
+      (p.form || '') === (r.form || '') && String(p.spec || '') === String(r.spec || '') &&
+      String(p.tier || '') === String(r.tier || '') &&
+      ['layoutType', 'setName', 'partCategory'].every(key => !r[key] || p[key] === r[key]));
+    if (matches.length !== 1) {
+      UI.toast('현재 단가표에서 품목을 확인할 수 없습니다. 종류와 규격을 다시 선택하세요.', 'warning');
+      return;
+    }
+    r = matches[0];
+    if (_rejectUnpriced(r)) return;
+    _clearCardSelection();
     items.push({
       type: r.type,
       form: r.form || '',
@@ -1412,12 +1426,12 @@ const App = (() => {
     updateTotal();
     saveDraft();
     UI.toast('품목이 추가되었습니다', 'success');
-    notifyItemAdded(items[items.length - 1]);
+    _wizardCall('onItemAdded', items[items.length - 1]);
   }
 
   // 음성 입력처럼 단가표 행이 이미 확정된 진입점에서 기존 담기 효과를 그대로 재사용한다.
   function addItemFromPrice(row, quantity) {
-    if (!row || Number(row.unitPrice) <= 0) {
+    if (!_isPriced(row)) {
       UI.toast('단가가 입력된 품목만 담을 수 있습니다', 'warning');
       return null;
     }
@@ -1475,6 +1489,13 @@ const App = (() => {
     // Read the visible value as well: mobile keyboards may not have blurred yet.
     setQuantity(document.getElementById('qty-input')?.value ?? currentQuantity);
     const sel = currentSelection;
+    const chkShelf = document.getElementById('chk-shelf-addon');
+    const includeShelf = Boolean(chkShelf?.checked && Number(sel.shelfAddonPrice) > 0);
+    const shelfQty = Number(document.getElementById('shelf-addon-qty')?.value || 1);
+    if (includeShelf && (!Number.isFinite(Number(sel.shelfAddonPrice)) || !Number.isInteger(shelfQty) || shelfQty < 1 || shelfQty > 9999)) {
+      UI.toast('추가 선반 수량은 1~9999 사이의 정수로 입력하세요', 'warning');
+      return;
+    }
     const newItem = {
       type: sel.type,
       form: sel.form || '',
@@ -1495,9 +1516,7 @@ const App = (() => {
     addItemFrequency(newItem);
 
     // 모델 A: 선반 추가 처리
-    const chkShelf = document.getElementById('chk-shelf-addon');
-    if (chkShelf && chkShelf.checked && sel.shelfAddonPrice > 0) {
-      const shelfQty = Number(document.getElementById('shelf-addon-qty')?.value) || 1;
+    if (includeShelf) {
       items.push({
         type: sel.type,
         itemType: 'custom',
@@ -1541,10 +1560,11 @@ const App = (() => {
     const qtyEl = document.getElementById('custom-qty');
     const name = (nameEl?.value || '').trim();
     const price = Number(priceEl?.value) || 0;
-    const qty = Number(qtyEl?.value) || 1;
+    const qty = Number(qtyEl?.value || 1);
 
     if (!name) { UI.toast('항목명을 입력하세요', 'warning'); return; }
-    if (price === 0) { UI.toast('금액을 입력하세요', 'warning'); return; }
+    if (!Number.isFinite(price) || price === 0) { UI.toast('금액을 입력하세요', 'warning'); return; }
+    if (!Number.isInteger(qty) || qty < 1 || qty > 9999) { UI.toast('수량은 1~9999 사이의 정수로 입력하세요', 'warning'); return; }
 
     items.push({
       itemType: 'custom',
@@ -1622,7 +1642,7 @@ const App = (() => {
   function addDiscount() {
     const amountEl = document.getElementById('dc-amount');
     const amount = Math.abs(Number(amountEl?.value) || 0);
-    if (amount <= 0) { UI.toast('할인 금액을 입력하세요', 'warning'); return; }
+    if (!Number.isFinite(amount) || amount <= 0) { UI.toast('할인 금액을 입력하세요', 'warning'); return; }
 
     items.push({
       itemType: 'custom',
@@ -1643,11 +1663,12 @@ const App = (() => {
   }
 
   function addMargin() {
+    calcMarginFromPct();
     const pctEl = document.getElementById('margin-pct');
     const amountEl = document.getElementById('margin-amount');
     const pct = Number(pctEl?.value) || 0;
     const amount = Number(amountEl?.dataset?.amount) || 0;
-    if (amount <= 0) { UI.toast('랙 품목을 먼저 추가하세요', 'warning'); return; }
+    if (!Number.isFinite(amount) || amount <= 0) { UI.toast('랙 품목과 마진율을 확인하세요', 'warning'); return; }
 
     items.push({
       itemType: 'custom',

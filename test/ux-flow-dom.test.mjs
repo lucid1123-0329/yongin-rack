@@ -142,6 +142,7 @@ function testWidthFilterDom() {
     _specWidthFilter: '',
     _dimSelection: { W: '', D: '', H: '' },
     _saveDimSelection: () => {},
+    _clearCardSelection: () => {},
     _getPricingModel: () => model,
     _parseSpecDimensions: item => {
       const width = String(item.spec || '').split('*')[0];
