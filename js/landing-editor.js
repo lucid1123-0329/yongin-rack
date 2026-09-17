@@ -26,6 +26,74 @@ const LandingEditor = (() => {
     if(state.items.some(r=>issue(state,r))) throw Error('경계 또는 겹침 문제가 있는 파일입니다');
     return state;
   }
+  // Deterministic starting sketches. Clearances are assumptions, not safety validation.
+  function createPreset(py,shape,profile,name) {
+    const state=validate({version:1,py,shape,profile,items:[]});
+    if(!['browse','experience','storage','empty'].includes(name))throw Error('지원하지 않는 시작 구성입니다');
+    if(name==='empty')return state;
+    const g=geometry(py,shape),p=LandingPlanner.profiles[profile],margin=.25;
+    const aisle=Math.max(1.2,p.aisle),front=Math.max(2,aisle);
+    const regions=g.cut?[
+      {x:margin,y:margin,w:g.width/2-margin*2,h:g.height/2-margin-aisle/2},
+      {x:margin,y:g.height/2+aisle/2,w:g.width-margin*2,h:g.height/2-front-aisle/2}
+    ]:[{x:margin,y:margin,w:g.width-margin*2,h:g.height-front-margin}];
+    function add(kind,x,y,w=kinds[kind].w,h=kinds[kind].h){
+      const r={id:state.items.length+1,kind,x,y,w,h};
+      if(state.items.length<250&&!issue(state,r)){state.items.push(r);return true;}return false;
+    }
+    add('counter',margin,g.height-1.25);
+    // A rear service band differs by use; every region keeps a central access strip.
+    for(const region of regions){
+      if(region.h<=0)continue;
+      const center=region.x+region.w/2;
+      const sides=[{x:region.x,w:region.w/2-aisle/2},{x:center+aisle/2,w:region.w/2-aisle/2}];
+      for(const side of sides){
+        if(side.w<=0)continue;
+        let top=region.y;
+        const stockH=Math.min(3,region.h*.24);
+        if(name==='storage'&&side.w>=1.2&&region.h>=stockH+aisle+p.bay){
+          add('stock',side.x,top,side.w,stockH);
+          top+=stockH+aisle;
+        }
+        if(name==='experience'){
+          // Wall display at the rear, distributed consultation islands in the room.
+          for(let x=side.x;x+p.bay<=side.x+side.w+1e-8;x+=p.bay+.1)add('rack',x,top,p.bay,p.depth);
+          top+=p.depth+aisle;
+          const tableGap=Math.max(2.4,aisle); // Leave room around consultation / experience tables.
+          const cols=Math.floor((side.w+tableGap)/(1.2+tableGap));
+          const rows=Math.floor((region.y+region.h-top+tableGap)/(.8+tableGap));
+          for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){
+            const x=side.x+(side.w-(cols*1.2+(cols-1)*tableGap))/2+col*(1.2+tableGap);
+            const y=top+row*(.8+tableGap);
+            add('table',x,y);
+          }
+        }else{
+          // Long rooms / stock layouts run lengthways; browsing layouts run across.
+          const vertical=name==='storage'||shape==='long';
+          const w=vertical?p.depth:p.bay,h=vertical?p.bay:p.depth;
+          const gapX=vertical?aisle:.1,gapY=vertical?.1:aisle;
+          const cols=Math.floor((side.w+gapX)/(w+gapX));
+          const rows=Math.floor((region.y+region.h-top+gapY)/(h+gapY));
+          for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){
+            // Cross aisle after each ~5m run, preserving circulation in large rooms.
+            const x=side.x+col*(w+gapX),y=top+row*(h+gapY);
+            const run=region.y+region.h-top,cross=top+run/2;
+            if(run>Math.max(9,2*h+aisle)&&y<cross+aisle/2&&y+h>cross-aisle/2)continue;
+            add('rack',x,y,w,h);
+          }
+        }
+      }
+    }
+    // Small spaces may not fit the full zoning: keep a usable, modest starter.
+    if(!state.items.some(r=>r.kind==='rack')){
+      for(const r of regions){
+        if(add('rack',r.x,r.y,p.bay,p.depth))break;
+        if(add('rack',r.x,r.y,p.depth,p.bay))break;
+      }
+    }
+    if(name==='storage')add('table',g.width-1.45,g.height-1.25);
+    return validate(state);
+  }
   function mount() {
     const $=s=>document.querySelector(s), svg=$('#plan');
     let state={version:1,py:12,shape:'wide',profile:0,items:[]},selected=null,nextId=1,past=[],future=[],scale=1,ox=0,oy=0,moveMode=false,drag=null;
@@ -82,16 +150,8 @@ const LandingEditor = (() => {
       say('이 크기로 추가할 빈 공간이 없습니다. 크기나 배치를 조정해 주세요.');
     }
     function change(patch){const r=selection();if(!r)return;const next={...r,...patch},error=issue(state,next);if(error){say(error);render();return false;}remember();Object.assign(r,next);render();say(kinds[r.kind].name+' 위치·크기를 변경했습니다.');return true;}
-    function preset(name){remember();state.items=[];selected=null;nextId=1;const g=geometry(state.py,state.shape),p=LandingPlanner.profiles[state.profile];
-      function add(kind,x,y,w,h){const r={id:nextId,kind,x,y,w:w||kinds[kind].w,h:h||kinds[kind].h};if(!issue(state,r)){state.items.push(r);nextId++;}}
-      if(name!=='empty'){
-        add('counter',.25,g.height-1.9);
-        const count=name==='storage'?8:4;
-        for(let n=0;n<count;n++){const x=.25+(n%2)*(p.bay+1.4),y=.25+Math.floor(n/2)*(p.depth+1.4);add('rack',x,y,p.bay,p.depth);}
-        if(name==='experience'){add('table',g.width*.35,g.height*.48);add('table',g.width*.35,g.height*.7);}
-        if(name==='storage')add('stock',g.width-2.25,.25);
-      }
-      render();say('시작 구성을 적용했습니다. 필요한 가구만 더해 나만의 동선을 만들어 보세요.');
+    function preset(name){remember();state=createPreset(state.py,state.shape,state.profile,name);selected=null;nextId=state.items.length+1;
+      render();say(state.py+'평 · '+shapes[state.shape]+'에 맞춘 '+$('#editor-preset').selectedOptions[0].textContent+' 구성을 적용했습니다. 기존 배치는 되돌리기로 복원할 수 있습니다. 통로와 가구 크기는 상담용 가정입니다.');
     }
     host.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>insert(b.dataset.add));
     $('#editor-shape').onchange=e=>{remember();state.shape=e.target.value;render();say('공간 형태를 바꿨습니다. 기존 가구는 유지되며 경계 밖 가구는 주황 테두리로 표시합니다.');};
@@ -120,5 +180,5 @@ const LandingEditor = (() => {
     preset('browse');past=[];render();
     return {update(py,profile){py=Math.max(5,Math.min(200,Math.round(Number(py)||5)));if(py!==state.py||profile!==state.profile){remember();state.py=py;state.profile=profile;render();say('조건을 변경했습니다. 기존 가구는 유지됩니다. 경계를 확인하거나 시작 구성을 다시 적용하세요.');}else render();}};
   }
-  return {mount,geometry,issue,validate};
+  return {mount,geometry,issue,validate,createPreset};
 })();

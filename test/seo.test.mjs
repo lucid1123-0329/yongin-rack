@@ -32,6 +32,32 @@ test('structured data is linked, factual and services remain readable without Ja
  assert.ok(graph.find(n=>n['@type']==='WebSite'));assert.ok(graph.find(n=>n['@type']==='WebPage'));
  assert.doesNotMatch(JSON.stringify(json),/aggregateRating|reviewCount|openingHours|priceRange/);
  const body=html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g,'');
- assert.match(body,/id="service-guide"/);assert.match(body,/용인 랙 시공 전문/);assert.match(body,/창고 선반·중량랙·파렛트랙/);
+ assert.match(body,/id="service-guide"/);assert.match(body,/전국 랙 시공 전문/);assert.match(body,/창고 선반·중량랙·파렛트랙/);
  assert.doesNotMatch(html,/\.reveal\{opacity:0/);
+});
+test('consultation guide focuses on online enquiries and nationwide installation',()=>{
+ const guide=read('index.html').match(/<section id="service-guide"[\s\S]*?<\/section>/)[0];
+ assert.match(guide,/카카오톡이나 견적 문의/);
+ assert.match(guide,/전국 시공/);
+ assert.doesNotMatch(guide,/용인|백옥대로|1117/);
+});
+test('measurement copy requires accurate dimensions and offers phone guidance',()=>{
+ const html=read('index.html');
+ assert.doesNotMatch(html,/대략만 알려|사진 두세 장이면 충분|방문 실측 때 저희가|대략적인 가로/);
+ assert.match(html,/정확한 견적에는 정확한 치수가 필요/);
+ assert.match(html,/필요한 치수와 재는 방법/);
+ assert.match(read('request.html'),/치수 없이도 상담을 요청할 수 있지만, 정확한 견적은 치수 확인 후 안내/);
+});
+test('admin, legacy redirect and quote URLs expose noindex without robots crawl blocking',()=>{
+ const app=fs.readdirSync(new URL('../app/',import.meta.url)).filter(p=>p.endsWith('.html'));
+ const legacy=app.filter(p=>p!=='index.html');
+ const privatePages=[...app.map(p=>'app/'+p),...legacy,'view.html'];
+ const robots=read('robots.txt'),sitemap=read('sitemap.xml');
+ const blocked=[...robots.matchAll(/^Disallow:\s*(\S+)/gm)].map(m=>m[1]);
+ for(const p of privatePages){
+   assert.match(read(p),/<meta name="robots" content="noindex, nofollow">/);
+   assert.ok(!blocked.some(prefix=>('/'+p).startsWith(prefix)),p+' must allow noindex discovery');
+   assert.ok(!sitemap.includes('https://yongin-rack.com/'+p),p+' excluded from sitemap');
+ }
+ assert.match(read('index.html'),/href="\/app\/index.html" rel="nofollow"/);
 });

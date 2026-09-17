@@ -3,18 +3,10 @@ Allow: /$
 Allow: /request.html
 Allow: /portfolio-public.html
 Allow: /assets/
-Disallow: /app/
-Disallow: /view.html
-Disallow: /dashboard.html
-Disallow: /history.html
-Disallow: /requests.html
-Disallow: /cases.html
-Disallow: /more.html
-Disallow: /settings.html
-Disallow: /admin.html
-Disallow: /admin-push.html
-Disallow: /portfolio.html
-Disallow: /estimate-preview.html
+# Allow crawlers to read noindex on admin shells, legacy redirects and quote views.
+# Authentication remains enforced by the backend; robots.txt is not access control.
+Allow: /app/
+Allow: /view.html
 Allow: /js/
 Allow: /css/
 Disallow: /test/
