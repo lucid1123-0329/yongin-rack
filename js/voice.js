@@ -238,14 +238,29 @@
     render(); logResult();
   }
   function close() {
+    cancelled=true;stopRecognition();
     if (root.document) root.document.getElementById('voice-result-sheet').classList.add('hidden');
   }
   function setCardMessage(message,isError) {
     var element=root.document&&root.document.getElementById('voice-support-message');
     if (element) { element.textContent=message; element.classList.toggle('is-error',Boolean(isError)); }
+    var status=root.document&&root.document.getElementById('voice-modal-status');if(status)status.textContent=message;
   }
-  var recorder=null, audioStream=null, voicePhase='idle', cancelled=false;
+  var recorder=null, audioStream=null, voicePhase='idle', cancelled=false, audioContext=null, silenceTimer=null;
+  function silenceState(){return {heard:false,lastSpeech:0};}
+  function silenceTick(s,rms,now){if(rms>.018){s.heard=true;s.lastSpeech=now;}return s.heard&&now-s.lastSpeech>=2000;}
+  function watchSilence(){
+    try {
+      var Context=root.AudioContext||root.webkitAudioContext;if(!Context)return;
+      audioContext=new Context();audioContext.resume().catch(function(){});
+      var analyser=audioContext.createAnalyser();analyser.fftSize=2048;audioContext.createMediaStreamSource(audioStream).connect(analyser);
+      var samples=new Float32Array(analyser.fftSize),silence=silenceState(),began=Date.now();
+      silenceTimer=root.setInterval(function(){analyser.getFloatTimeDomainData(samples);var sum=0;for(var i=0;i<samples.length;i++)sum+=samples[i]*samples[i];if(silenceTick(silence,Math.sqrt(sum/samples.length),Date.now()))stopRecognition();else if(!silence.heard&&Date.now()-began>10000){cancelled=true;stopRecognition();setCardMessage('음성이 들리지 않았습니다. 다시 말하기를 눌러 주세요.',true);}},100);
+    }catch(_){setCardMessage('자동 종료를 사용할 수 없습니다. 말씀 후 녹음 종료를 눌러 주세요.',false);}
+  }
   function releaseMicrophone() {
+    if(silenceTimer)root.clearInterval(silenceTimer);silenceTimer=null;
+    if(audioContext){audioContext.close().catch(function(){});audioContext=null;}
     if (audioStream) audioStream.getTracks().forEach(function(t){t.stop();});
     audioStream=null;
     if(state.timer) root.clearTimeout(state.timer);
@@ -253,6 +268,9 @@
   }
   function voiceButton(phase) {
     voicePhase=phase;
+    var stop=root.document&&root.document.getElementById('voice-stop');if(stop)stop.hidden=phase!=='recording';
+    var again=root.document&&root.document.getElementById('voice-recommend-again');if(again)again.disabled=phase!=='idle';
+    var retry=root.document&&root.document.getElementById('voice-retry');if(retry)retry.disabled=phase!=='idle';
     var button=root.document&&root.document.getElementById('voice-start');
     if(button) {
       if(!button.dataset.idleHtml) button.dataset.idleHtml=button.innerHTML;
@@ -272,6 +290,14 @@
     if(voicePhase!=='idle')return;
     if(!root.MediaRecorder||!root.navigator?.mediaDevices?.getUserMedia){setCardMessage('이 브라우저에서는 녹음할 수 없습니다. HTTPS와 마이크 권한을 확인해 주세요.',true);return;}
     voiceButton('starting');cancelled=false;
+    state.rows=[];
+    root.document.getElementById('voice-result-sheet').classList.remove('hidden');
+    root.document.getElementById('voice-transcript').textContent='';
+    root.document.getElementById('voice-result-list').innerHTML='';
+    root.document.getElementById('voice-add-items').disabled=true;
+    root.document.getElementById('voice-intent-result').hidden=true;
+    root.document.getElementById('voice-failure').classList.add('hidden');
+    setCardMessage('마이크를 준비하고 있습니다...',false);
     var chunks=[], bytes=0;
     try {
       audioStream=await root.navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true},video:false});
@@ -294,16 +320,31 @@
           if(cancelled)return;
           if(!result||typeof result.transcript!=='string'||!result.transcript.trim())throw Error('음성을 인식하지 못했습니다. 다시 말씀해 주세요.');
           openResult(result.transcript,result.uncertain!==false);
+          showRecommendations(result);
           setCardMessage('변환 완료. 규격과 수량을 확인한 뒤 담아 주세요.',false);
         }catch(error){if(!cancelled)setCardMessage(error.message||'음성 변환에 실패했습니다. 다시 시도해 주세요.',true);}
         finally{chunks=[];voiceButton('idle');}
       };
       recorder.start(500);voiceButton('recording');
-      setCardMessage('녹음 중 · 말을 마치면 녹음 종료를 누르세요. 최대 30초',false);
+      setCardMessage('듣고 있어요. 말을 마치고 2초 기다리면 자동으로 분석합니다. 최대 30초',false);
+      watchSilence();
       state.timer=root.setTimeout(stopRecognition,30000);
     }catch(error){releaseMicrophone();voiceButton('idle');setCardMessage(error.name==='NotAllowedError'?'마이크 권한을 허용해 주세요.':error.message||'녹음을 시작하지 못했습니다.',true);}
   }
 
+  var recommendedTypes=[];
+  function showRecommendations(result){
+    var data=appRef()?.priceData||[];recommendedTypes=(result.recommendations||[]).filter(function(r){return data.some(function(p){return p.type===r.type&&!p.isAccessory&&Number(p.unitPrice)>0;});}).slice(0,3);
+    root.document.getElementById('voice-intent-result').hidden=false;
+    root.document.getElementById('voice-intent-text').value=result.transcript;
+    root.document.getElementById('voice-recommendations').innerHTML='<h3>추천 종류 · 규격 선택 전 참고용</h3>'+recommendedTypes.map(function(r,i){return '<article class="voice-result-row"><strong>'+escapeHtml(r.type)+'</strong><p>'+escapeHtml(r.reason)+'</p><button type="button" onclick="VoiceAdd.selectRecommendation('+i+')">이 종류로 규격 선택</button></article>';}).join('')+(recommendedTypes.length?'':'<p>추천할 품목을 찾지 못했습니다. 용도나 종류를 더 구체적으로 말씀해 주세요.</p>')+'<ul>'+(result.missingInfo||[]).map(function(s){return '<li>'+escapeHtml(s)+'</li>';}).join('')+'</ul>';
+  }
+  function selectRecommendation(index){var r=recommendedTypes[index];if(!r)return;close();if(wizardRef())wizardRef().go(1);if(appRef())appRef().onTypeChip(r.type);}
+  async function recommendAgain(){
+    if(voicePhase!=='idle')return;var text=root.document.getElementById('voice-intent-text').value.trim();if(!text)return;
+    cancelled=false;voiceButton('processing');root.document.getElementById('voice-recommendations').innerHTML='';state.rows=[];root.document.getElementById('voice-result-list').innerHTML='';root.document.getElementById('voice-add-items').disabled=true;setCardMessage('수정한 문장을 분석 중입니다...',false);
+    try{var result=await API.request('POST',{action:'transcribeVoice',transcript:text},{timeout:60000});if(cancelled)return;openResult(result.transcript,result.uncertain!==false);showRecommendations(result);setCardMessage('추천 내용을 확인하고 규격을 선택해 주세요.',false);}catch(e){if(!cancelled)setCardMessage(e.message||'분석에 실패했습니다.',true);}finally{voiceButton('idle');}
+  }
   function chooseType(index,typeIndex) {
     var data=appRef()?.priceData||[],types=unique(data.filter(function(r){return !r.isAccessory&&Number(r.unitPrice)>0;}).map(function(r){return r.type;})),item=state.rows[index];
     if(!item||!types[typeIndex])return;
@@ -367,6 +408,7 @@
     toggleForm:toggleForm,changeQty:changeQty,confirmDefault:confirmDefault,
     chooseCandidate:chooseCandidate,chooseDirect:chooseDirect,addItems:addItems,
     typeCandidates:typeCandidates,chooseType:chooseType,editRow:editRow,reviewRow:reviewRow,
+    recommendAgain:recommendAgain,selectRecommendation:selectRecommendation,silenceState:silenceState,silenceTick:silenceTick,
     get state() { return state; }
   };
 })(typeof window !== 'undefined' ? window : globalThis);
