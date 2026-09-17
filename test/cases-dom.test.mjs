@@ -68,6 +68,18 @@ try {
   assert.ok(await page.$('#copy-draft'), '제목과 본문 복사 버튼 존재');
   assert.ok(await page.$('#copy-hashtags'), '해시태그 복사 버튼 존재');
   assert.equal(await page.evaluate(() => window.__activeTab), 'cases', 'cases 탭 활성화');
+  const thumbnails = await page.evaluate(() => {
+    blogPosts = [
+      { title: 'RSS 본문 사진', link: 'https://blog.naver.com/yongin_rack/1', thumbnail: '', description: '<img src="https://blogthumb.pstatic.net/sample.jpg?a=1&amp;b=2">' },
+      { title: '사진 없음', thumbnail: '', description: '본문만 있음' },
+      { title: '안전하지 않은 사진', thumbnail: 'javascript:alert(1)', description: '<img src="data:text/html,test">' }
+    ];
+    renderBlogPosts();
+    return { src: document.querySelector('.blog-thumb').getAttribute('src'), images: document.querySelectorAll('#blog-list img').length, empty: safeHttpUrl('') };
+  });
+  assert.equal(thumbnails.src, 'https://blogthumb.pstatic.net/sample.jpg?a=1&b=2');
+  assert.equal(thumbnails.images, 1, '빈 썸네일이 현재 페이지 URL로 잘못 변환되지 않음');
+  assert.equal(thumbnails.empty, '');
 } finally {
   await browser.close();
 }

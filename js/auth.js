@@ -173,6 +173,7 @@ const Auth = (() => {
           <div class="pin-dot"></div>
         </div>
         <p class="text-sm text-red-500 hidden mb-4" id="pin-error">비밀번호가 틀렸습니다</p>
+        <div id="pin-progress" class="hidden" role="status" aria-live="polite"><div class="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3" aria-hidden="true"></div><p id="pin-progress-text">비밀번호 확인 중...</p></div>
         <div class="grid grid-cols-3 gap-2" id="pin-pad">
           ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(n =>
             n === '' ? '<div></div>' :
@@ -192,6 +193,13 @@ const Auth = (() => {
     let checking = false;
     const dots = modal.querySelectorAll('.pin-dot');
     const error = modal.querySelector('#pin-error');
+    function busy(active, message = '비밀번호 확인 중...') {
+      modal.setAttribute('aria-busy', String(active));
+      modal.querySelector('#pin-pad').classList.toggle('hidden', active);
+      modal.querySelector('#pin-progress').classList.toggle('hidden', !active);
+      modal.querySelector('#pin-progress-text').textContent = message;
+      modal.querySelectorAll('.pin-key').forEach(button => { button.disabled = active; });
+    }
 
     modal.querySelector('#pin-pad').addEventListener('click', async (e) => {
       const btn = e.target.closest('button');
@@ -221,19 +229,26 @@ const Auth = (() => {
           return;
         }
         checking = true;
+        busy(true);
         let ok;
         try { ok = await verifyPin(pin); } catch (err) {
           error.textContent = err.message || '서버에 연결하지 못했습니다. 다시 시도하세요.';
           error.classList.remove('hidden');
           pin = '';
           dots.forEach(d => d.classList.remove('is-on'));
+          busy(false);
           return;
         } finally { checking = false; }
         if (ok) {
-          modal.remove();
+          checking = true;
+          pin = '';
+          dots.forEach(d => d.classList.remove('is-on'));
+          busy(true, '인증 완료 · 설정을 불러오는 중...');
           await syncSettings(); // 브랜딩 동기화 후 화면을 연다.
+          modal.remove();
           window.dispatchEvent(new Event('yr-authenticated'));
         } else {
+          busy(false);
           pin = '';
           dots.forEach(d => d.classList.remove('is-on'));
           const remaining = MAX_ATTEMPTS - (JSON.parse(localStorage.getItem(ATTEMPT_KEY) || '{}').count || 0);
