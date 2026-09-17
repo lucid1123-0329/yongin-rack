@@ -508,6 +508,8 @@ body:has(.wizard-step-fixed-actions:not(.wizard-inactive)),body:has([data-wizard
 .voice-add-card p.is-error { color:var(--danger); }
 #voice-start { display:flex; width:64px; height:64px; flex:0 0 64px; align-items:center; justify-content:center; border:none; border-radius:var(--r-chip); background:var(--brand); color:var(--surface); }
 #voice-start:disabled { background:var(--fill-2); color:var(--text-3); }
+.voice-result-row label { display:block; margin-top:12px; color:var(--text-2); font-size:14px; }
+.voice-result-row input,.voice-result-row select { display:block; width:100%; min-width:0; min-height:44px; margin-top:6px; padding:8px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--text); font-size:16px; }
 #voice-start svg { width:30px; height:30px; fill:none; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round; stroke-width:1.8; }
 .voice-result-panel { display:flex; max-height:88dvh; flex-direction:column; }
 .voice-transcript { margin-bottom:var(--s2); color:var(--text-2); font-size:15px; }

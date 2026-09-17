@@ -91,17 +91,25 @@
     return forms[0] || (target === 'linked' ? '연결' : (target === 'wall' ? '벽면' : '독립'));
   }
 
+  function typeCandidates(segment, priceData) {
+    var types=unique((priceData||[]).filter(function(r){return !r.isAccessory&&Number(r.unitPrice)>0;}).map(function(r){return String(r.type||'');}));
+    var word=String(segment).split(/독립|연결|벽면|가로|깊이|높이|\d/)[0].replace(/\s/g,'').replace(/렉/g,'랙');
+    function distance(a,b){a=Array.from(a.normalize('NFD'));b=Array.from(b.normalize('NFD'));var prev=b.map(function(_,i){return i+1;});prev.unshift(0);a.forEach(function(c,i){var next=[i+1];b.forEach(function(d,j){next.push(Math.min(next[j]+1,prev[j+1]+1,prev[j]+(c===d?0:1)));});prev=next;});return prev[b.length];}
+    return types.map(function(type){var names=[type];Object.keys(aliases).forEach(function(key){if(type.replace(/\s/g,'').includes(key.replace(/\s/g,'')))names=names.concat(aliases[key]);});return {type:type,score:Math.min.apply(null,names.map(function(n){return distance(word,n.replace(/\s/g,''));}))};}).sort(function(a,b){return a.score-b.score;}).slice(0,3).map(function(x){return x.type;});
+  }
   function parse(text, priceData) {
     var normalized = normalize(text), inherited = '', rows = [];
     normalized.split(',').map(function (part) { return part.trim(); }).filter(Boolean).forEach(function (segment) {
       var typeEntry = findType(segment, priceData);
-      if (!typeEntry) { rows.push({ source:segment, error:'종류를 찾지 못했습니다', status:'none', quantity:1, defaultQty:true }); return; }
+      var possibleTypes=typeCandidates(segment,priceData);
+      var exactName=typeEntry&&String(segment).replace(/\s/g,'').includes(typeEntry.type.replace(/\s/g,''));
+      var needsType=!typeEntry||!exactName;
       var explicitForm = logicalForm(segment);
       var inheritedForm = inherited;
       var formKind = explicitForm || inheritedForm || 'independent';
       var tierMatch = segment.match(/(\d+)단/), quantityMatch = segment.match(/(\d+)대/);
       var nums = (segment.replace(/\d+단/g, ' ').replace(/\d+대/g, ' ').match(/\d+/g) || []).map(Number);
-      rows.push({ source:segment, type:typeEntry.type, form:resolveForm(typeEntry.type, formKind, priceData), formKind:formKind,
+      rows.push({ source:segment, type:typeEntry?typeEntry.type:'', typeCandidates:possibleTypes, needsType:needsType, form:typeEntry?resolveForm(typeEntry.type, formKind, priceData):'', formKind:formKind,
         W:nums[0] || 0, D:nums[1] || 0, H:nums[2] || 0, tier:tierMatch ? Number(tierMatch[1]) : null,
         quantity:quantityMatch ? Math.max(1, Number(quantityMatch[1])) : 1,
         defaultForm:!explicitForm && !inheritedForm, defaultQty:!quantityMatch,
@@ -138,6 +146,7 @@
   }
 
   function matchItem(item, priceData) {
+    if(item&&item.needsType)return Object.assign(item,{status:'none',row:null,candidates:[],error:'랙 종류를 선택해 주세요'});
     if (!item || item.error || !item.W || !item.D || !item.H) {
       return Object.assign(item||{}, { status:'none', candidates:[], error:item&&item.error?item.error:'치수를 찾지 못했습니다' });
     }
@@ -175,7 +184,7 @@
   }
   function canAdd() {
     return state.rows.length>0&&state.rows.every(function (item) {
-      return item.row&&item.status!=='none'&&(!(item.defaultForm||item.defaultQty)||item.confirmedDefaults);
+      return item.row&&!item.needsType&&!item.needsReview&&item.status!=='none'&&(!(item.defaultForm||item.defaultQty)||item.confirmedDefaults);
     });
   }
 
@@ -185,6 +194,7 @@
     list.innerHTML=state.rows.map(function (item,index) {
       var label=item.status==='exact'?'정확히 찾음':(item.status==='default'?'기본값 확인 필요':'미매칭');
       var candidates='';
+      var allTypes=unique((appRef()?.priceData||[]).filter(function(r){return !r.isAccessory&&Number(r.unitPrice)>0;}).map(function(r){return r.type;}));
       if (item.status==='none'&&item.candidates&&item.candidates.length) {
         candidates='<div class=voice-candidates>'+item.candidates.map(function (candidate,candidateIndex) {
           var dim=candidate.dimensions;
@@ -192,6 +202,10 @@
         }).join('')+'</div>';
       } else if (item.status==='none') candidates=`<button type=button class=voice-direct onclick=VoiceAdd.chooseDirect(${index})>직접 고르기</button>`;
       var confirm=item.status==='default'&&!item.confirmedDefaults?`<button type=button class=voice-confirm-default onclick=VoiceAdd.confirmDefault(${index})>기본값 확인</button>`:'';
+      if(item.needsType)candidates='<p>인식: '+escapeHtml(item.source)+'</p><p>비슷한 랙 종류를 선택하세요.</p><div class=voice-candidates>'+(item.typeCandidates||[]).map(function(type){return '<button type=button onclick="VoiceAdd.chooseType('+index+','+allTypes.indexOf(type)+')">'+escapeHtml(type)+'</button>';}).join('')+'</div>';
+      candidates+='<label>랙 종류 직접 선택<select onchange="VoiceAdd.chooseType('+index+',Number(this.value))"><option value="-1">선택하세요</option>'+allTypes.map(function(type,i){return '<option value="'+i+'">'+escapeHtml(type)+'</option>';}).join('')+'</select></label>';
+      candidates+='<label>이 품목의 인식 문장 수정<input id="voice-edit-'+index+'" value="'+escapeHtml(item.source).replace(/"/g,'&quot;')+'"></label><button type=button onclick="VoiceAdd.editRow('+index+')">문장 수정 적용</button>';
+      if(item.needsReview)candidates+='<p>종류·치수·단수·수량을 확인하거나 문장을 수정하세요.</p><button type=button onclick="VoiceAdd.reviewRow('+index+')">종류·치수·단수·수량 확인</button>';
       return `<article class='voice-result-row is-${item.status}'><p class=voice-result-title>${escapeHtml(rowTitle(item))}</p><p class=voice-result-status>${label}</p><div class=voice-row-controls><button type=button onclick=VoiceAdd.toggleForm(${index})>독립↔연결</button><div class=voice-quantity><button type=button onclick=VoiceAdd.changeQty(${index},-1)>−</button><span>${item.quantity}</span><button type=button onclick=VoiceAdd.changeQty(${index},1)>+</button></div></div>${confirm}${candidates}</article>`;
     }).join('');
     var addButton=root.document.getElementById('voice-add-items');
@@ -211,12 +225,13 @@
       root.localStorage.setItem(LOG_KEY,JSON.stringify(logs.slice(0,50)));
     } catch (_) {}
   }
-  function openResult(text) {
+  function openResult(text, uncertain) {
     state.raw=String(text||'');
     state.logTimestamp=new Date().toISOString();
     var data=appRef()?appRef().priceData:[];
     var parsed=matchAll(parse(state.raw,data),data);
     state.normalized=parsed.normalized; state.rows=parsed.items; state.modified=false;
+    state.rows.forEach(function(item){item.needsReview=true;item.uncertain=Boolean(uncertain);});
     var transcript=root.document.getElementById('voice-transcript');
     if (transcript) transcript.textContent='“'+state.raw+'”';
     root.document.getElementById('voice-result-sheet').classList.remove('hidden');
@@ -278,8 +293,7 @@
           var result=await API.request('POST',{action:'transcribeVoice',audioBase64:base64,mimeType:mime.split(';')[0]},{timeout:60000});
           if(cancelled)return;
           if(!result||typeof result.transcript!=='string'||!result.transcript.trim())throw Error('음성을 인식하지 못했습니다. 다시 말씀해 주세요.');
-          if(result.uncertain!==false)throw Error('치수 또는 품목이 불명확합니다. 숫자를 나눠 또렷하게 다시 말씀해 주세요.');
-          openResult(result.transcript);
+          openResult(result.transcript,result.uncertain!==false);
           setCardMessage('변환 완료. 규격과 수량을 확인한 뒤 담아 주세요.',false);
         }catch(error){if(!cancelled)setCardMessage(error.message||'음성 변환에 실패했습니다. 다시 시도해 주세요.',true);}
         finally{chunks=[];voiceButton('idle');}
@@ -290,6 +304,13 @@
     }catch(error){releaseMicrophone();voiceButton('idle');setCardMessage(error.name==='NotAllowedError'?'마이크 권한을 허용해 주세요.':error.message||'녹음을 시작하지 못했습니다.',true);}
   }
 
+  function chooseType(index,typeIndex) {
+    var data=appRef()?.priceData||[],types=unique(data.filter(function(r){return !r.isAccessory&&Number(r.unitPrice)>0;}).map(function(r){return r.type;})),item=state.rows[index];
+    if(!item||!types[typeIndex])return;
+    item.type=types[typeIndex];item.needsType=false;item.form=resolveForm(item.type,item.formKind,data);item.error='';matchItem(item,data);state.modified=true;render();logResult();
+  }
+  function editRow(index){var input=root.document.getElementById('voice-edit-'+index),old=state.rows[index];if(!input||!old)return;var data=appRef()?.priceData||[],parsed=matchAll(parse(input.value,data),data);if(parsed.items.length!==1){setCardMessage('한 품목씩 수정해 주세요.',true);return;}state.rows[index]=parsed.items[0];state.rows[index].needsReview=true;state.modified=true;render();logResult();}
+  function reviewRow(index){if(!state.rows[index])return;state.rows[index].needsReview=false;state.modified=true;render();logResult();}
   function toggleForm(index) {
     var item=state.rows[index];
     if (!item||!item.type) return;
@@ -345,6 +366,7 @@
     normalize:normalize,koreanNumber:koreanNumber,parse:parse,matchItem:matchItem,matchAll:matchAll,dimensions:dimensions,
     toggleForm:toggleForm,changeQty:changeQty,confirmDefault:confirmDefault,
     chooseCandidate:chooseCandidate,chooseDirect:chooseDirect,addItems:addItems,
+    typeCandidates:typeCandidates,chooseType:chooseType,editRow:editRow,reviewRow:reviewRow,
     get state() { return state; }
   };
 })(typeof window !== 'undefined' ? window : globalThis);
