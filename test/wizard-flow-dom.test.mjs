@@ -129,7 +129,13 @@ const context = {
       elements.get('items-area').innerHTML = this.items.length ? 'items' : '담은 품목이 없습니다 · 1단계에서 담아주세요 품목 담기';
     },
     saveDraft() {},
-    onTypeChip: type => pickedTypes.push(type)
+    selectedType: '',
+    onTypeChip(type, options) {
+      pickedTypes.push(type);
+      this.selectedType = type;
+      this.currentSelection = null;
+      if (!options?.restoreOnly) context.EstimateWizard.onTypeSelected(type);
+    }
   },
   syncEstimateFixedBar() {}
 };
@@ -146,13 +152,15 @@ assert.equal(context.EstimateWizard.step, 1);
 stepLinks.forEach(link => assert.equal(link.disabled, false, 'all six step tabs stay available'));
 
 context.EstimateWizard.go(3);
-assert.equal(context.EstimateWizard.step, 2, 'step 3 without a spec must route to step 2');
-assert.equal(toasts.at(-1), '먼저 규격을 선택하세요');
+assert.equal(context.EstimateWizard.step, 1, 'step 3 without a type must route to step 1');
+assert.equal(toasts.at(-1), '먼저 종류를 선택하세요');
 context.EstimateWizard.go(1);
 context.EstimateWizard.onTypeSelected('경량랙');
 assert.equal(context.EstimateWizard.step, 2, 'type selection must auto-advance to step 2');
 const rackItem = { type: '경량랙', form: '독립', spec: '1200*450*1800', tier: 5, unitPrice: 98700, quantity: 2 };
+context.App.currentSelection = rackItem;
 context.EstimateWizard.onSpecSelected(rackItem);
+context.EstimateWizard.sync();
 assert.equal(context.EstimateWizard.step, 3, 'spec selection must auto-advance to step 3');
 assert.equal(elements.get('selected-spec-title').textContent, '경량랙 · 독립 · 1200×450×1800');
 assert.equal(elements.get('selected-spec-meta').textContent, '단가 98,700원 · 5단');
@@ -161,6 +169,8 @@ history.back();
 assert.equal(context.EstimateWizard.step, 2, 'one browser back must return to the previous step');
 context.EstimateWizard.onSpecSelected(rackItem);
 context.App.items = [rackItem];
+context.App.currentSelection = null;
+context.App.selectedType = '';
 context.EstimateWizard.onItemAdded(rackItem);
 assert.equal(elements.get('item-added-sheet').classList.contains('hidden'), false);
 assert.equal(elements.get('wizard-added-banner').classList.contains('is-visible'), true, 'add banner must slide open');
@@ -172,6 +182,10 @@ assert.equal(elements.get('wizard-added-banner').classList.contains('is-visible'
 
 context.EstimateWizard.chooseAfterAdd(4);
 assert.equal(context.EstimateWizard.step, 4);
+context.EstimateWizard.previous();
+assert.equal(context.EstimateWizard.step, 2, 'after adding, back restores a usable spec selector');
+assert.equal(context.App.selectedType, '경량랙');
+context.EstimateWizard.go(4);
 stepLinks.slice(0, 3).forEach(link => assert.equal(link.classList.contains('is-complete'), true, 'cart item completes steps 1–3'));
 assert.equal(stepLinks[0].attributes['aria-label'], '1단계 종류 완료');
 context.EstimateWizard.openCartSheet();

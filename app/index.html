@@ -35,7 +35,7 @@
 
   <!-- Pretendard -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/design.css?v=81">
+  <link rel="stylesheet" href="/css/design.css?v=82">
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
@@ -56,7 +56,7 @@
     #chips-part-cat, #d-chips-part-cat { flex-wrap:wrap; overflow-x:visible; }
   </style>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <script src="/js/onesignal-init.js?v=81" defer></script>
+  <script src="/js/onesignal-init.js?v=82" defer></script>
   <script src="/js/version-check.js" defer></script>
 </head>
 <body class="yr-admin-app bg-[#f7fafc] min-h-screen">
@@ -189,7 +189,7 @@
               <button onclick="App.changeQuantity(-1)" class="w-10 h-10 bg-gray-100 rounded-l-xl text-lg font-bold text-gray-600 active:bg-gray-200">−</button>
               <input type="number" id="qty-input" value="1" min="1" max="9999"
                 class="w-16 h-10 text-center text-base font-bold border-y-2 border-gray-200 focus:outline-none"
-                onchange="App.setQuantity(this.value)">
+                oninput="App.setQuantity(this.value)" onchange="App.setQuantity(this.value)">
               <button onclick="App.changeQuantity(1)" class="w-10 h-10 bg-gray-100 rounded-r-xl text-lg font-bold text-gray-600 active:bg-gray-200">+</button>
               <span class="v2-qty-unit ml-2 text-sm text-gray-500">대</span>
             </div>
@@ -479,9 +479,9 @@
   </div>
 
   <!-- Scripts -->
-  <script src="/js/api.js?v=81"></script>
-  <script src="/js/auth.js?v=81"></script>
-  <script src="/js/ui.js?v=81"></script>
+  <script src="/js/api.js?v=82"></script>
+  <script src="/js/auth.js?v=82"></script>
+  <script src="/js/ui.js?v=82"></script>
   <div id="cart-sheet" class="wizard-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="cart-sheet-title">
     <button type="button" class="wizard-sheet-backdrop" onclick="EstimateWizard.closeCartSheet()" aria-label="닫기"></button>
     <div class="wizard-sheet-panel cart-sheet-panel">
@@ -499,11 +499,11 @@
     </div>
   </div>
 
-  <script src="/js/calc.js?v=81"></script>
-  <script src="/js/app.js?v=81"></script>
-  <script src="/js/estimate.js?v=81"></script>
-  <script src='/js/voice.js?v=81'></script>
-  <script src='/js/precheck.js?v=81'></script>
+  <script src="/js/calc.js?v=82"></script>
+  <script src="/js/app.js?v=82"></script>
+  <script src="/js/estimate.js?v=82"></script>
+  <script src='/js/voice.js?v=82'></script>
+  <script src='/js/precheck.js?v=82'></script>
   <script>
     const EstimateWizard = (() => {
       let currentStep = 1;
@@ -646,7 +646,7 @@
       }
 
       function sync() {
-        const selection = (typeof App !== 'undefined' && App.currentSelection) || lastSelection;
+        const selection = typeof App !== 'undefined' ? App.currentSelection : lastSelection;
         const selectionText = document.getElementById('wizard-selection-summary');
         const selectedSpec = document.getElementById('selected-spec-summary');
         const selectedSpecTitle = document.getElementById('selected-spec-title');
@@ -678,6 +678,8 @@
       }
 
       function applyStep(step) {
+        document.getElementById('item-added-sheet')?.classList.add('hidden');
+        document.getElementById('cart-sheet')?.classList.add('hidden');
         currentStep = Math.max(1, Math.min(6, Number(step) || 1));
         if (currentStep === 4 || currentStep === 5) visitedSteps[currentStep] = true;
         if (currentStep === 6 && typeof App !== 'undefined' && typeof App.renderItems === 'function') App.renderItems();
@@ -714,15 +716,18 @@
       function go(step, options) {
         const requested = Math.max(1, Math.min(6, Number(step) || 1));
         let next = requested;
-        if (requested === 2 && !lastType) {
+        if ((requested === 2 || requested === 3) && !lastType) {
           next = 1;
           if (initialized) UI.toast('먼저 종류를 선택하세요', 'warning');
-        } else if (requested === 3 && !(typeof App !== 'undefined' && App.currentSelection) && !lastSelection) {
+        } else if (requested === 3 && !(typeof App !== 'undefined' && App.currentSelection)) {
           next = 2;
           if (initialized) UI.toast('먼저 규격을 선택하세요', 'warning');
         }
         const replace = options && options.replace;
         const fromPopState = options && options.fromPopState;
+        if (next === 2 && lastType && typeof App !== 'undefined' && App.selectedType !== lastType) {
+          App.onTypeChip(lastType, { restoreOnly: true });
+        }
         if (currentStep === 4 && next > 4) step4Passed = true;
         if (currentStep === 5 && next > 5 && !customerIsComplete()) step5Skipped = true;
         const changed = next !== currentStep || !initialized;
@@ -808,14 +813,14 @@
         document.getElementById('item-added-sheet')?.classList.remove('hidden');
       }
 
-      function closeAddedSheet() {
+      function closeAddedSheet(returnToSelection = true) {
         document.getElementById('item-added-sheet')?.classList.add('hidden');
+        if (returnToSelection && currentStep === 3 && typeof App !== 'undefined' && !App.currentSelection) go(2);
       }
 
       function chooseAfterAdd(step) {
-        closeAddedSheet();
+        closeAddedSheet(false);
         if (Number(step) === 2 && lastType && typeof App !== 'undefined') {
-          go(2);
           App.onTypeChip(lastType);
           return;
         }
@@ -867,12 +872,20 @@
         step6Completed = false;
         visitedSteps[4] = false;
         visitedSteps[5] = false;
+        clearTimeout(bannerTimer);
+        clearTimeout(summaryPulseTimer);
+        document.getElementById('item-added-sheet')?.classList.add('hidden');
+        document.getElementById('cart-sheet')?.classList.add('hidden');
+        document.getElementById('wizard-added-banner')?.classList.remove('is-visible');
+        document.getElementById('wizard-cart-summary-button')?.classList.remove('is-updated');
         sync();
       }
 
+      function onSelectionCleared() { lastSelection = null; }
+
       return { init, go, previous, sync, onTypeSelected, onSpecSelected, onCartItemAdded, onItemAdded,
         closeAddedSheet, chooseAfterAdd, openCartSheet, closeCartSheet, goToReview,
-        getDraftState, restoreDraftState, markSaved, resetState,
+        getDraftState, restoreDraftState, markSaved, resetState, onSelectionCleared,
         get step() { return currentStep; } };
     })();
     window.EstimateWizard = EstimateWizard;

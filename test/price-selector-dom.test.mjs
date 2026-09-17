@@ -107,6 +107,7 @@ const toasts = [];
 const wizardSelections = [];
 const context = {
   fixture,
+  _wizardCall() {},
   UI: {
     formatCurrency: value => String(Number(value) || 0) + '원',
     toast: message => toasts.push(message)
@@ -141,6 +142,13 @@ assert.equal(context.getSelection().spec, '1200*450*1800', 'the sole three-dimen
 assert.equal(elements.get('add-section').classList.contains('hidden'), false, 'auto-select must open quantity');
 assert.equal(wizardSelections.at(-1).spec, '1200*450*1800', 'auto-selected spec must immediately advance through the wizard callback');
 assert.equal((elements.get('cards-spec').innerHTML.match(/class="v2-spec-card/g) || []).length, 1);
+const advancesBeforeRender = wizardSelections.length;
+context.render('경량랙', '독립');
+assert.equal(wizardSelections.length, advancesBeforeRender, 'restoring or sorting the same dimensions must not auto-advance');
+context.pick('spec', 'W', '900');
+context.pick('spec', 'D', '600');
+context.pick('spec', 'H', '1800');
+assert.equal(context.getSelection().spec, '900*600*1800', 'a different size of the same rack remains selectable');
 
 context.setData(fixture, '경량랙', '독립');
 context.setShowUnpriced(true);

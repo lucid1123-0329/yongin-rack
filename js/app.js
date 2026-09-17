@@ -606,13 +606,14 @@ const App = (() => {
     }
     _saveDimSelection();
     _clearCardSelection();
-    if (scope === 'set') _renderDSetCards(_selType);
-    else if (_getPricingModel(_selType) === 'B') _renderModelBSpecs();
-    else renderSpecCards(_selType, _selForm);
+    if (scope === 'set') _renderDSetCards(_selType, true);
+    else if (_getPricingModel(_selType) === 'B') _renderModelBSpecs(true);
+    else renderSpecCards(_selType, _selForm, true);
   }
 
   function _clearCardSelection() {
     currentSelection = null;
+    _wizardCall('onSelectionCleared');
     const addSection = document.getElementById('add-section');
     if (addSection) addSection.classList.add('hidden');
     const shelfAddon = document.getElementById('sel-shelf-addon');
@@ -669,7 +670,7 @@ const App = (() => {
     if (nextForm && forms.includes(nextForm)) onFormChip(nextForm);
   }
 
-  function onTypeChip(type) {
+  function onTypeChip(type, options) {
     _selType = type;
     _selForm = '';
     _selLayout = '';
@@ -677,8 +678,9 @@ const App = (() => {
     _selPartThickness = '';
     _specWidthFilter = '';
     _showUnpriced = false;
-    _restoreDimSelection(type);
+    _dimSelection = { W: '', D: '', H: '' };
     currentSelection = null;
+    setQuantity(1);
     _hideAllSubGroups();
 
     // 타입 칩 활성 상태
@@ -687,7 +689,7 @@ const App = (() => {
     });
 
     const model = _getPricingModel(type);
-    _wizardCall('onTypeSelected', type);
+    if (!options?.restoreOnly) _wizardCall('onTypeSelected', type);
 
     switch (model) {
       case 'B': _renderModelB(type); break;
@@ -752,6 +754,7 @@ const App = (() => {
   }
 
   function onLayoutChip(layout) {
+    _clearCardSelection();
     _selLayout = layout;
     if (_selType && layout) _lsSet('yr_last_layout_' + _selType, layout);
     document.querySelectorAll('#chips-layout .chip').forEach(el => {
@@ -775,6 +778,7 @@ const App = (() => {
   }
 
   function onPartCatChip(cat) {
+    _clearCardSelection();
     _selPartCat = cat;
     _selPartThickness = '';
     document.querySelectorAll('#chips-part-cat .chip').forEach(el => {
@@ -800,6 +804,7 @@ const App = (() => {
   }
 
   function onPartThicknessChip(thickness) {
+    _clearCardSelection();
     _selPartThickness = thickness;
     document.querySelectorAll('#chips-part-thickness .chip').forEach(el => {
       el.classList.toggle('selected', el.textContent === thickness);
@@ -882,6 +887,7 @@ const App = (() => {
   }
 
   function onDModeSwitch(mode) {
+    _clearCardSelection();
     _dMode = mode;
     const layoutGroup = document.getElementById('sel-layout-group');
     document.getElementById('d-mode-set').classList.toggle('selected', mode === 'set');
@@ -916,7 +922,7 @@ const App = (() => {
       .filter(item => _matchesDimensions(item, _parseDSetDimensions));
   }
 
-  function _renderDSetCards(type) {
+  function _renderDSetCards(type, autoAdvance = false) {
     const container = document.getElementById('d-set-cards');
     const contextSets = _getDSetContext(type);
     const dimensionSets = _priceVisible(contextSets);
@@ -943,7 +949,7 @@ const App = (() => {
       </button>`;
     }).join('');
     _setCardListOverflow(container, sets.length);
-    if (_allDimensionsSelected() && sets.length === 1 && _isPriced(sets[0])) onDSetCard(0);
+    if (autoAdvance && _allDimensionsSelected() && sets.length === 1 && _isPriced(sets[0])) onDSetCard(0);
   }
 
   function onDSetCard(index) {
@@ -979,6 +985,7 @@ const App = (() => {
   }
 
   function onDPartCatChip(cat) {
+    _clearCardSelection();
     _selPartCat = cat;
     document.querySelectorAll('#d-chips-part-cat .chip').forEach(el => {
       el.classList.toggle('selected', el.textContent === cat);
@@ -1104,7 +1111,7 @@ const App = (() => {
   }
 
   // 모델 B 규격 카드: 배치 + 형태 조합으로 필터
-  function _renderModelBSpecs() {
+  function _renderModelBSpecs(autoAdvance = false) {
     if (!_selLayout || !_selForm) return;
     const specGroup = document.getElementById('sel-spec-group');
     const cardsContainer = document.getElementById('cards-spec');
@@ -1146,7 +1153,7 @@ const App = (() => {
       </button>`;
     }).join('');
     _setCardListOverflow(cardsContainer, sorted.length);
-    if (_allDimensionsSelected() && sorted.length === 1 && _isPriced(sorted[0])) onModelBSpecCard(0);
+    if (autoAdvance && _allDimensionsSelected() && sorted.length === 1 && _isPriced(sorted[0])) onModelBSpecCard(0);
   }
 
   function onModelBSpecCard(index) {
@@ -1271,7 +1278,7 @@ const App = (() => {
     return [parts[0] || 9999, parts[1] || 9999, parts[2] || 9999]; // 가로, 세로, 높이
   }
 
-  function renderSpecCards(type, form) {
+  function renderSpecCards(type, form, autoAdvance = false) {
     const specGroup = document.getElementById('sel-spec-group');
     const cardsContainer = document.getElementById('cards-spec');
     const allItems = getSpecsForTypeAndForm(type, form);
@@ -1312,7 +1319,7 @@ const App = (() => {
       </button>`;
     }).join('');
     _setCardListOverflow(cardsContainer, sorted.length);
-    if (_allDimensionsSelected() && sorted.length === 1 && _isPriced(sorted[0])) onSpecCard(idxMap[0]);
+    if (autoAdvance && _allDimensionsSelected() && sorted.length === 1 && _isPriced(sorted[0])) onSpecCard(idxMap[0]);
   }
 
   function onSpecCard(index) {
@@ -1465,6 +1472,8 @@ const App = (() => {
       return;
     }
 
+    // Read the visible value as well: mobile keyboards may not have blurred yet.
+    setQuantity(document.getElementById('qty-input')?.value ?? currentQuantity);
     const sel = currentSelection;
     const newItem = {
       type: sel.type,
@@ -1884,8 +1893,30 @@ const App = (() => {
   }
 
   function resetEstimate() {
-    if (items.length > 0 && !confirm('현재 작성 중인 견적을 초기화하시겠습니까?')) return;
+    if ((items.length > 0 || currentSelection || Object.values(getCustomerInfo()).some(Boolean)) && !confirm('현재 작성 중인 견적을 초기화하시겠습니까?')) return;
     items = [];
+    currentSelection = null;
+    _selType = _selForm = _selLayout = _selPartCat = _selPartThickness = '';
+    _dimSelection = { W: '', D: '', H: '' };
+    _specWidthFilter = '';
+    _showUnpriced = false;
+    _dMode = 'set';
+    setQuantity(1);
+    _hideAllSubGroups();
+    hideAllPresetAreas();
+    ['custom-name', 'custom-price', 'margin-pct', 'dc-amount'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    ['custom-qty', 'shelf-addon-qty'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '1';
+    });
+    const shelfCheck = document.getElementById('chk-shelf-addon');
+    if (shelfCheck) shelfCheck.checked = false;
+    const marginAmount = document.getElementById('margin-amount');
+    if (marginAmount) { marginAmount.dataset.amount = '0'; marginAmount.textContent = UI.formatCurrency(0); }
+    renderRackSelector();
     renderItems();
     updateTotal();
     clearDraft();
@@ -1910,6 +1941,7 @@ const App = (() => {
     UI.toast('초기화되었습니다', 'info');
     _wizardCall('resetState');
     _wizardCall('go', 1);
+    clearDraft();
   }
 
   return {
@@ -1931,6 +1963,7 @@ const App = (() => {
     get priceData() { return priceData; },
     get items() { return items; },
     get currentSelection() { return currentSelection; },
+    get selectedType() { return _selType; },
     set items(v) { items = v; },
   };
 })();
