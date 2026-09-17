@@ -5,12 +5,12 @@
 
 const UI = (() => {
   // --- 토스트 ---
-  const TOAST_ENTER_CLS = ['translate-y-[-1rem]', 'opacity-0'];
+  const TOAST_ENTER_CLS = ['is-entering'];
   const TOAST_COLORS = {
-    info: 'bg-gray-800',
-    success: 'bg-green-600',
-    error: 'bg-red-500',
-    warning: 'bg-amber-500',
+    info: 'toast-info',
+    success: 'toast-success',
+    error: 'toast-error',
+    warning: 'toast-warning',
   };
 
   function toast(message, type = 'info', duration = 3000) {
@@ -18,7 +18,7 @@ const UI = (() => {
     if (existing) existing.remove();
 
     const el = document.createElement('div');
-    el.className = `yr-toast fixed top-4 right-4 max-w-[min(320px,calc(100vw-2rem))] ${TOAST_COLORS[type] || TOAST_COLORS.info} text-white px-4 py-3 rounded-lg text-sm font-medium z-[60] text-left shadow-lg transition-all duration-300 ${TOAST_ENTER_CLS.join(' ')}`;
+    el.className = `yr-toast fixed ${TOAST_COLORS[type] || TOAST_COLORS.info} px-4 py-3 rounded-full text-sm font-medium z-[60] transition-all duration-300 ${TOAST_ENTER_CLS.join(' ')}`;
     el.textContent = message;
     document.body.appendChild(el);
 
@@ -28,7 +28,7 @@ const UI = (() => {
 
     setTimeout(() => {
       el.classList.add(...TOAST_ENTER_CLS);
-      setTimeout(() => el.remove(), 300);
+      setTimeout(() => el.remove(), 200);
     }, duration);
   }
 
@@ -47,22 +47,27 @@ const UI = (() => {
   // --- 스켈레톤 ---
   function skeleton(count = 3) {
     return Array.from({ length: count }, () =>
-      `<div class="animate-pulse bg-white rounded-xl border border-gray-100 p-4 mb-3">
-        <div class="h-4 bg-gray-200 rounded w-3/4 mb-3"></div>
-        <div class="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
-        <div class="h-3 bg-gray-200 rounded w-1/3"></div>
+      `<div class="v2-list-skeleton animate-pulse bg-white rounded-2xl p-4 mb-3">
+        <div class="skeleton-block h-4 bg-gray-200 rounded-lg w-3/4 mb-3"></div>
+        <div class="skeleton-block h-3 bg-gray-200 rounded-lg w-1/2 mb-2"></div>
+        <div class="skeleton-block h-3 bg-gray-200 rounded-lg w-1/3"></div>
       </div>`
     ).join('');
   }
 
   // --- 빈 상태 ---
-  function empty(icon, title, description, actionText, actionHref) {
+  function empty(icon, title, description, actionText, actionHref, actionHandler = '') {
+    const action = actionText
+      ? actionHandler
+        ? `<button type="button" onclick="${actionHandler}" class="v2-state-action v2-state-action--fill">${actionText}</button>`
+        : `<a href="${actionHref}" class="v2-state-action btn-like">${actionText}</a>`
+      : '';
     return `
-      <div class="text-center py-12 px-6">
-        <div class="text-5xl mb-4">${icon}</div>
+      <div class="v2-state-card text-center min-h-[200px] py-12 px-6 flex flex-col items-center justify-center">
+        <div class="v2-empty-marker text-[0px]">${icon}</div>
         <h3 class="text-lg font-bold text-gray-700 mb-2">${title}</h3>
         <p class="text-sm text-gray-500 mb-6">${description}</p>
-        ${actionText ? `<a href="${actionHref}" class="inline-block bg-[#1e3a5f] text-white px-6 py-3 rounded-xl font-bold text-sm">${actionText}</a>` : ''}
+        ${action}
       </div>
     `;
   }
@@ -73,15 +78,19 @@ const UI = (() => {
     const existingModal = document.querySelector('.yr-confirm-modal');
     if (existingModal) existingModal.remove();
 
+    const isDanger = /삭제/.test(title);
     const modal = document.createElement('div');
-    modal.className = 'yr-confirm-modal fixed inset-0 bg-black/50 z-50 flex items-center justify-center';
+    modal.className = 'yr-confirm-modal fixed inset-0 bg-black/50 z-50 flex items-end justify-center';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
     modal.innerHTML = `
-      <div class="bg-white rounded-2xl p-6 mx-4 w-full max-w-sm">
+      <div class="yr-confirm-sheet ${isDanger ? 'is-danger' : ''} bg-white w-full max-w-lg">
+        <div class="yr-sheet-handle" aria-hidden="true"></div>
         <h3 class="text-lg font-bold text-gray-800 mb-2">${title}</h3>
         <p class="text-sm text-gray-600 mb-6">${message}</p>
-        <div class="flex gap-3">
-          <button class="flex-1 h-12 rounded-xl border border-gray-300 font-bold text-gray-600" id="modal-cancel">취소</button>
-          <button class="flex-1 h-12 rounded-xl bg-[#1e3a5f] text-white font-bold" id="modal-confirm">확인</button>
+        <div class="yr-confirm-actions flex gap-2">
+          <button class="flex-1 rounded-xl border-0 bg-gray-100 font-bold text-gray-600" id="modal-cancel">취소</button>
+          <button class="flex-1 rounded-xl bg-primary text-white font-bold" id="modal-confirm">확인</button>
         </div>
       </div>
     `;
@@ -124,27 +133,29 @@ const UI = (() => {
   function renderTabBar(active) {
     const tabs = [
       { id: 'estimate', label: '견적', href: 'index.html',
-        svg: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>' },
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>' },
       { id: 'dashboard', label: '대시보드', href: 'dashboard.html',
-        svg: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>' },
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>' },
       { id: 'requests', label: '요청', href: 'requests.html',
-        svg: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>' },
-      { id: 'portfolio', label: '사진', href: 'portfolio.html',
-        svg: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>' },
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>' },
+      { id: 'portfolio', label: '사진', href: 'portfolio.html', hidden: true,
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>' },
+      { id: 'cases', label: '시공 사례', href: 'cases.html',
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3h7l5 5v13H7z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 3v5h5M10 14l2 2 4-4"/></svg>' },
       { id: 'more', label: '더보기', href: 'more.html',
-        svg: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>' },
+        svg: '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>' },
     ];
 
     const bar = document.createElement('nav');
-    bar.className = 'fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-40';
+    bar.className = 'fixed bottom-0 left-0 right-0 h-20 bg-white border-t-[1.5px] border-[#2F6BFF] flex z-40';
     bar.style.paddingBottom = 'env(safe-area-inset-bottom)';
-    bar.innerHTML = tabs.map(t => `
-      <a href="${t.href}" class="flex-1 py-2 flex flex-col items-center gap-0.5 ${t.id === active ? 'text-[#1e3a5f]' : 'text-gray-400'}">
-        <span class="relative">
+    bar.innerHTML = tabs.filter(t => !t.hidden).map(t => `
+      <a href="${t.href}" class="flex-1 py-2 flex flex-col items-center justify-center gap-1 ${t.id === active ? 'tab-active text-[#2F6BFF] font-bold' : 'text-gray-500'}">
+        <span class="tab-icon-wrap relative">
           ${t.svg}
-          ${t.id === 'requests' ? '<span id="req-badge" class="hidden absolute -top-1.5 -right-2.5 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center"></span>' : ''}
+          ${t.id === 'requests' ? '<span id="req-badge" class="hidden absolute -top-2 -right-3 min-w-[20px] h-5 px-1 bg-[#FF6B00] text-white text-xs font-bold rounded-xl flex items-center justify-center"></span>' : ''}
         </span>
-        <span class="text-[10px] ${t.id === active ? 'font-bold' : ''}">${t.label}</span>
+        <span class="text-xs ${t.id === active ? 'font-bold' : 'font-medium'}">${t.label}</span>
       </a>
     `).join('');
     document.body.appendChild(bar);
@@ -213,9 +224,9 @@ const UI = (() => {
   // --- 헤더 렌더 ---
   function renderHeader(title, showBack = false) {
     return `
-      <header class="bg-[#1e3a5f] text-white px-4 py-4 flex items-center gap-3">
-        ${showBack ? '<a href="javascript:history.back()" class="text-xl">←</a>' : ''}
-        <h1 class="text-lg font-bold flex-1">${title}</h1>
+      <header class="yr-page-header bg-white text-[#2F6BFF] px-4 py-2 flex items-center gap-2">
+        ${showBack ? '<a href="javascript:history.back()" class="w-14 h-14 text-xl flex items-center justify-center">←</a>' : ''}
+        <h1 class="text-[22px] font-bold flex-1">${title}</h1>
       </header>
     `;
   }
@@ -223,13 +234,13 @@ const UI = (() => {
   // --- 상태 배지 ---
   function statusBadge(status) {
     const map = {
-      '상담완료': 'bg-blue-100 text-blue-700',
-      '계약': 'bg-orange-100 text-orange-700',
-      '시공중': 'bg-amber-100 text-amber-700',
-      '시공완료': 'bg-green-100 text-green-700',
+      '상담완료': 'status-tone-ink',
+      '계약': 'status-tone-accent',
+      '시공중': 'status-tone-accent',
+      '시공완료': 'status-tone-ok',
     };
-    const cls = map[status] || 'bg-gray-100 text-gray-600';
-    return `<span class="px-2 py-0.5 rounded-full text-xs font-bold ${cls}">${status}</span>`;
+    const cls = map[status] || 'status-tone-ink';
+    return `<span class="status-badge inline-flex items-center px-2 py-1 rounded-xl border-0 border-[#2F6BFF] bg-white text-xs font-bold ${cls}">${status}</span>`;
   }
 
   // --- 숫자를 한글로 변환 ---
@@ -264,7 +275,49 @@ const UI = (() => {
     return (n < 0 ? '마이너스 ' : '') + result;
   }
 
+
+  // 가로 스크롤 행에 좌우 화살표 버튼과 끝단 페이드를 붙인다 (필터 칩 행 등)
+  function enhanceScrollRow(el) {
+    if (!el || el.dataset.scrollRow === '1') return;
+    el.dataset.scrollRow = '1';
+    var wrap = document.createElement('div');
+    wrap.className = 'v2-scroll-row';
+    el.parentNode.insertBefore(wrap, el);
+    wrap.appendChild(el);
+    var mk = function (dir) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'v2-scroll-row__btn v2-scroll-row__btn--' + dir;
+      b.setAttribute('aria-label', dir === 'left' ? '왼쪽으로 이동' : '오른쪽으로 이동');
+      b.innerHTML = dir === 'left'
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+      b.addEventListener('click', function (e) {
+        e.preventDefault();
+        el.scrollBy({ left: (dir === 'left' ? -1 : 1) * Math.max(160, el.clientWidth * 0.7), behavior: 'smooth' });
+      });
+      wrap.appendChild(b);
+      return b;
+    };
+    var left = mk('left'), right = mk('right');
+    var update = function () {
+      var max = el.scrollWidth - el.clientWidth;
+      var canL = el.scrollLeft > 4, canR = el.scrollLeft < max - 4;
+      left.classList.toggle('is-hidden', !canL);
+      right.classList.toggle('is-hidden', !canR);
+      wrap.classList.toggle('can-left', canL);
+      wrap.classList.toggle('can-right', canR);
+      wrap.classList.toggle('is-scrollable', max > 4);
+    };
+    el.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    if (window.MutationObserver) new MutationObserver(update).observe(el, { childList: true, subtree: true });
+    setTimeout(update, 0);
+    setTimeout(update, 400);
+  }
+
   return {
+    enhanceScrollRow,
     toast, setLoading, skeleton, empty, confirm,
     escapeHtml, formatNumber, formatCurrency, formatDate,
     renderTabBar, renderHeader, statusBadge, numberToKorean, updateRequestBadge, markRequestsSeen,

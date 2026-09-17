@@ -1,0 +1,49 @@
+name: Publish reviewed site
+
+on:
+  workflow_dispatch:
+    inputs:
+      backend_ready:
+        description: '새 GAS 배포 및 PIN 초기화 완료 확인'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-production
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main' && inputs.backend_ready
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate and prepare public files
+        id: release
+        run: node tools/prepare-release.mjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ steps.release.outputs.site }}
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy public artifact
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -2,811 +2,667 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <title>용인 랙 - 스마트 견적</title>
-  <meta name="description" content="경량랙, 중량랙, 파렛트랙 맞춤형 최저가 견적을 즉시 확인하세요.">
-
-  <!-- OG Tags -->
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="용인 랙 - 전문 시공 및 견적 시스템">
-  <meta property="og:description" content="경량랙, 중량랙, 파렛트랙 맞춤형 최저가 견적을 즉시 확인하세요.">
-  <meta property="og:image" content="assets/og-image.jpg">
-
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#1e3a5f',
-            accent: '#f97316',
-          },
-          fontFamily: {
-            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-          },
-        },
-      },
-    };
-  </script>
-
-  <!-- Pretendard Font -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
-
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1e3a5f">
-  <link rel="icon" type="image/png" href="assets/favicon.png">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="assets/icon-192.png">
-
-  <style>
-    body { font-family: 'Pretendard', sans-serif; padding-bottom: 80px; }
-    .chip { display:inline-flex; align-items:center; justify-content:center; padding:8px 14px; border-radius:9999px; font-size:13px; font-weight:600; border:2px solid #e5e7eb; color:#374151; background:#fff; cursor:pointer; transition:all 0.15s; user-select:none; }
-    .chip:active { transform:scale(0.95); }
-    .chip.selected { border-color:#1e3a5f; background:#1e3a5f; color:#fff; }
-    .chip-form.selected { border-color:#f97316; background:#f97316; color:#fff; }
-  </style>
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <script src="js/onesignal-init.js?v=64" defer></script>
-  <script src="js/version-check.js" defer></script>
-</head>
-<body class="bg-[#f7fafc] min-h-screen">
-
-  <!-- 로딩 오버레이 -->
-  <div id="page-loading" class="hidden fixed inset-0 bg-white z-50 flex items-center justify-center">
-    <div class="text-center">
-      <div class="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
-      <p class="text-sm text-gray-500" id="loading-text">불러오는 중...</p>
-    </div>
-  </div>
-  <script>
-    // HTML 파싱 중 즉시 실행 — DOMContentLoaded 기다리지 않음
-    (function(){
-      var p = new URLSearchParams(location.search);
-      var from = p.get('from');
-      if (from === 'edit' || from === 'request') {
-        var el = document.getElementById('page-loading');
-        var txt = document.getElementById('loading-text');
-        if (el) el.classList.remove('hidden');
-        if (txt) txt.textContent = from === 'edit' ? '기존 견적을 불러오는 중...' : '고객 정보를 불러오는 중...';
-      }
+    (function () {
+      var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+      if (standalone || /[?&]source=pwa\b/.test(location.search)) location.replace('/app/index.html' + location.search);
     })();
   </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>중용랙 | 용인 랙(선반) 전문 시공 · 경량랙·중량랙·파렛트랙·진열대</title>
+  <meta name="description" content="중용랙은 경량랙·중량랙·파렛트랙·진열대 제작 및 시공 전문업체입니다. 국산 강철 자재로 새 매장, 약국, 물류창고에 맞춰 제작하고 직접 설치합니다. 경기 용인 기반 전국 시공, 카카오톡 견적서.">
+  <link rel="canonical" href="https://yongin-rack.com/">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="중용랙">
+  <meta property="og:title" content="중용랙 | 매장을 미리 보는 랙 쇼룸">
+  <meta property="og:description" content="새 매장 오픈, 진열대와 랙은 중용랙이 맞춰 드립니다. 국산 강철 자재, 방문 실측 후 견적, 제작부터 설치까지 직접.">
+  <meta property="og:url" content="https://yongin-rack.com/">
+  <meta property="og:image" content="https://yongin-rack.com/assets/landing/paju-starfield.jpg">
+  <meta property="og:locale" content="ko_KR">
+  <meta name="theme-color" content="#0F1420">
+  <link rel="icon" type="image/png" href="/assets/favicon.png">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="preload" as="image" href="/assets/landing/paju-starfield.jpg">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"LocalBusiness","name":"중용랙","alternateName":"용인 랙","description":"경량랙, 중량랙, 파렛트랙, 곤도라·하이퍼 진열대 제작 및 시공 전문업체","url":"https://yongin-rack.com/","telephone":"+82-10-3776-1230","image":"https://yongin-rack.com/assets/landing/paju-starfield.jpg","logo":"https://yongin-rack.com/assets/icon-512.png","address":{"@type":"PostalAddress","streetAddress":"백옥대로 1117","addressLocality":"용인시 처인구","addressRegion":"경기도","addressCountry":"KR"},"areaServed":"KR","sameAs":["https://blog.naver.com/yongin_rack"]}
+  </script>
+  <style>
+    :root{--bg:#F2F4F6;--surface:#FFFFFF;--fill:#F2F4F6;--fill-2:#E5E8EB;--line:#EEF0F2;--text:#191F28;--text-2:#4E5968;--text-3:#8B95A1;--brand:#2F6BFF;--brand-deep:#2457D6;--brand-weak:#E8F0FF;--accent:#FF6B00;--accent-weak:#FFF3E8;--ok:#1FA36B;--ink:#0F1420;--ink-2:#191F28;--r:24px;--r-sm:16px;--r-chip:999px;--shadow:0 2px 12px rgba(25,31,40,.06);--lift:0 20px 50px rgba(15,20,32,.16);--ease:cubic-bezier(.2,.7,.2,1);--glass:rgba(255,255,255,.72);--glass-line:rgba(255,255,255,.55)}
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+    body{font-family:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;background:var(--surface);color:var(--text);line-height:1.45;letter-spacing:-.012em;word-break:keep-all;overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+    img,svg{display:block;max-width:100%}
+    button{font:inherit;cursor:pointer;color:inherit;border:0;background:none}
+    ul,ol{list-style:none}
+    .wrap{width:100%;max-width:1160px;margin:0 auto;padding:0 20px}
+    :focus-visible{outline:3px solid var(--brand);outline-offset:3px;border-radius:8px}
+    .reveal{opacity:0;transform:translateY(22px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+    .reveal.in{opacity:1;transform:none}
+    .reveal[data-delay="1"]{transition-delay:.1s}.reveal[data-delay="2"]{transition-delay:.2s}.reveal[data-delay="3"]{transition-delay:.3s}
+    @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}*{animation:none!important}}
 
-  <!-- 수정 모드 배너 (숨김 상태) -->
-  <div id="edit-banner" class="hidden bg-amber-50 border-b-2 border-amber-400 px-4 py-3 sticky top-0 z-50">
-    <div class="max-w-lg mx-auto flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <span class="text-amber-600 text-lg">✏️</span>
-        <div>
-          <p class="text-sm font-bold text-amber-800" id="edit-banner-title">견적 수정 중</p>
-          <p class="text-xs text-amber-600" id="edit-banner-detail"></p>
-        </div>
-      </div>
-      <button onclick="App.resetEstimate()" class="text-xs bg-white border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg font-semibold hover:bg-amber-50">새 견적</button>
-    </div>
-  </div>
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 24px;border-radius:var(--r-sm);font-size:16px;font-weight:700;white-space:nowrap;transition:transform .12s,background .15s,box-shadow .15s}
+    .btn:active{transform:scale(.98)}
+    .btn-primary{background:var(--brand);color:#fff;box-shadow:0 10px 24px rgba(47,107,255,.28)}
+    .btn-primary:hover{background:var(--brand-deep)}
+    .btn-white{background:#fff;color:var(--ink)}
+    .btn-white:hover{background:var(--brand-weak)}
+    .btn-ghost{background:rgba(255,255,255,.12);color:#fff;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.4);backdrop-filter:blur(8px)}
+    .btn-ghost:hover{background:rgba(255,255,255,.2)}
+    .btn-line{background:var(--surface);color:var(--text);box-shadow:inset 0 0 0 1.5px var(--fill-2)}
+    .btn-line:hover{background:var(--fill)}
+    .btn-sm{min-height:42px;padding:0 16px;font-size:14px;border-radius:12px}
 
-  <!-- 헤더 -->
-  <header class="bg-primary text-white px-4 py-4 sticky top-0 z-40">
-    <div class="max-w-lg mx-auto flex items-center justify-between">
-      <h1 class="text-lg font-bold" id="page-title">새 견적 작성</h1>
-      <button id="btn-reset" class="hidden text-xs bg-white/20 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-white/30" onclick="App.resetEstimate()">초기화</button>
+    /* header */
+    .top{position:fixed;inset:0 0 auto 0;z-index:50;transition:background .3s,box-shadow .3s}
+    .top .wrap{display:flex;align-items:center;justify-content:space-between;height:68px;gap:12px}
+    .top.on{background:rgba(255,255,255,.8);backdrop-filter:saturate(1.6) blur(16px);-webkit-backdrop-filter:saturate(1.6) blur(16px);box-shadow:0 1px 0 var(--line)}
+    .logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:800;line-height:1.1;color:#fff;transition:color .3s}
+    .top.on .logo{color:var(--text)}
+    .logo img{width:38px;height:38px;border-radius:11px;background:#fff}
+    .logo small{display:block;margin-top:3px;font-size:11.5px;font-weight:600;opacity:.7;letter-spacing:0}
+    .nav{display:none;gap:2px;font-size:15px;font-weight:600;color:rgba(255,255,255,.85)}
+    .top.on .nav{color:var(--text-2)}
+    .nav a{padding:8px 12px;border-radius:10px;transition:background .15s}
+    .nav a:hover{background:rgba(255,255,255,.14)}
+    .top.on .nav a:hover{background:var(--fill)}
+    .top .btn-sm{background:#fff;color:var(--ink)}
+    .top.on .btn-sm{background:var(--ink);color:#fff}
+
+    /* hero */
+    .hero{position:relative;min-height:100svh;display:grid;align-items:end;color:#fff;overflow:hidden;background:var(--ink)}
+    .hero-bg{position:absolute;inset:-8% 0 0 0;background:url('/assets/landing/paju-starfield.jpg') center/cover no-repeat;transform-origin:center;animation:zoomIn 1.6s var(--ease) both}
+    @keyframes zoomIn{from{transform:scale(1.08)}to{transform:scale(1)}}
+    .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,20,32,.35) 0%,rgba(15,20,32,.15) 35%,rgba(15,20,32,.82) 78%,var(--ink) 100%)}
+    .hero .wrap{position:relative;z-index:1;padding-top:120px;padding-bottom:40px}
+    .hero-tag{display:inline-flex;align-items:center;gap:8px;padding:8px 14px 8px 10px;border-radius:var(--r-chip);background:rgba(255,255,255,.14);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.22);font-size:13px;font-weight:700;margin-bottom:20px}
+    .hero-tag i{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(255,107,0,.25);animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(255,107,0,.25)}50%{box-shadow:0 0 0 9px rgba(255,107,0,0)}}
+    h1{font-size:clamp(36px,7.2vw,76px);line-height:1.08;font-weight:850;letter-spacing:-.04em;text-wrap:balance;max-width:14ch}
+    h1 .line{display:block;overflow:hidden}
+    h1 .line span{display:block;animation:rise .9s var(--ease) both}
+    h1 .line:nth-child(2) span{animation-delay:.12s}
+    @keyframes rise{from{transform:translateY(110%)}to{transform:none}}
+    h1 em{font-style:normal;color:#8FB0FF}
+    .hero-sub{margin-top:18px;font-size:clamp(16px,2vw,19px);color:rgba(255,255,255,.82);max-width:34ch;line-height:1.55}
+    .hero-cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+    .hero-cta .btn{flex:1 1 200px}
+    .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:38px;padding-top:24px;border-top:1px solid rgba(255,255,255,.18)}
+    .stats div{padding:6px 0}
+    .stats strong{display:block;font-size:26px;font-weight:850;letter-spacing:-.03em;line-height:1}
+    .stats strong small{font-size:14px;font-weight:700;margin-left:2px}
+    .stats span{display:block;margin-top:6px;font-size:13px;color:rgba(255,255,255,.7)}
+    .scroll-hint{position:absolute;right:20px;bottom:24px;z-index:1;display:none;align-items:center;gap:10px;font-size:12px;letter-spacing:.14em;color:rgba(255,255,255,.7);writing-mode:vertical-rl}
+    .scroll-hint i{width:1px;height:44px;background:rgba(255,255,255,.35);position:relative;overflow:hidden}
+    .scroll-hint i::after{content:"";position:absolute;left:0;top:-44px;width:1px;height:44px;background:#fff;animation:drop 1.8s var(--ease) infinite}
+    @keyframes drop{to{top:44px}}
+
+    /* photo strip */
+    .strip{background:var(--ink);padding:0 0 28px;overflow:hidden}
+    .strip-track{display:flex;gap:10px;width:max-content;animation:slide 48s linear infinite}
+    .strip:hover .strip-track{animation-play-state:paused}
+    .strip img{height:150px;width:auto;border-radius:14px;object-fit:cover;filter:saturate(1.05)}
+    @keyframes slide{to{transform:translateX(-50%)}}
+
+    section{padding:72px 0}
+    .band{background:var(--bg)}
+    .dark{background:var(--ink);color:#fff}
+    .head{display:flex;flex-direction:column;gap:10px;margin-bottom:28px}
+    .kicker{display:inline-flex;align-items:center;gap:8px;color:var(--brand);font-size:14px;font-weight:800}
+    .kicker::before{content:"";width:22px;height:2px;background:var(--brand);border-radius:2px}
+    .dark .kicker{color:#8FB0FF}.dark .kicker::before{background:#8FB0FF}
+    h2{font-size:clamp(28px,4.2vw,44px);line-height:1.15;font-weight:850;letter-spacing:-.035em;text-wrap:balance}
+    .sub{font-size:16px;color:var(--text-2);max-width:56ch}
+    .dark .sub{color:rgba(255,255,255,.7)}
+
+    /* showroom */
+    .tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;-ms-overflow-style:none}
+    .tabs::-webkit-scrollbar{display:none}
+    .tab{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border-radius:var(--r-chip);background:var(--surface);box-shadow:var(--shadow);font-size:15px;font-weight:700;color:var(--text-2);transition:background .15s,color .15s,transform .15s}
+    .tab.is-on{background:var(--ink);color:#fff}
+    .tab:active{transform:scale(.97)}
+    .room{margin-top:18px;display:grid;gap:14px}
+    .stage{position:relative;border-radius:var(--r);overflow:hidden;background:var(--ink);aspect-ratio:4/3;box-shadow:var(--lift)}
+    .stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .5s var(--ease),transform 8s linear}
+    .stage img.is-on{opacity:1;transform:scale(1.04)}
+    .spot{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:rgba(255,255,255,.95);display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer;transition:transform .2s;z-index:2}
+    .spot::before{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(255,255,255,.7);animation:ring 2s var(--ease) infinite}
+    .spot::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--brand)}
+    .spot:hover,.spot.is-on{transform:scale(1.15)}
+    .spot.is-on::after{background:var(--accent)}
+    @keyframes ring{0%{transform:scale(.6);opacity:1}100%{transform:scale(1.6);opacity:0}}
+    .tip{position:absolute;left:12px;right:12px;bottom:12px;z-index:3;display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--glass-line);color:var(--text);box-shadow:0 10px 30px rgba(0,0,0,.18);transform:translateY(8px);opacity:0;transition:opacity .25s,transform .25s}
+    .tip.is-on{opacity:1;transform:none}
+    .tip b{display:block;font-size:15px;font-weight:800}
+    .tip span{display:block;font-size:13px;color:var(--text-2);margin-top:2px}
+    .tip i{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--brand);color:#fff;font-size:15px;font-weight:800;font-style:normal}
+    .room-side{display:grid;gap:10px}
+    .room-card{border-radius:var(--r-sm);background:var(--surface);padding:18px;box-shadow:var(--shadow)}
+    .room-card h3{font-size:18px;font-weight:800;letter-spacing:-.02em}
+    .room-card p{margin-top:4px;font-size:14px;color:var(--text-2)}
+    .kit{margin-top:12px;display:grid;gap:8px}
+    .kit li{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--fill);font-size:14px;font-weight:700}
+    .kit li i{display:grid;place-items:center;width:40px;height:40px;border-radius:11px;background:var(--surface);color:var(--brand)}
+    .kit li small{font-size:12px;font-weight:600;color:var(--text-3)}
+    .kit li em{font-style:normal;font-size:12.5px;font-weight:800;color:var(--brand);background:var(--brand-weak);padding:4px 8px;border-radius:var(--r-chip)}
+    .room-card .btn{margin-top:14px;width:100%}
+
+    /* configurator */
+    .cfg{display:grid;gap:16px}
+    .cfg-panel{border-radius:var(--r);background:var(--surface);padding:22px 20px;box-shadow:var(--shadow)}
+    .cfg-panel h3{font-size:16px;font-weight:800;margin-bottom:12px;display:flex;justify-content:space-between;align-items:baseline}
+    .cfg-panel h3 output{font-size:22px;font-weight:850;color:var(--brand);letter-spacing:-.02em}
+    .chips{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{min-height:40px;padding:0 14px;border-radius:var(--r-chip);background:var(--fill);font-size:14px;font-weight:700;color:var(--text-2);transition:background .15s,color .15s}
+    .chip.is-on{background:var(--brand);color:#fff}
+    input[type=range]{width:100%;accent-color:var(--brand);margin-top:8px}
+    .range-labels{display:flex;justify-content:space-between;font-size:12px;color:var(--text-3);margin-top:4px}
+    .plan{position:relative;border-radius:var(--r);background:var(--ink);padding:16px;box-shadow:var(--lift);overflow:hidden}
+    .plan svg{width:100%;height:auto}
+    .plan .legend{position:absolute;left:14px;top:14px;display:flex;flex-wrap:wrap;gap:6px}
+    .plan .legend span{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:var(--r-chip);background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:700;backdrop-filter:blur(6px)}
+    .plan .legend i{width:10px;height:10px;border-radius:3px}
+    .result{display:grid;gap:8px}
+    .result li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:12px;background:var(--fill);font-size:14.5px;font-weight:700}
+    .result li b{font-size:18px;font-weight:850;color:var(--brand);letter-spacing:-.02em}
+    .result li b small{font-size:12px;margin-left:2px;color:var(--text-3)}
+    .note{margin-top:10px;font-size:12.5px;color:var(--text-3)}
+    .rb{animation:pop .4s var(--ease) both;transform-box:fill-box;transform-origin:center}
+    @keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+
+    /* story */
+    .story{display:grid;gap:20px}
+    .story-stage{position:sticky;top:72px;z-index:2;border-radius:var(--r);background:#fff;box-shadow:var(--lift);overflow:hidden;aspect-ratio:16/10}
+    .story-steps{position:relative;z-index:1}
+    .story-stage svg{width:100%;height:100%}
+    .story-stage .g{transition:opacity .6s var(--ease),transform .6s var(--ease)}
+    .story-stage .g[data-on="0"]{opacity:0;transform:translateY(10px)}
+    .story-stage .label{position:absolute;left:14px;top:14px;padding:7px 12px;border-radius:var(--r-chip);background:var(--ink);color:#fff;font-size:13px;font-weight:800}
+    .story-steps{display:grid;gap:12px}
+    .s-step{display:grid;grid-template-columns:48px 1fr;gap:14px;padding:18px;border-radius:var(--r-sm);background:var(--surface);box-shadow:var(--shadow);opacity:.45;transition:opacity .4s,transform .4s;cursor:pointer}
+    .s-step.is-on{opacity:1;transform:translateX(4px)}
+    .s-step b{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:var(--brand-weak);color:var(--brand);font-size:18px;font-weight:850}
+    .s-step.is-on b{background:var(--brand);color:#fff}
+    .s-step h3{font-size:18px;font-weight:800;padding-top:10px}
+    .s-step p{margin-top:4px;font-size:14.5px;color:var(--text-2)}
+
+    /* rack carousel */
+    .rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 20px 18px;margin:0 -20px;scrollbar-width:none}
+    .rail::-webkit-scrollbar{display:none}
+    .rk{flex:0 0 78%;max-width:320px;scroll-snap-align:start;border-radius:var(--r);overflow:hidden;background:var(--surface);box-shadow:var(--shadow);transition:transform .2s var(--ease),box-shadow .2s}
+    .rk:hover{transform:translateY(-4px);box-shadow:var(--lift)}
+    .rk .ph{position:relative;aspect-ratio:4/3;background:var(--ink)}
+    .rk .ph img{width:100%;height:100%;object-fit:cover}
+    .rk .ph .en{position:absolute;left:12px;top:12px;padding:5px 10px;border-radius:var(--r-chip);background:rgba(255,255,255,.85);backdrop-filter:blur(6px);font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--ink)}
+    .rk .ph svg{width:100%;height:100%;padding:14%}
+    .rk .bd{padding:16px}
+    .rk h3{font-size:19px;font-weight:850;letter-spacing:-.02em}
+    .rk p{margin-top:4px;font-size:14px;color:var(--text-2)}
+    .gauge{margin-top:12px;display:flex;align-items:center;gap:10px;font-size:12px;font-weight:700;color:var(--text-3)}
+    .gauge i{flex:1;height:6px;border-radius:3px;background:var(--fill-2);overflow:hidden}
+    .gauge i::after{content:"";display:block;height:100%;width:var(--w);background:var(--brand);border-radius:3px}
+    .rk .use{margin-top:10px;display:flex;flex-wrap:wrap;gap:5px}
+    .rk .use span{padding:4px 9px;border-radius:var(--r-chip);background:var(--fill);font-size:12px;font-weight:700;color:var(--text-2)}
+
+    /* bento */
+    .bento{display:grid;gap:12px;grid-template-columns:repeat(2,1fr)}
+    .b{position:relative;border-radius:var(--r);overflow:hidden;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);padding:22px;min-height:170px;display:flex;flex-direction:column;justify-content:flex-end}
+    .b big{display:block;font-size:clamp(34px,5vw,56px);font-weight:850;letter-spacing:-.04em;line-height:1;color:#fff}
+    .b big small{font-size:.42em;font-weight:800;margin-left:4px;color:#8FB0FF}
+    .b p{margin-top:8px;font-size:14px;color:rgba(255,255,255,.72)}
+    .b.photo{padding:0;min-height:220px;grid-column:span 2}
+    .b.photo img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+    .b.photo div{position:relative;padding:22px;background:linear-gradient(180deg,transparent,rgba(15,20,32,.85));margin-top:auto}
+    .b.photo b{font-size:20px;font-weight:850;color:#fff}
+    .b.photo p{color:rgba(255,255,255,.8)}
+    .b .map{position:absolute;right:-10px;top:-10px;width:150px;opacity:.9}
+    .dot{fill:#8FB0FF;animation:blink 2.4s infinite}
+    .dot:nth-child(2){animation-delay:.4s}.dot:nth-child(3){animation-delay:.8s}.dot:nth-child(4){animation-delay:1.2s}.dot:nth-child(5){animation-delay:1.6s}.dot:nth-child(6){animation-delay:2s}
+    @keyframes blink{0%,100%{opacity:.5}50%{opacity:1}}
+
+    /* gallery */
+    .gal{columns:2;column-gap:10px}
+    .gal a{display:block;position:relative;break-inside:avoid;margin-bottom:10px;border-radius:18px;overflow:hidden;background:var(--fill)}
+    .gal img{width:100%;height:auto;transition:transform .6s var(--ease)}
+    .gal a:hover img{transform:scale(1.05)}
+    .gal figcaption{position:absolute;inset:auto 0 0 0;padding:34px 12px 12px;background:linear-gradient(180deg,transparent,rgba(15,20,32,.85));color:#fff;font-size:13px;font-weight:700;line-height:1.35}
+    .gal figcaption small{display:block;font-size:11px;opacity:.8;font-weight:600;margin-bottom:3px}
+
+    /* faq */
+    .faq{display:grid;gap:8px}
+    details{border-radius:16px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+    summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;font-size:16px;font-weight:750}
+    summary::-webkit-details-marker{display:none}
+    summary i{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--fill);color:var(--text-2);font-style:normal;font-weight:800;transition:transform .25s var(--ease)}
+    details[open] summary i{transform:rotate(45deg);background:var(--brand-weak);color:var(--brand)}
+    details .a{padding:0 20px 18px;font-size:15px;color:var(--text-2);line-height:1.6}
+
+    /* contact */
+    .contact{position:relative;border-radius:var(--r);overflow:hidden;min-height:380px;display:grid;align-items:end;color:#fff;background:var(--ink)}
+    .contact img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55}
+    .contact::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,20,32,.1),rgba(15,20,32,.9))}
+    .contact div{position:relative;z-index:1;padding:28px 22px}
+    .contact h2{color:#fff}
+    .contact p{margin-top:10px;color:rgba(255,255,255,.8)}
+    .contact .cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+    .contact .cta .btn{flex:1 1 200px}
+
+    footer{padding:32px 0 100px;color:var(--text-3);font-size:13.5px;line-height:1.8}
+    footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:20px}
+    footer strong{display:block;color:var(--text);font-size:15px;font-weight:800}
+    footer strong small{display:block;font-size:12px;font-weight:600;color:var(--text-3)}
+    .foot-brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+    .foot-brand img{width:40px;height:40px;border-radius:11px;box-shadow:inset 0 0 0 1px var(--line)}
+    footer .links{display:flex;flex-wrap:wrap;gap:6px 16px}
+    .fixed-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;gap:8px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.92);border-top:1px solid var(--line);backdrop-filter:blur(12px)}
+    .fixed-bar .btn{flex:1}
+
+    /* scroll-driven progress (CSS only) */
+    .progress{position:fixed;left:0;top:0;z-index:60;height:3px;width:100%;background:var(--brand);transform-origin:0 50%;transform:scaleX(0)}
+    @supports (animation-timeline: scroll()){
+      .progress{animation:grow linear both;animation-timeline:scroll(root)}
+      @keyframes grow{to{transform:scaleX(1)}}
+      .hero-bg{animation:zoomIn 1.6s var(--ease) both,parallax linear both;animation-timeline:auto,scroll(root);animation-range:normal,0 100vh}
+      @keyframes parallax{to{transform:translateY(18%) scale(1.06)}}
+    }
+
+    @media (min-width:768px){
+      .nav{display:flex}
+      .hero .wrap{padding-top:160px;padding-bottom:64px}
+      .hero-cta .btn{flex:0 0 auto;min-width:200px}
+      .stats{grid-template-columns:repeat(4,1fr);max-width:820px}
+      .scroll-hint{display:flex}
+      .strip img{height:190px}
+      section{padding:104px 0}
+      .room{grid-template-columns:1.5fr 1fr;align-items:start}
+      .stage{aspect-ratio:16/11}
+      .cfg{grid-template-columns:1fr 1.4fr;align-items:start}
+      .story{grid-template-columns:1.2fr 1fr;gap:32px;align-items:start}
+      .story-stage{top:84px;aspect-ratio:4/3}
+      .rk{flex:0 0 300px}
+      .bento{grid-template-columns:repeat(4,1fr)}
+      .b.photo{grid-column:span 2;grid-row:span 2;min-height:100%}
+      .gal{columns:3;column-gap:12px}
+      .gal a{margin-bottom:12px}
+      .faq{grid-template-columns:1fr 1fr;align-items:start}
+      .contact{min-height:460px}
+      .contact div{padding:48px;max-width:640px}
+      .fixed-bar{display:none}
+      footer{padding-bottom:44px}
+    }
+    @media (min-width:1100px){.gal{columns:4}}
+  </style>
+</head>
+<body>
+  <div class="progress" aria-hidden="true"></div>
+
+  <header class="top" id="top">
+    <div class="wrap">
+      <a class="logo" href="/" aria-label="중용랙 홈"><img src="/assets/icon-192.png" alt="" width="38" height="38"><span>중용랙<small>용인 랙(선반) 전문 시공</small></span></a>
+      <nav class="nav" aria-label="본문 바로가기">
+        <a href="#showroom">쇼룸</a><a href="#build">내 매장 만들기</a><a href="#story">시공 과정</a><a href="#racks">랙 종류</a><a href="#gallery">현장</a><a href="#faq">질문</a>
+      </nav>
+      <a class="btn btn-sm" href="tel:010-3776-1230">전화 상담</a>
     </div>
   </header>
 
-  <main class="max-w-lg mx-auto">
-    <!-- 금액 카드 -->
-    <div class="mx-4 mt-4 bg-gradient-to-br from-primary to-[#2c5282] rounded-2xl p-5 text-white">
-      <div class="text-center">
-        <p class="text-sm opacity-80">총 견적액 (VAT 포함)</p>
-        <p class="text-3xl font-extrabold my-1" id="total-amount">0원</p>
-        <p class="text-xs opacity-70" id="total-detail">항목을 추가하세요</p>
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="wrap">
+        <span class="hero-tag"><i aria-hidden="true"></i>새 매장 오픈 준비 중이라면</span>
+        <h1 id="hero-title"><span class="line"><span>내 매장을 미리 보는</span></span><span class="line"><span><em>랙 쇼룸</em>, 중용랙</span></span></h1>
+        <p class="hero-sub">매장에 맞는 랙 구성을 살펴보세요. 업종과 평수로 구성 예시를 확인하고, 현장에 맞는 견적을 요청할 수 있습니다.</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#showroom">쇼룸 둘러보기</a>
+          <a class="btn btn-ghost" href="/request.html">견적 문의하기</a>
+        </div>
+        <div class="stats" aria-label="핵심 수치">
+          <div><strong>6<small>종</small></strong><span>경량·중량·파렛트·앵글·곤도라·하이퍼</span></div>
+          <div><strong>48<small>+</small></strong><span>블로그에 올린 시공 후기</span></div>
+          <div><strong>100<small>kg</small></strong><span>경량랙 선반당 하중까지</span></div>
+          <div><strong>전국</strong><span>서울·경기·충청·부산·전라·경상</span></div>
+        </div>
       </div>
-      <div class="flex justify-between mt-3 pt-3 border-t border-white/20 text-xs opacity-80">
-        <span>공급가액: <span id="supply-amount">0원</span></span>
-        <span>세액(10%): <span id="vat-amount">0원</span></span>
+      <div class="scroll-hint" aria-hidden="true">SCROLL<i></i></div>
+    </section>
+
+    <div class="strip" aria-hidden="true">
+      <div class="strip-track">
+        <img src="/assets/landing/ulsan-beauty.jpg" alt="" loading="lazy"><img src="/assets/landing/iksan-pharmacy.jpg" alt="" loading="lazy"><img src="/assets/landing/okjeong-stationery.jpg" alt="" loading="lazy"><img src="/assets/landing/yongin-warehouse.jpg" alt="" loading="lazy"><img src="/assets/landing/daejeon-beauty.jpg" alt="" loading="lazy"><img src="/assets/landing/uijeongbu-pharmacy.jpg" alt="" loading="lazy"><img src="/assets/landing/icheon-outlet.jpg" alt="" loading="lazy"><img src="/assets/landing/gwangyang-beauty.jpg" alt="" loading="lazy">
+        <img src="/assets/landing/ulsan-beauty.jpg" alt="" loading="lazy"><img src="/assets/landing/iksan-pharmacy.jpg" alt="" loading="lazy"><img src="/assets/landing/okjeong-stationery.jpg" alt="" loading="lazy"><img src="/assets/landing/yongin-warehouse.jpg" alt="" loading="lazy"><img src="/assets/landing/daejeon-beauty.jpg" alt="" loading="lazy"><img src="/assets/landing/uijeongbu-pharmacy.jpg" alt="" loading="lazy"><img src="/assets/landing/icheon-outlet.jpg" alt="" loading="lazy"><img src="/assets/landing/gwangyang-beauty.jpg" alt="" loading="lazy">
       </div>
     </div>
 
-    <!-- 랙 추가 영역 -->
-    <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 p-4" id="price-area">
-      <h3 class="text-sm font-bold text-gray-700 mb-3">랙 추가</h3>
-      <div id="rack-selector">
-        <div class="text-center py-8">
-          <div class="animate-pulse">
-            <div class="h-4 bg-gray-200 rounded w-1/2 mx-auto mb-3"></div>
-            <div class="h-12 bg-gray-200 rounded mb-3"></div>
-          </div>
+    <!-- SHOWROOM -->
+    <section id="showroom" class="band" aria-labelledby="showroom-title">
+      <div class="wrap">
+        <div class="head reveal">
+          <p class="kicker">쇼룸</p>
+          <h2 id="showroom-title">업종을 고르면 실제 시공 매장이 열립니다</h2>
+          <p class="sub">사진 위 점을 눌러 보세요. 어떤 랙이 어디에 들어갔는지 바로 보입니다.</p>
         </div>
-      </div>
-
-      <!-- 수량 + 추가 버튼 (랙 선택 완료 시 표시) -->
-      <div class="mt-3 hidden" id="add-section">
-        <div class="flex items-end gap-3">
-          <div class="flex-1">
-            <label class="block text-sm font-semibold text-gray-600 mb-2">수량</label>
-            <div class="flex items-center">
-              <button onclick="App.changeQuantity(-1)" class="w-10 h-10 bg-gray-100 rounded-l-xl text-lg font-bold text-gray-600 active:bg-gray-200">−</button>
-              <input type="number" id="qty-input" value="1" min="1" max="9999"
-                class="w-16 h-10 text-center text-base font-bold border-y-2 border-gray-200 focus:outline-none"
-                onchange="App.setQuantity(this.value)">
-              <button onclick="App.changeQuantity(1)" class="w-10 h-10 bg-gray-100 rounded-r-xl text-lg font-bold text-gray-600 active:bg-gray-200">+</button>
-              <span class="ml-2 text-sm text-gray-500">대</span>
+        <div class="tabs reveal" role="tablist" aria-label="업종 선택" id="room-tabs"></div>
+        <div class="room reveal">
+          <div class="stage" id="stage" aria-live="polite"></div>
+          <aside class="room-side">
+            <div class="room-card">
+              <h3 id="room-name">뷰티 매장</h3>
+              <p id="room-desc"></p>
+              <ul class="kit" id="room-kit"></ul>
+              <a class="btn btn-primary" id="room-cta" href="/request.html">이 구성으로 견적 문의</a>
             </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- BUILD -->
+    <section id="build" aria-labelledby="build-title">
+      <div class="wrap">
+        <div class="head reveal">
+          <p class="kicker">내 매장 만들기</p>
+          <h2 id="build-title">평수만 움직이면 배치가 그려집니다</h2>
+          <p class="sub">대략의 감을 잡는 용도입니다. 정확한 수량은 방문 실측 후 견적서로 드립니다.</p>
+        </div>
+        <div class="cfg">
+          <div class="cfg-panel reveal">
+            <h3>업종</h3>
+            <div class="chips" id="cfg-type"></div>
+            <h3 style="margin-top:20px">매장 크기 <output id="cfg-py">12평</output></h3>
+            <input type="range" id="cfg-range" min="5" max="60" step="1" value="12" aria-label="매장 평수">
+            <div class="range-labels"><span>5평</span><span>30평</span><span>60평</span></div>
+            <h3 style="margin-top:20px">예상 구성</h3>
+            <ul class="result" id="cfg-result"></ul>
+            <p class="note">벽면 길이·통로 폭·층고에 따라 달라집니다.</p>
+            <a class="btn btn-primary" id="cfg-cta" href="/request.html" style="width:100%;margin-top:14px">이 조건으로 견적 문의</a>
           </div>
-          <button onclick="App.addItem()"
-            class="h-10 px-5 bg-accent text-white rounded-xl font-bold text-sm active:scale-[0.98] transition-transform flex-shrink-0">
-            + 추가
-          </button>
+          <div class="plan reveal" data-delay="1">
+            <div class="legend" id="legend"></div>
+            <svg id="plan" viewBox="0 0 600 440" role="img" aria-label="매장 배치 미리보기"></svg>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- 추가된 품목 목록 -->
-    <div class="mx-4 mt-4" id="items-area"></div>
-
-    <!-- 추가 항목 (운송비, 설치비, 마진, D/C) -->
-    <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 p-4">
-      <h3 class="text-sm font-bold text-gray-700 mb-3">추가 항목</h3>
-      <div class="grid grid-cols-4 gap-2 mb-3">
-        <button onclick="App.addPresetItem('운송비')" class="py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 active:bg-gray-200">+ 운송비</button>
-        <button onclick="App.addPresetItem('설치비')" class="py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 active:bg-gray-200">+ 설치비</button>
-        <button onclick="App.addPresetItem('마진')" class="py-1.5 rounded-full text-xs font-bold bg-blue-50 text-blue-600 active:bg-blue-100">+ 마진</button>
-        <button onclick="App.addPresetItem('D/C')" class="py-1.5 rounded-full text-xs font-bold bg-red-50 text-red-500 active:bg-red-100">+ D/C</button>
-      </div>
-
-      <!-- 마진 % 입력 영역 (토글) -->
-      <div id="margin-area" class="hidden mb-3 bg-blue-50 rounded-xl p-3">
-        <p class="text-xs font-bold text-blue-700 mb-2">마진율 설정</p>
-        <div class="flex items-center gap-2">
-          <input id="margin-pct" type="number" value="25" min="1" max="100"
-            oninput="App.calcMarginFromPct()"
-            class="w-20 h-10 px-3 border-2 border-blue-200 rounded-lg text-sm text-center font-bold focus:border-blue-500 focus:outline-none">
-          <span class="text-sm font-bold text-blue-600">%</span>
-          <span class="text-sm text-gray-500 mx-1">=</span>
-          <span id="margin-amount" class="text-sm font-extrabold text-blue-700" data-amount="0">0원</span>
-          <button onclick="App.addMargin()"
-            class="ml-auto h-10 px-4 bg-blue-600 text-white rounded-lg text-sm font-bold active:scale-[0.98]">추가</button>
+    <!-- STORY -->
+    <section id="story" class="band" aria-labelledby="story-title">
+      <div class="wrap">
+        <div class="head reveal">
+          <p class="kicker">시공 과정</p>
+          <h2 id="story-title">빈 매장이 채워지는 4단계</h2>
         </div>
-        <p class="text-[11px] text-blue-400 mt-1">랙 품목 소계 기준으로 자동 계산됩니다</p>
-      </div>
-
-      <!-- D/C 할인 입력 영역 (토글) -->
-      <div id="dc-area" class="hidden mb-3 bg-red-50 rounded-xl p-3">
-        <p class="text-xs font-bold text-red-600 mb-2">할인(D/C) 금액</p>
-        <div class="flex items-center gap-2">
-          <span class="text-sm font-bold text-red-500">-</span>
-          <input id="dc-amount" type="number" placeholder="할인 금액" min="1"
-            class="flex-1 min-w-0 h-10 px-3 border-2 border-red-200 rounded-lg text-sm font-bold focus:border-red-400 focus:outline-none">
-          <span class="text-sm text-gray-500 shrink-0">원</span>
-          <button onclick="App.addDiscount()"
-            class="h-10 px-4 bg-red-500 text-white rounded-lg text-sm font-bold active:scale-[0.98] shrink-0">적용</button>
-        </div>
-        <p class="text-[11px] text-red-400 mt-1">양수로 입력하면 자동으로 차감됩니다</p>
-      </div>
-
-      <div class="space-y-2">
-        <input id="custom-name" placeholder="항목명" class="w-full h-10 px-3 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none">
-        <div class="flex gap-2">
-          <input id="custom-price" type="number" placeholder="금액" class="flex-1 min-w-0 h-10 px-3 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none">
-          <input id="custom-qty" type="number" value="1" min="1" class="w-14 h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
-          <button onclick="App.addCustomItem()" class="h-10 px-3 bg-accent text-white rounded-lg text-sm font-bold active:scale-[0.98]">추가</button>
+        <div class="story">
+          <div class="story-stage reveal">
+            <span class="label" id="story-label">1. 빈 매장</span>
+            <svg viewBox="0 0 600 450" aria-hidden="true">
+              <defs><linearGradient id="fl" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#F7F8FA"/><stop offset="1" stop-color="#E9ECF0"/></linearGradient></defs>
+              <polygon points="0,0 600,0 600,300 300,450 0,300" fill="url(#fl)"/>
+              <polygon points="0,0 300,150 300,450 0,300" fill="#F0F2F5"/>
+              <polygon points="600,0 300,150 300,450 600,300" fill="#FAFBFC"/>
+              <polyline points="0,300 300,450 600,300" fill="none" stroke="#E5E8EB" stroke-width="2"/>
+              <g class="g" id="st2" data-on="0" stroke="#2F6BFF" stroke-width="2" stroke-dasharray="6 5" fill="none">
+                <line x1="40" y1="120" x2="270" y2="235"/><line x1="330" y1="235" x2="560" y2="120"/>
+                <text x="120" y="150" stroke="none" fill="#2F6BFF" font-size="16" font-weight="800" transform="rotate(26 120 150)">가로 4,800</text>
+                <text x="430" y="130" stroke="none" fill="#2F6BFF" font-size="16" font-weight="800" transform="rotate(-26 430 130)">가로 5,200</text>
+                <line x1="300" y1="160" x2="300" y2="430"/><text x="308" y="300" stroke="none" fill="#2F6BFF" font-size="16" font-weight="800">높이 2,700</text>
+              </g>
+              <g class="g" id="st3" data-on="0">
+                <g fill="#2457D6" transform="skewY(26.6)"><rect x="30" y="112" width="8" height="200"/><rect x="120" y="112" width="8" height="200"/><rect x="210" y="112" width="8" height="200"/></g>
+                <g fill="#2F6BFF" transform="skewY(26.6)"><rect x="30" y="140" width="188" height="6"/><rect x="30" y="190" width="188" height="6"/><rect x="30" y="240" width="188" height="6"/><rect x="30" y="290" width="188" height="6"/></g>
+                <g fill="#2457D6" transform="skewY(-26.6)"><rect x="360" y="270" width="8" height="200"/><rect x="450" y="270" width="8" height="200"/><rect x="540" y="270" width="8" height="200"/></g>
+                <g fill="#2F6BFF" transform="skewY(-26.6)"><rect x="360" y="300" width="188" height="6"/><rect x="360" y="350" width="188" height="6"/><rect x="360" y="400" width="188" height="6"/><rect x="360" y="450" width="188" height="6"/></g>
+              </g>
+              <g class="g" id="st4" data-on="0">
+                <g transform="skewY(26.6)"><rect x="40" y="118" width="30" height="20" fill="#FF6B00"/><rect x="80" y="122" width="24" height="16" fill="#FFB273"/><rect x="130" y="116" width="36" height="22" fill="#8FB0FF"/><rect x="176" y="120" width="30" height="18" fill="#1FA36B"/><rect x="40" y="168" width="44" height="20" fill="#8FB0FF"/><rect x="96" y="172" width="30" height="16" fill="#FF6B00"/><rect x="140" y="166" width="60" height="22" fill="#E5E8EB"/><rect x="40" y="218" width="60" height="20" fill="#E5E8EB"/><rect x="110" y="214" width="40" height="24" fill="#FFB273"/><rect x="160" y="220" width="50" height="18" fill="#8FB0FF"/></g>
+                <g transform="skewY(-26.6)"><rect x="370" y="276" width="30" height="20" fill="#8FB0FF"/><rect x="410" y="280" width="24" height="16" fill="#FF6B00"/><rect x="460" y="274" width="36" height="22" fill="#E5E8EB"/><rect x="506" y="278" width="30" height="18" fill="#1FA36B"/><rect x="370" y="326" width="44" height="20" fill="#FFB273"/><rect x="426" y="330" width="30" height="16" fill="#8FB0FF"/><rect x="470" y="324" width="60" height="22" fill="#FF6B00"/><rect x="370" y="376" width="60" height="20" fill="#E5E8EB"/><rect x="440" y="372" width="40" height="24" fill="#8FB0FF"/><rect x="490" y="378" width="50" height="18" fill="#FFB273"/></g>
+                <circle cx="300" cy="380" r="26" fill="#FF6B00"/><path d="M289 380l8 8 14-16" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+              </g>
+            </svg>
+          </div>
+          <ol class="story-steps" id="story-steps">
+            <li class="s-step is-on" data-step="1"><b>1</b><div><h3>빈 매장</h3><p>인테리어가 끝난 빈 공간. 여기서 시작합니다.</p></div></li>
+            <li class="s-step" data-step="2"><b>2</b><div><h3>방문 실측</h3><p>벽 길이·층고·기둥 위치를 재고 배치안을 잡습니다.</p></div></li>
+            <li class="s-step" data-step="3"><b>3</b><div><h3>제작·설치</h3><p>현장 확인 후 견적서를 보내드립니다. 규격과 설치 일정은 상담을 통해 확정합니다.</p></div></li>
+            <li class="s-step" data-step="4"><b>4</b><div><h3>진열 완료</h3><p>상품이 올라가면 오픈. 선반 추가·이동은 같은 번호로.</p></div></li>
+          </ol>
         </div>
       </div>
-      <p class="text-[11px] text-gray-400 mt-1.5">* 기타 항목을 자유롭게 추가할 수 있습니다</p>
-    </div>
+    </section>
 
-    <!-- 고객 정보 (접이식) -->
-    <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 overflow-hidden">
-      <button onclick="document.getElementById('customer-form').classList.toggle('hidden');this.querySelector('span:last-child').textContent=document.getElementById('customer-form').classList.contains('hidden')?'▼':'▲'"
-        class="w-full px-4 py-3 flex items-center justify-between text-sm font-semibold text-gray-700">
-        <span>고객 정보 (선택)</span>
-        <span class="text-gray-400">▼</span>
-      </button>
-      <div id="customer-form" class="hidden px-4 pb-4 space-y-3">
-        <div>
-          <label for="cust-name" class="block text-xs font-semibold text-gray-500 mb-1">고객명/상호</label>
-          <input type="text" id="cust-name" placeholder="홍길동" autocomplete="off"
-            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none"
-            list="customer-suggestions">
-          <datalist id="customer-suggestions"></datalist>
+    <!-- RACKS -->
+    <section id="racks" aria-labelledby="racks-title">
+      <div class="wrap">
+        <div class="head reveal">
+          <p class="kicker">랙 종류</p>
+          <h2 id="racks-title">여섯 가지 랙, 한 장씩 넘겨 보세요</h2>
         </div>
-        <div>
-          <label for="cust-company" class="block text-xs font-semibold text-gray-500 mb-1">회사명</label>
-          <input type="text" id="cust-company" placeholder="우리물류"
-            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+        <div class="rail reveal">
+          <article class="rk"><div class="ph"><img src="/assets/landing/ulsan-beauty.jpg" alt="경량랙이 설치된 뷰티 매장" loading="lazy"><span class="en">LIGHT DUTY</span></div><div class="bd"><h3>경량랙</h3><p>슬림한 기본형. 볼트 없이 끼워 선반 높이를 자유롭게.</p><div class="gauge">하중<i style="--w:35%"></i>80~100kg/단</div><div class="use"><span>뷰티매장</span><span>약국 창고</span><span>사무실</span></div></div></article>
+          <article class="rk"><div class="ph"><img src="/assets/landing/heavy-jegi.jpg" alt="중량랙이 설치된 약국 창고" loading="lazy"><span class="en">KD HEAVY DUTY</span></div><div class="bd"><h3>중량랙</h3><p>볼트로 조여 세우는 창고·공장용. 선반당 수백 kg.</p><div class="gauge">하중<i style="--w:65%"></i>수백 kg/단</div><div class="use"><span>물류창고</span><span>공장</span></div></div></article>
+          <article class="rk"><div class="ph"><img src="/assets/landing/factory-hwaseong.jpg" alt="파렛트랙이 설치된 공장" loading="lazy"><span class="en">PALLET</span></div><div class="bd"><h3>파렛트랙</h3><p>지게차로 파렛트째. 층고·동선까지 함께 설계.</p><div class="gauge">하중<i style="--w:100%"></i>파렛트당 톤 단위</div><div class="use"><span>물류센터</span><span>공장</span></div></div></article>
+          <article class="rk"><div class="ph"><img src="/assets/landing/angle-dongbaek.jpg" alt="무볼트 앵글이 설치된 수납 공간" loading="lazy"><span class="en">BOLTLESS ANGLE</span></div><div class="bd"><h3>무볼트 앵글</h3><p>볼트 없이 끼워 조립. 가장 경제적인 수납 선반.</p><div class="gauge">하중<i style="--w:45%"></i>공구·부품·자재</div><div class="use"><span>사무실</span><span>작업실</span><span>센터 창고</span></div></div></article>
+          <article class="rk"><div class="ph"><img src="/assets/landing/iksan-pharmacy.jpg" alt="곤도라 진열대가 설치된 약국" loading="lazy"><span class="en">GONDOLA</span></div><div class="bd"><h3>곤도라 진열대</h3><p>마트·약국 매대의 기본. 단면·양면을 동선에 맞춰.</p><div class="gauge">하중<i style="--w:35%"></i>상품 진열</div><div class="use"><span>마트</span><span>편의점</span><span>약국</span></div></div></article>
+          <article class="rk"><div class="ph"><img src="/assets/landing/okjeong-stationery.jpg" alt="하이퍼 진열대가 설치된 문구점" loading="lazy"><span class="en">HYPER SHELF</span></div><div class="bd"><h3>하이퍼 진열대</h3><p>선반과 후크를 섞어 작은 상품도 보기 좋게.</p><div class="gauge">하중<i style="--w:35%"></i>선반 + 후크</div><div class="use"><span>뷰티</span><span>문구</span><span>잡화</span></div></div></article>
         </div>
-        <div>
-          <label for="cust-phone" class="block text-xs font-semibold text-gray-500 mb-1">연락처</label>
-          <input type="tel" id="cust-phone" placeholder="010-0000-0000"
-            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+      </div>
+    </section>
+
+    <!-- WHY (bento) -->
+    <section class="dark" aria-labelledby="why-title">
+      <div class="wrap">
+        <div class="head reveal">
+          <p class="kicker">왜 중용랙</p>
+          <h2 id="why-title">정직과 신뢰로 세웁니다</h2>
         </div>
-        <div>
-          <label for="cust-address" class="block text-xs font-semibold text-gray-500 mb-1">현장 주소</label>
-          <input type="text" id="cust-address" placeholder="용인시 처인구..."
-            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+        <div class="bento">
+          <div class="b photo reveal"><img src="/assets/landing/daejeon-beauty.jpg" alt="" loading="lazy"><div><b>국산 고급 강철 자재</b><p>두께와 도장이 균일한 국산 강철만 씁니다.</p></div></div>
+          <div class="b reveal" data-delay="1"><big>48<small>+</small></big><p>블로그에 남긴 시공 후기</p></div>
+          <div class="b reveal" data-delay="2"><big>상담</big><p>현장 확인 후 견적 안내</p></div>
+          <div class="b reveal" data-delay="1"><svg class="map" viewBox="0 0 120 150" aria-hidden="true"><path d="M52 6l22 4 14 18-4 26 12 20-8 30-22 16-10 18-18-10-6-30-16-22 8-28 12-14z" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="2"/><circle class="dot" cx="50" cy="52" r="5"/><circle class="dot" cx="48" cy="40" r="4"/><circle class="dot" cx="60" cy="86" r="4"/><circle class="dot" cx="40" cy="104" r="4"/><circle class="dot" cx="84" cy="112" r="4"/><circle class="dot" cx="70" cy="62" r="3"/></svg><big>전국</big><p>서울·부산·대전·충주·익산·광양·울산까지</p></div>
+          <div class="b reveal" data-delay="2"><big>직접</big><p>주문 제작부터 설치, 사후 관리까지 한 팀</p></div>
         </div>
-        <div>
-          <label for="cust-biz-number" class="block text-xs font-semibold text-gray-500 mb-1">사업자등록번호</label>
-          <input type="text" id="cust-biz-number" placeholder="000-00-00000"
-            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+      </div>
+    </section>
+
+    <!-- GALLERY -->
+    <section id="gallery" aria-labelledby="gallery-title">
+      <div class="wrap">
+        <div class="head reveal">
+          <p class="kicker">현장</p>
+          <h2 id="gallery-title">다녀온 매장들</h2>
         </div>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="gal reveal" id="gal"></div>
+        <div style="display:flex;justify-content:center;margin-top:18px"><a class="btn btn-line" href="https://blog.naver.com/yongin_rack" target="_blank" rel="noopener">블로그에서 후기 더 보기</a></div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="band" aria-labelledby="faq-title">
+      <div class="wrap">
+        <div class="head reveal"><p class="kicker">질문</p><h2 id="faq-title">문의 전에 궁금한 것</h2></div>
+        <div class="faq reveal">
+          <details><summary>어떤 랙이 맞는지 몰라도 되나요?<i>+</i></summary><div class="a">네. 보관할 물건과 공간 크기만 알려 주시면 업종에 맞게 골라 드립니다.</div></details>
+          <details><summary>견적은 어떻게 받나요?<i>+</i></summary><div class="a">공간 크기와 보관할 물건, 사진을 알려 주시면 견적서를 카카오톡으로 보내 드립니다. 현장 실측이 필요한 경우 일정과 조건을 상담 때 안내드립니다.</div></details>
+          <details><summary>오픈일에 맞출 수 있나요?<i>+</i></summary><div class="a">희망 오픈일을 알려주세요. 현장 규모와 자재 준비 상황을 확인한 뒤 가능한 설치 일정을 협의합니다.</div></details>
+          <details><summary>지방도 오시나요?<i>+</i></summary><div class="a">용인 기반으로 울산, 광양, 익산, 대전, 의정부 등 전국 출장 시공 중입니다.</div></details>
+          <details><summary>치수를 정확히 몰라요.<i>+</i></summary><div class="a">대략만 알려 주세요. 정확한 치수는 방문 실측 때 저희가 잽니다. 사진 두세 장이면 충분합니다.</div></details>
+          <details><summary>세금계산서 발행되나요?<i>+</i></summary><div class="a">네. 견적서와 거래명세표를 드리고 세금계산서 발행도 가능합니다.</div></details>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact" aria-labelledby="contact-title" style="padding-top:0">
+      <div class="wrap">
+        <div class="contact reveal">
+          <img src="/assets/landing/icheon-outlet.jpg" alt="" loading="lazy">
           <div>
-            <label for="cust-biz-type" class="block text-xs font-semibold text-gray-500 mb-1">업태</label>
-            <input type="text" id="cust-biz-type" placeholder="제조업"
-              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
-          </div>
-          <div>
-            <label for="cust-biz-item" class="block text-xs font-semibold text-gray-500 mb-1">종목</label>
-            <input type="text" id="cust-biz-item" placeholder="식품"
-              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+            <h2 id="contact-title">오픈 준비, 랙은 맡기고<br>다른 일 보세요</h2>
+            <p>가로·세로·높이와 보관할 물건만 알려 주시면 됩니다.</p>
+            <div class="cta"><a class="btn btn-white" href="/request.html">견적 문의 남기기</a><a class="btn btn-ghost" href="tel:010-3776-1230">010-3776-1230</a></div>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- 이전 견적 불러오기 -->
-    <div id="prev-estimates-section" class="hidden mx-4 mt-2">
-      <button id="btn-load-prev" onclick="showPrevEstimates()"
-        class="w-full h-10 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5">
-        이전 견적 불러오기 (<span id="prev-count">0</span>건)
-      </button>
-      <div id="prev-list" class="hidden mt-2 bg-white rounded-xl border border-gray-100 max-h-48 overflow-y-auto"></div>
-    </div>
-
-    <!-- AI 공간 분석 (사진 + 치수) -->
-    <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 overflow-hidden">
-      <button onclick="var s=document.getElementById('ai-photo-section');s.classList.toggle('hidden');this.querySelector('span:last-child').textContent=s.classList.contains('hidden')?'▼':'▲'"
-        class="w-full px-4 py-3 flex items-center justify-between text-sm font-semibold text-gray-700">
-        <span>AI 공간 분석 (사진 + 치수)</span>
-        <span class="text-gray-400">▼</span>
-      </button>
-      <div id="ai-photo-section" class="hidden px-4 pb-4 space-y-3">
-        <div class="grid grid-cols-3 gap-2">
-          <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1">가로(m)</label>
-            <input type="number" id="space-width" step="0.1" placeholder="10"
-              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1">세로(m)</label>
-            <input type="number" id="space-depth" step="0.1" placeholder="20"
-              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1">높이(m)</label>
-            <input type="number" id="space-height" step="0.1" placeholder="5"
-              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1">용도/환경</label>
-          <select id="space-purpose"
-            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none bg-white">
-            <option value="">선택하세요</option>
-            <option value="창고">창고 (일반)</option>
-            <option value="냉동/냉장 창고">냉동/냉장 창고</option>
-            <option value="매장/진열">매장/진열</option>
-            <option value="사무실/복도">사무실/복도</option>
-            <option value="공장/제조">공장/제조</option>
-            <option value="물류센터">물류센터</option>
-            <option value="기타">기타</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1">보관물 정보</label>
-          <div class="grid grid-cols-2 gap-2">
-            <input type="text" id="space-cargo-type" placeholder="물건 종류 (예: 식품 박스)"
-              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none">
-            <select id="space-cargo-weight"
-              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none bg-white">
-              <option value="">무게</option>
-              <option value="가벼움 (30kg 이하)">가벼움</option>
-              <option value="보통 (30~100kg)">보통</option>
-              <option value="무거움 (100kg 이상)">무거움</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1">메모/요구사항</label>
-          <textarea id="space-memo" rows="2" placeholder="예: 벽면 배치 원함, 통로 확보 필요, 기존 랙 교체..."
-            class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none resize-none"></textarea>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1">현장 사진</label>
-          <input type="file" id="space-photo" accept="image/*" multiple
-            class="w-full text-sm text-gray-500 file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-bold">
-          <div id="space-photo-preview" class="hidden mt-2 grid grid-cols-3 gap-2"></div>
-        </div>
-        <button onclick="handlePhotoAnalysis()" id="btn-photo-analyze"
-          class="w-full h-12 bg-purple-600 text-white rounded-xl font-bold text-sm active:scale-[0.98] transition-transform">
-          AI 분석 시작
-        </button>
-        <div id="photo-analysis-result" class="hidden"></div>
-      </div>
-    </div>
-
-    <!-- 저장 버튼 -->
-    <div class="mx-4 mt-4 mb-6">
-      <button id="btn-save" disabled
-        onclick="handleSave()"
-        class="w-full h-14 bg-primary text-white rounded-2xl font-bold text-lg disabled:opacity-40 active:scale-[0.98] transition-transform">
-        견적 저장
-      </button>
-    </div>
+    </section>
   </main>
 
-  <!-- Scripts -->
-  <script src="js/api.js?v=64"></script>
-  <script src="js/auth.js?v=64"></script>
-  <script src="js/ui.js?v=64"></script>
-  <script src="js/calc.js?v=64"></script>
-  <script src="js/app.js?v=64"></script>
-  <script src="js/estimate.js?v=64"></script>
+  <footer>
+    <div class="wrap">
+      <div>
+        <div class="foot-brand"><img src="/assets/icon-192.png" alt="" width="40" height="40"><strong>중용랙<small>용인 랙(선반) 전문 시공</small></strong></div>
+        대표 김영준 · 경기도 용인시 처인구 백옥대로 1117 · <a href="tel:010-3776-1230">010-3776-1230</a>
+      </div>
+      <div class="links"><a href="https://blog.naver.com/yongin_rack" target="_blank" rel="noopener">네이버 블로그</a><a href="/portfolio-public.html">시공 사진</a><a href="/request.html">견적 문의</a><a href="/app/index.html" rel="nofollow">관리자</a></div>
+    </div>
+  </footer>
+
+  <div class="fixed-bar" aria-label="빠른 문의"><a class="btn btn-line" href="tel:010-3776-1230">전화</a><a class="btn btn-primary" href="/request.html">견적 문의</a></div>
+
   <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-      if (!Auth.guard()) {
-        window.addEventListener('yr-authenticated', init);
-        return;
+    (function () {
+      var $ = function (s, r) { return (r || document).querySelector(s); };
+      var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+
+      /* header + reveal + story */
+      var top = $('#top');
+      var items = Array.prototype.slice.call(document.querySelectorAll('.reveal')), t = false;
+      function check() {
+        t = false; top.classList.toggle('on', window.scrollY > 40);
+        var lim = window.innerHeight * .92;
+        items = items.filter(function (el) { if (el.getBoundingClientRect().top <= lim) { el.classList.add('in'); return false; } return true; });
+        storyCheck();
       }
-      init();
-    });
+      function onScroll() { if (!t) { t = true; setTimeout(check, 30); } }
+      window.addEventListener('scroll', onScroll, { passive: true }); window.addEventListener('resize', onScroll);
+      var poll = setInterval(function () { if (items.length) check(); else clearInterval(poll); }, 300);
+      setTimeout(function () { clearInterval(poll); items.forEach(function (el) { el.classList.add('in'); }); items = []; }, 4000);
 
-    async function init() {
-      UI.renderTabBar('estimate');
-      await App.loadPrices();
-      loadCustomerSuggestions();
-
-      // 임시 저장 복원
-      const draft = App.loadDraft();
-      if (draft) {
-        if (draft.items && draft.items.length > 0) {
-          App.items = draft.items;
-          App.renderItems();
-          App.updateTotal();
-        }
-        if (draft.customer) {
-          if (draft.customer.name) document.getElementById('cust-name').value = draft.customer.name;
-          if (draft.customer.company) document.getElementById('cust-company').value = draft.customer.company;
-          if (draft.customer.phone) document.getElementById('cust-phone').value = draft.customer.phone;
-          if (draft.customer.address) document.getElementById('cust-address').value = draft.customer.address;
-          if (draft.customer.bizNumber) document.getElementById('cust-biz-number').value = draft.customer.bizNumber;
-          if (draft.customer.bizType) document.getElementById('cust-biz-type').value = draft.customer.bizType;
-          if (draft.customer.bizItem) document.getElementById('cust-biz-item').value = draft.customer.bizItem;
-        }
+      /* showroom */
+      var ROOMS = [
+        { id: 'beauty', name: '뷰티 매장', img: 'paju-starfield.jpg', desc: '품목이 많고 인테리어가 밝은 매장. 슬림한 라인으로 상품이 주인공.',
+          kit: [['하이퍼 진열대', '양면 · 후크 + 선반', '매장'], ['경량랙', '5단 · 선반당 80~100kg', '창고']],
+          spots: [[22, 44, '경량랙 벽면형', '슬림해서 인테리어를 가리지 않아요'], [50, 48, '하이퍼 진열대 양면', '통로 가운데, 양쪽에서 고르는 매대'], [66, 66, '곤도라 낮은 매대', '계산대 앞 소품·행사 상품']] },
+        { id: 'pharmacy', name: '약국', img: 'iksan-pharmacy.jpg', desc: '손님 눈높이 매대와 조제실 수납을 함께.',
+          kit: [['곤도라 진열대', '단면 · 양면', '매장'], ['경량랙', '높이 조절 자유', '조제실']],
+          spots: [[18, 50, '곤도라 양면 매대', '일반의약품·건강식품'], [74, 38, '벽면 곤도라', '카운터 뒤 높은 매대'], [50, 30, '카테고리 사인', '통로별 안내판 위치까지 함께']] },
+        { id: 'stationery', name: '문구·팬시점', img: 'okjeong-stationery.jpg', desc: '걸어 파는 상품이 많아 후크 비중을 높입니다.',
+          kit: [['하이퍼 진열대', '후크 중심', '매장'], ['곤도라 진열대', '낮은 매대', '중앙']],
+          spots: [[20, 46, '경량랙 + 망 후크', '가방·필통을 걸어 진열'], [82, 58, '하이퍼 진열대', '작은 문구는 후크에'], [50, 78, '통로 폭', '아이들 동선까지 계산']] },
+        { id: 'clothing', name: '의류 매장', img: 'clothing-busan.jpg', desc: '신발·가방·의류를 걸고 세우는 매장. 망 후크와 선반을 섞습니다.',
+          kit: [['경량랙', '화이트 · 망 후크', '매장'], ['하이퍼 진열대', '단면 · 후크', '벽면']],
+          spots: [[22, 52, '경량랙 신발 진열', '선반 높이를 상품에 맞춰'], [70, 40, '망 후크 벽면', '가방·모자를 걸어 진열'], [50, 82, '중앙 통로', '양쪽에서 고르는 폭']] },
+        { id: 'fishing', name: '낚시 매장', img: 'fishing-siheung.jpg', desc: '낚싯대와 소품이 수천 종. 후크 진열이 핵심입니다.',
+          kit: [['하이퍼 진열대', '망 후크 · 양면', '매장'], ['곤도라 진열대', '단면 · 벽면', '벽면']],
+          spots: [[30, 45, '하이퍼 진열대 양면', '소품은 후크에, 박스는 선반에'], [72, 34, '벽면 곤도라', '긴 낚싯대 거치'], [52, 75, '계산대 앞 낮은 매대', '미끼·소모품']] },
+        { id: 'mart', name: '마트', img: 'mart-chungju.jpg', desc: '손님 동선을 먼저 그리고 곤도라 열을 배치합니다.',
+          kit: [['곤도라 진열대', '양면 · 통로형', '매장'], ['하이퍼 진열대', '벽면 · 대용량', '벽면']],
+          spots: [[26, 44, '곤도라 양면 열', '통로 폭을 넉넉하게'], [78, 40, '벽면 하이퍼 진열대', '음료·대용량 상품'], [50, 80, '엔드캡 매대', '행사 상품 자리']] },
+        { id: 'warehouse', name: '물류창고', img: 'yongin-warehouse.jpg', desc: '지게차 동선과 층고를 재서 통로 폭을 정합니다.',
+          kit: [['파렛트랙', '6m · 3단', '입고'], ['중량랙', 'KD 볼트 체결', '낱개 재고']],
+          spots: [[28, 30, '파렛트랙 3단', '지게차로 파렛트째 적재'], [60, 62, '하단 낱개 구역', '자주 나가는 재고는 아래로'], [86, 74, '지게차 통로', '회전 반경까지 계산한 폭']] }
+      ];
+      var tabs = $('#room-tabs'), stage = $('#stage'), cur = 0, spotTimer;
+      tabs.innerHTML = ROOMS.map(function (r, i) { return '<button class="tab' + (i === 0 ? ' is-on' : '') + '" role="tab" aria-selected="' + (i === 0) + '" data-i="' + i + '">' + esc(r.name) + '</button>'; }).join('');
+      stage.innerHTML = ROOMS.map(function (r, i) { return '<img src="/assets/landing/' + r.img + '" alt="' + esc(r.name) + ' 시공 사진" class="' + (i === 0 ? 'is-on' : '') + '" loading="' + (i === 0 ? 'eager' : 'lazy') + '">'; }).join('') + '<div id="spots"></div><div class="tip" id="tip"><i>1</i><div><b></b><span></span></div></div>';
+      var spotsBox = $('#spots'), tip = $('#tip');
+      function showRoom(i) {
+        cur = i; var r = ROOMS[i];
+        Array.prototype.forEach.call(tabs.children, function (b, k) { b.classList.toggle('is-on', k === i); b.setAttribute('aria-selected', k === i); });
+        Array.prototype.forEach.call(stage.querySelectorAll('img'), function (im, k) { im.classList.toggle('is-on', k === i); });
+        $('#room-name').textContent = r.name; $('#room-desc').textContent = r.desc;
+        $('#room-kit').innerHTML = r.kit.map(function (k) { return '<li><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 4v16M20 4v16M4 9h16M4 15h16"/></svg></i><div>' + esc(k[0]) + '<br><small>' + esc(k[1]) + '</small></div><em>' + esc(k[2]) + '</em></li>'; }).join('');
+        $('#room-cta').href = '/request.html?rackType=' + encodeURIComponent(r.kit[0][0]) + '&memo=' + encodeURIComponent(r.name + ' 구성 문의');
+        spotsBox.innerHTML = r.spots.map(function (s, k) { return '<button class="spot" style="left:' + s[0] + '%;top:' + s[1] + '%" data-k="' + k + '" aria-label="' + esc(s[2]) + '"></button>'; }).join('');
+        tip.classList.remove('is-on'); clearTimeout(spotTimer); spotTimer = setTimeout(function () { showSpot(0); }, 900);
       }
-
-      // 수정 모드가 sessionStorage에 남아있으면 배너 복원
-      const pendingEditId = sessionStorage.getItem('yr_edit_id');
-      if (pendingEditId) {
-        const custName = document.getElementById('cust-name')?.value || '';
-        showEditBanner(pendingEditId, custName);
-        document.getElementById('btn-save').textContent = '견적 수정 저장';
+      function showSpot(k) {
+        var s = ROOMS[cur].spots[k]; if (!s) return;
+        Array.prototype.forEach.call(spotsBox.children, function (b, i) { b.classList.toggle('is-on', i === k); });
+        tip.querySelector('i').textContent = k + 1; tip.querySelector('b').textContent = s[2]; tip.querySelector('span').textContent = s[3]; tip.classList.add('is-on');
       }
+      tabs.addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) showRoom(Number(b.dataset.i)); });
+      spotsBox.addEventListener('click', function (e) { var b = e.target.closest('.spot'); if (b) showSpot(Number(b.dataset.k)); });
+      showRoom(0);
 
-      // URL 파라미터로 고객정보 프리필 (요청→견적)
-      await prefillFromUrl();
-    }
-
-    async function prefillFromUrl() {
-      const p = new URLSearchParams(location.search);
-      const from = p.get('from');
-
-      // 수정 모드: 기존 견적 데이터 로드
-      if (from === 'edit' && p.get('editId')) {
-        sessionStorage.setItem('yr_edit_id', p.get('editId'));
-        try {
-          const data = await API.getEstimate(p.get('editId'));
-          if (data && !data.error) {
-            // 고객 정보 채우기
-            if (data.customerName) document.getElementById('cust-name').value = data.customerName;
-            if (data.company) document.getElementById('cust-company').value = data.company;
-            if (data.phone) document.getElementById('cust-phone').value = data.phone;
-            if (data.address) document.getElementById('cust-address').value = data.address;
-            if (data.bizNumber) document.getElementById('cust-biz-number').value = data.bizNumber;
-            if (data.bizType) document.getElementById('cust-biz-type').value = data.bizType;
-            if (data.bizItem) document.getElementById('cust-biz-item').value = data.bizItem;
-            document.getElementById('customer-form').classList.remove('hidden');
-            // 품목 채우기
-            const items = typeof data.items === 'string' ? JSON.parse(data.items) : (data.items || []);
-            if (items.length > 0) {
-              App.items = items;
-              App.renderItems();
-              App.updateTotal();
-            }
-            document.getElementById('btn-save').textContent = '견적 수정 저장';
-            // 수정 모드 배너 표시
-            showEditBanner(p.get('editId'), data.customerName);
-            UI.toast('기존 견적을 불러왔습니다. 수정 후 저장하세요.', 'info', 3000);
-          }
-        } catch {}
-        document.getElementById('page-loading').classList.add('hidden');
-        history.replaceState(null, '', location.pathname);
-        return;
+      /* configurator */
+      var TYPES = [
+        { n: '뷰티매장', racks: [['하이퍼 진열대', .55, '#8FB0FF'], ['경량랙', .45, '#2F6BFF']], per: 2.2 },
+        { n: '약국', racks: [['곤도라 진열대', .6, '#8FB0FF'], ['경량랙', .4, '#2F6BFF']], per: 2.4 },
+        { n: '문구점', racks: [['하이퍼 진열대', .65, '#8FB0FF'], ['곤도라 진열대', .35, '#2F6BFF']], per: 2.0 },
+        { n: '마트·편의점', racks: [['곤도라 진열대', .7, '#8FB0FF'], ['경량랙', .3, '#2F6BFF']], per: 2.3 },
+        { n: '의류 매장', racks: [['경량랙', .6, '#2F6BFF'], ['하이퍼 진열대', .4, '#8FB0FF']], per: 2.3 },
+        { n: '낚시 매장', racks: [['하이퍼 진열대', .6, '#8FB0FF'], ['곤도라 진열대', .4, '#2F6BFF']], per: 2.1 },
+        { n: '물류창고', racks: [['파렛트랙', .5, '#FF6B00'], ['중량랙', .5, '#2F6BFF']], per: 3.4 },
+        { n: '사무실·창고', racks: [['경량랙', .6, '#2F6BFF'], ['무볼트 앵글', .4, '#8FB0FF']], per: 2.6 }
+      ];
+      var typeBox = $('#cfg-type'), range = $('#cfg-range'), out = $('#cfg-py'), res = $('#cfg-result'), plan = $('#plan'), legend = $('#legend'), ct = 0;
+      typeBox.innerHTML = TYPES.map(function (t, i) { return '<button class="chip' + (i === 0 ? ' is-on' : '') + '" data-i="' + i + '">' + esc(t.n) + '</button>'; }).join('');
+      typeBox.addEventListener('click', function (e) { var b = e.target.closest('.chip'); if (!b) return; ct = Number(b.dataset.i); Array.prototype.forEach.call(typeBox.children, function (c, k) { c.classList.toggle('is-on', k === ct); }); draw(); });
+      range.addEventListener('input', draw);
+      function draw() {
+        var py = Number(range.value), T = TYPES[ct]; out.textContent = py + '평';
+        var total = Math.max(2, Math.round(py / T.per));
+        var counts = T.racks.map(function (r) { return Math.max(1, Math.round(total * r[1])); });
+        res.innerHTML = T.racks.map(function (r, i) { return '<li>' + esc(r[0]) + '<b>' + counts[i] + '<small>대</small></b></li>'; }).join('');
+        legend.innerHTML = T.racks.map(function (r) { return '<span><i style="background:' + r[2] + '"></i>' + esc(r[0]) + '</span>'; }).join('');
+        $('#cfg-cta').href = '/request.html?rackType=' + encodeURIComponent(T.racks[0][0]) + '&memo=' + encodeURIComponent(T.n + ' ' + py + '평, 예상 ' + T.racks.map(function (r, i) { return r[0] + ' ' + counts[i] + '대'; }).join(', '));
+        var W = 200 + Math.min(360, py * 6), H = 160 + Math.min(220, py * 3.6), x0 = (600 - W) / 2, y0 = (440 - H) / 2;
+        var s = '<rect x="' + x0 + '" y="' + y0 + '" width="' + W + '" height="' + H + '" rx="10" fill="#1B2233" stroke="rgba(255,255,255,.18)" stroke-width="2"/>';
+        s += '<rect x="' + (x0 + W / 2 - 40) + '" y="' + (y0 + H - 6) + '" width="80" height="12" rx="4" fill="#8FB0FF"/><text x="' + (x0 + W / 2) + '" y="' + (y0 + H + 30) + '" fill="rgba(255,255,255,.6)" font-size="13" text-anchor="middle" font-weight="700">입구</text>';
+        s += '<text x="' + (x0 + W / 2) + '" y="' + (y0 - 12) + '" fill="rgba(255,255,255,.6)" font-size="13" text-anchor="middle" font-weight="700">' + py + '평 · 가로 약 ' + (Math.round(Math.sqrt(py * 3.3) * 10) / 10) + 'm</text>';
+        var unit = 46, gap = 8, placed = 0, need = counts.slice(), colors = T.racks.map(function (r) { return r[2]; });
+        function pick() { for (var i = 0; i < need.length; i++) if (need[i] > 0) { need[i]--; return colors[i]; } return null; }
+        function rect(x, y, w, h, c) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="3" fill="' + c + '" class="rb" style="animation-delay:' + (placed++ * 40) + 'ms"/>'; }
+        var y = y0 + 14; for (var x = x0 + 14; x + unit <= x0 + W - 14; x += unit + gap) { var c = pick(); if (!c) break; s += rect(x, y, unit, 18, c); }
+        for (var yy = y0 + 46; yy + unit <= y0 + H - 40; yy += unit + gap) { var c1 = pick(); if (!c1) break; s += rect(x0 + 14, yy, 18, unit, c1); var c2 = pick(); if (!c2) break; s += rect(x0 + W - 32, yy, 18, unit, c2); }
+        var cols = Math.max(0, Math.floor((W - 120) / 84)), rows = Math.max(0, Math.floor((H - 110) / 70));
+        for (var r = 0; r < rows; r++) for (var cc = 0; cc < cols; cc++) { var c3 = pick(); if (!c3) break; s += rect(x0 + 60 + cc * 84, y0 + 60 + r * 70, 60, 22, c3); }
+        plan.innerHTML = s;
       }
+      draw();
 
-      // 요청→견적 프리필 (request 또는 ai-analysis)
-      if (from !== 'request' && from !== 'ai-analysis') return;
-      const fields = { name:'cust-name', company:'cust-company', phone:'cust-phone', address:'cust-address',
-        bizNumber:'cust-biz-number', bizType:'cust-biz-type', bizItem:'cust-biz-item' };
-      let filled = false;
-      for (const [key, id] of Object.entries(fields)) {
-        const val = p.get(key);
-        if (val) { document.getElementById(id).value = val; filled = true; }
+      /* story scroll */
+      var steps = Array.prototype.slice.call(document.querySelectorAll('.s-step')), label = $('#story-label'), names = ['1. 빈 매장', '2. 방문 실측', '3. 제작·설치', '4. 진열 완료'];
+      function storyCheck() {
+        if (!steps.length) return; var stageEl = $('.story-stage'), mid = window.innerWidth < 768 ? stageEl.getBoundingClientRect().bottom + 90 : window.innerHeight * .6, active = 0;
+        steps.forEach(function (el, i) { if (el.getBoundingClientRect().top < mid) active = i; });
+        steps.forEach(function (el, i) { el.classList.toggle('is-on', i === active); });
+        label.textContent = names[active];
+        $('#st2').dataset.on = active >= 1 ? 1 : 0; $('#st3').dataset.on = active >= 2 ? 1 : 0; $('#st4').dataset.on = active >= 3 ? 1 : 0;
       }
-      if (filled) {
-        document.getElementById('customer-form').classList.remove('hidden');
-      }
-      // requestRowIndex 저장 (공유 시 자동 상태 전환용)
-      const reqRow = p.get('requestRowIndex');
-      if (reqRow) sessionStorage.setItem('yr_request_row', reqRow);
+      steps.forEach(function (el) { el.addEventListener('click', function () { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }); });
+      check();
 
-      // AI 분석에서 넘어온 경우: 추천 품목 자동 추가
-      if (from === 'ai-analysis') {
-        var aiType = p.get('aiType');
-        var aiForm = p.get('aiForm');
-        var aiSpec = p.get('aiSpec');
-        var aiQty = parseInt(p.get('aiQty')) || 1;
-        if (aiType && App.priceData && App.priceData.length > 0) {
-          // 1차: 정확 매칭 (type + form + spec)
-          var match = App.priceData.find(function(pr) {
-            return pr.type === aiType && (!aiForm || pr.form === aiForm) && (!aiSpec || String(pr.spec) === aiSpec);
-          });
-          // 2차: type + form만 매칭 (spec 무시)
-          if (!match && aiForm) {
-            match = App.priceData.find(function(pr) {
-              return pr.type === aiType && pr.form === aiForm && !pr.isAccessory;
-            });
-          }
-          // 3차: type만 매칭 (부속품 제외)
-          if (!match) {
-            match = App.priceData.find(function(pr) {
-              return pr.type === aiType && !pr.isAccessory;
-            });
-          }
-          // 4차: 부분 문자열 매칭 (AI가 약간 다른 이름 반환 시)
-          if (!match) {
-            var aiTypeLower = aiType.replace(/\s/g, '').toLowerCase();
-            match = App.priceData.find(function(pr) {
-              return pr.type && pr.type.replace(/\s/g, '').toLowerCase().includes(aiTypeLower) && !pr.isAccessory;
-            });
-          }
-          if (match) {
-            App.items.push({
-              type: match.type, form: match.form || '', spec: String(match.spec), tier: match.tier,
-              unitPrice: Number(match.unitPrice) || 0, installFee: Number(match.installFee) || 0,
-              vat: match.vat || '별도', quantity: aiQty,
-              pricingModel: match.pricingModel || '', layoutType: match.layoutType || '',
-              setName: match.setName || '', partCategory: match.partCategory || ''
-            });
-            App.renderItems();
-            App.updateTotal();
-            UI.toast('AI 추천 품목이 추가되었습니다', 'success');
-          } else {
-            UI.toast('추천 랙(' + aiType + ')을 단가표에서 찾을 수 없습니다. 직접 선택하세요.', 'warning', 5000);
-          }
-        }
-      }
-
-      document.getElementById('page-loading').classList.add('hidden');
-      // URL 정리
-      history.replaceState(null, '', location.pathname);
-    }
-
-    async function handleSave() {
-      const btn = document.getElementById('btn-save');
-      UI.setLoading(btn, true);
-      try {
-        const editId = sessionStorage.getItem('yr_edit_id');
-        console.log('handleSave mode:', editId ? 'UPDATE ' + editId : 'NEW');
-
-        if (editId) {
-          // 수정 모드: 기존 견적 업데이트
-          const { supplyTotal, vat, total, items: calcItems } = App.calculate();
-          if (!calcItems || calcItems.length === 0) {
-            UI.toast('품목을 추가하세요', 'warning');
-            return;
-          }
-          const customer = App.getCustomerInfo();
-          const result = await API.updateEstimate({
-            estimateId: editId,
-            items: calcItems,
-            supplyTotal, vat, total,
-            ...customer,
-          });
-          console.log('updateEstimate result:', result);
-          if (result && (result.estimateId || result.result === 'success')) {
-            sessionStorage.removeItem('yr_edit_id');
-            sessionStorage.removeItem('yr-estimate-' + editId);
-            UI.toast('견적이 수정되었습니다', 'success');
-            window.location.href = `estimate-preview.html?id=${result.estimateId || editId}`;
-          } else {
-            UI.toast('수정 실패: ' + (result?.error || '알 수 없는 오류'), 'error');
-          }
-        } else {
-          // 신규 저장
-          const result = await App.saveEstimate();
-          if (result && result.estimateId) {
-            UI.toast('견적이 저장되었습니다', 'success');
-            const reqRow = sessionStorage.getItem('yr_request_row');
-            if (reqRow) {
-              try { await API.linkEstimateToRequest(Number(reqRow), result.estimateId); } catch {}
-            }
-            const reqParam = reqRow ? `&requestRowIndex=${reqRow}` : '';
-            sessionStorage.removeItem('yr_request_row');
-            window.location.href = `estimate-preview.html?id=${result.estimateId}${reqParam}`;
-          }
-        }
-      } catch (err) {
-        UI.toast(err.message || '저장 실패', 'error');
-      } finally {
-        UI.setLoading(btn, false);
-      }
-    }
-
-    function showEditBanner(editId, customerName) {
-      const banner = document.getElementById('edit-banner');
-      const title = document.getElementById('edit-banner-title');
-      const detail = document.getElementById('edit-banner-detail');
-      const pageTitle = document.getElementById('page-title');
-      const btnReset = document.getElementById('btn-reset');
-      if (banner) {
-        banner.classList.remove('hidden');
-        title.textContent = `${customerName || '고객'} 견적 수정 중`;
-        detail.textContent = editId || '';
-        pageTitle.textContent = '견적 수정';
-        btnReset.classList.remove('hidden');
-      }
-    }
-
-    function updateResetButton() {
-      const btnReset = document.getElementById('btn-reset');
-      const editId = sessionStorage.getItem('yr_edit_id');
-      if (!editId && App.items && App.items.length > 0) {
-        btnReset.classList.remove('hidden');
-      }
-    }
-
-    var _allEstimates = [];
-    var _matchedEstimates = [];
-
-    async function loadCustomerSuggestions() {
-      try {
-        const data = await API.getEstimates();
-        if (data && data.estimates) {
-          _allEstimates = data.estimates;
-          const seen = new Set();
-          const datalist = document.getElementById('customer-suggestions');
-          data.estimates.forEach(e => {
-            if (e.customerName && !seen.has(e.customerName)) {
-              seen.add(e.customerName);
-              const opt = document.createElement('option');
-              opt.value = e.customerName;
-              datalist.appendChild(opt);
-            }
-          });
-
-          document.getElementById('cust-name').addEventListener('change', (ev) => {
-            const name = ev.target.value;
-            _matchedEstimates = _allEstimates.filter(e => e.customerName === name);
-            if (_matchedEstimates.length > 0) {
-              const latest = _matchedEstimates[0]; // 이미 최신순 정렬
-              document.getElementById('cust-company').value = latest.company || '';
-              document.getElementById('cust-phone').value = latest.phone || '';
-              document.getElementById('cust-address').value = latest.address || '';
-              document.getElementById('cust-biz-number').value = latest.bizNumber || '';
-              document.getElementById('cust-biz-type').value = latest.bizType || '';
-              document.getElementById('cust-biz-item').value = latest.bizItem || '';
-              // 고객 폼 열기
-              document.getElementById('customer-form').classList.remove('hidden');
-              // 이전 견적 버튼 표시
-              document.getElementById('prev-count').textContent = _matchedEstimates.length;
-              document.getElementById('prev-estimates-section').classList.remove('hidden');
-              // 고객 패턴 품목 → 랙 셀렉터에 표시
-              App.setCustomerPatternItems(_matchedEstimates);
-              App.renderRackSelector();
-            } else {
-              document.getElementById('prev-estimates-section').classList.add('hidden');
-              App.setCustomerPatternItems([]);
-              App.renderRackSelector();
-            }
-          });
-        }
-      } catch {}
-    }
-
-    function showPrevEstimates() {
-      const list = document.getElementById('prev-list');
-      list.classList.toggle('hidden');
-      if (!list.classList.contains('hidden')) {
-        list.innerHTML = _matchedEstimates.map((e, i) => {
-          const d = typeof e.date === 'string' ? e.date.substring(0, 10) : '';
-          const total = Number(e.total || 0).toLocaleString();
-          return `<button onclick="loadPrevEstimate(${i})" class="w-full px-3 py-2.5 text-left border-b border-gray-50 hover:bg-blue-50 active:bg-blue-100 transition-colors">
-            <div class="flex justify-between items-center">
-              <span class="text-sm font-bold text-gray-700">${d}</span>
-              <span class="text-sm font-bold text-primary">₩${total}</span>
-            </div>
-            <p class="text-xs text-gray-500 mt-0.5">${e.itemSummary || ''} (${e.totalQuantity || 0}개)</p>
-          </button>`;
-        }).join('');
-      }
-    }
-
-    // --- AI 공간 분석 ---
-    document.getElementById('space-photo').addEventListener('change', function(e) {
-      var files = e.target.files;
-      var preview = document.getElementById('space-photo-preview');
-      preview.innerHTML = '';
-      if (!files.length) { preview.classList.add('hidden'); return; }
-      preview.classList.remove('hidden');
-      Array.from(files).forEach(function(file) {
-        var reader = new FileReader();
-        reader.onload = function(ev) {
-          var img = document.createElement('img');
-          img.src = ev.target.result;
-          img.className = 'rounded-lg max-h-48 w-full object-cover';
-          preview.appendChild(img);
-        };
-        reader.readAsDataURL(file);
-      });
-    });
-
-    function resizeAndEncode(file, maxSize) {
-      return new Promise(function(resolve) {
-        var img = new Image();
-        img.onload = function() {
-          var canvas = document.createElement('canvas');
-          var w = img.width, h = img.height;
-          if (w > maxSize || h > maxSize) {
-            var ratio = Math.min(maxSize / w, maxSize / h);
-            w = Math.round(w * ratio);
-            h = Math.round(h * ratio);
-          }
-          canvas.width = w;
-          canvas.height = h;
-          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-          var dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-          resolve({ data: dataUrl.split(',')[1], mimeType: 'image/jpeg' });
-        };
-        img.src = URL.createObjectURL(file);
-      });
-    }
-
-    async function handlePhotoAnalysis() {
-      var width = parseFloat(document.getElementById('space-width').value) || 0;
-      var depth = parseFloat(document.getElementById('space-depth').value) || 0;
-      var height = parseFloat(document.getElementById('space-height').value) || 0;
-      var fileInput = document.getElementById('space-photo');
-
-      if (!width || !depth || !height) {
-        UI.toast('가로, 세로, 높이를 입력하세요', 'warning');
-        return;
-      }
-      if (!fileInput.files[0]) {
-        UI.toast('현장 사진을 선택하세요', 'warning');
-        return;
-      }
-
-      var btn = document.getElementById('btn-photo-analyze');
-      btn.disabled = true;
-      btn.innerHTML = '<div class="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full mx-auto"></div>';
-
-      try {
-        var photos = [];
-        for (var i = 0; i < fileInput.files.length; i++) {
-          photos.push(await resizeAndEncode(fileInput.files[i], 1024));
-        }
-        var purpose = document.getElementById('space-purpose').value || '';
-        var cargoType = document.getElementById('space-cargo-type').value || '';
-        var cargoWeight = document.getElementById('space-cargo-weight').value || '';
-        var memo = document.getElementById('space-memo').value || '';
-        var payload = {
-          width: width, depth: depth, height: height,
-          purpose: purpose, cargoType: cargoType, cargoWeight: cargoWeight, memo: memo,
-          imageBase64: photos[0].data, imageMimeType: photos[0].mimeType
-        };
-        if (photos.length > 1) {
-          payload.images = photos.map(function(p) { return { base64: p.data, mimeType: p.mimeType }; });
-        }
-        var result = await API.analyzePhoto(payload);
-
-        console.log('[AI Photo] response:', JSON.stringify(result));
-        if (result.error) {
-          UI.toast(result.error, 'error');
-          return;
-        }
-        renderPhotoAnalysis(result);
-      } catch (e) {
-        UI.toast('AI 분석 실패: ' + e.message, 'error');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'AI 분석 시작';
-      }
-    }
-
-    var _photoRecommendation = null;
-
-    function renderPhotoAnalysis(result) {
-      var container = document.getElementById('photo-analysis-result');
-      container.classList.remove('hidden');
-
-      var pa = result.photoAnalysis || {};
-      var rec = result.recommendation || {};
-      var warnings = result.warnings || [];
-      _photoRecommendation = rec;
-
-      container.innerHTML =
-        '<div class="space-y-3">' +
-          '<div class="p-3 bg-gray-50 rounded-lg">' +
-            '<p class="text-xs font-bold text-gray-500 mb-1">공간 분석</p>' +
-            '<div class="text-xs text-gray-600 space-y-0.5">' +
-              '<p>바닥: ' + (pa.floorType || '-') + '</p>' +
-              '<p>기존 설비: ' + (pa.existingRacks || '-') + '</p>' +
-              '<p>장애물: ' + (pa.obstacles || '-') + '</p>' +
-              '<p>환경: ' + (pa.environment || '-') + '</p>' +
-            '</div>' +
-          '</div>' +
-          '<div class="p-3 bg-blue-50 rounded-lg">' +
-            '<p class="text-xs font-bold text-blue-700 mb-1">추천</p>' +
-            '<p class="text-sm font-bold text-blue-900">' + (rec.rackType || '-') + ' × ' + (rec.estimatedQty || '?') + '대</p>' +
-            '<p class="text-xs text-blue-600 mt-1">' + (rec.layout || '') + '</p>' +
-            '<p class="text-xs text-blue-500 mt-1">' + (rec.reasoning || '') + '</p>' +
-          '</div>' +
-          (warnings.length > 0 ?
-            '<div class="p-3 bg-amber-50 rounded-lg">' +
-              '<p class="text-xs font-bold text-amber-700 mb-1">주의사항</p>' +
-              warnings.map(function(w) { return '<p class="text-xs text-amber-600">• ' + w + '</p>'; }).join('') +
-            '</div>' : '') +
-          '<button onclick="applyPhotoRecommendation()" class="w-full h-10 bg-primary text-white rounded-lg text-sm font-bold active:scale-[0.98]">' +
-            '추천 품목으로 견적 작성' +
-          '</button>' +
-        '</div>';
-    }
-
-    function applyPhotoRecommendation() {
-      if (!_photoRecommendation || !_photoRecommendation.rackType) {
-        UI.toast('추천 정보가 없습니다', 'warning');
-        return;
-      }
-      var rec = _photoRecommendation;
-      var match = App.priceData.find(function(p) {
-        return p.type === rec.rackType && !p.isAccessory;
-      });
-      if (match) {
-        App.items.push({
-          type: match.type, form: match.form || '', spec: String(match.spec), tier: match.tier,
-          unitPrice: Number(match.unitPrice) || 0, installFee: Number(match.installFee) || 0,
-          vat: match.vat || '별도', quantity: rec.estimatedQty || 1,
-          pricingModel: match.pricingModel || '', layoutType: match.layoutType || '',
-          setName: match.setName || '', partCategory: match.partCategory || ''
-        });
-        App.renderItems();
-        App.updateTotal();
-        UI.toast('추천 품목이 추가되었습니다', 'success');
-      } else {
-        UI.toast('매칭되는 품목을 찾을 수 없습니다. 직접 선택하세요.', 'warning');
-      }
-    }
-
-    function loadPrevEstimate(index) {
-      const est = _matchedEstimates[index];
-      if (!est || !est.items) return;
-      if (!confirm('현재 품목을 이전 견적으로 교체할까요?')) return;
-      App.items = est.items.map(item => ({...item}));
-      App.renderItems();
-      App.updateTotal();
-      document.getElementById('prev-list').classList.add('hidden');
-      UI.toast('이전 견적 품목이 로드되었습니다', 'success');
-    }
+      /* gallery */
+      var G = [
+        ['paju-starfield.jpg', '파주 스타필드 오프뷰티', '경량랙 · 하이퍼 진열대', '224260889354'],
+        ['uijeongbu-pharmacy.jpg', '의정부 대형약국', '경량랙 · 곤도라', '224364720449'],
+        ['yongin-warehouse.jpg', '용인 모현 물류창고', '6m 3단 파렛트랙', '224328765135'],
+        ['ulsan-beauty.jpg', '울산 오프뷰티', '경량랙', '224375900651'],
+        ['okjeong-stationery.jpg', '옥정동 무인문구점', '경량랙 · 하이퍼 진열대', '224328752468'],
+        ['daejeon-beauty.jpg', '대전 서구 오프뷰티', '경량랙', '224362506769'],
+        ['iksan-pharmacy.jpg', '익산 영등동 대형약국', '중용랙 · 경량랙', '224260944558'],
+        ['gwangyang-beauty.jpg', '광양 오프뷰티', '경량랙', '224374869088'],
+        ['icheon-outlet.jpg', '이천 프리미엄 아울렛', '경량랙', '224304712136'],
+        ['iksan-beauty.jpg', '익산 오프뷰티', '경량랙', '224362531900'],
+        ['clothing-busan-2.jpg', '부산 금정 워크업 (의류·신발)', '경량랙 · 망 후크', '224235970703'],
+        ['fishing-daejeon.jpg', '대전 유성 낚시 매장', '곤도라 진열대', '223938773174'],
+        ['mart-chungju-2.jpg', '충주 마트', '하이퍼 진열대', '223938781404'],
+        ['fancy-namdaemun.jpg', '남대문 팬시점', '하이퍼 진열대', '224235842652'],
+        ['food-hanam.jpg', '하남 식자재 창고', '고하중 중량랙', '224221256936'],
+        ['angle-cheongju.jpg', '청주 워크업 복대점', '무볼트 앵글', '223938745828'],
+        ['lab-lg.jpg', '대전 LG 연구소', '중량랙', '223936127144'],
+        ['nike-geoje.jpg', '거제 나이키 매장', '경량랙', '223936120723'],
+        ['beauty-goejeong.jpg', '부산 괴정 오프뷰티 (창고형)', '경량랙', '224011299953'],
+        ['clothing-yongin.jpg', '용인 역북 워크업', '경량랙 블랙', '224144732411']
+      ];
+      $('#gal').innerHTML = G.map(function (g) { return '<a href="https://blog.naver.com/yongin_rack/' + g[3] + '" target="_blank" rel="noopener"><img src="/assets/landing/' + g[0] + '" alt="' + esc(g[1]) + '" loading="lazy"><figcaption><small>' + esc(g[2]) + '</small>' + esc(g[1]) + '</figcaption></a>'; }).join('');
+    })();
   </script>
-
-  <script src="js/sw-register.js"></script>
 </body>
 </html>

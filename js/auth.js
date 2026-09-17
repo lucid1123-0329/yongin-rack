@@ -1,7 +1,7 @@
 /**
  * auth.js — PIN 인증 모듈
- * SHA-256 해시 기반 인증, PIN은 구글시트 설정에 저장
- * 새 기기에서 접속 시 서버에서 PIN 해시를 가져와 인증
+ * 서버에서 PIN 확인 후 최대 6시간 유효한 세션 토큰 사용.
+ * PIN과 PIN 해시는 브라우저에 저장하지 않는다.
  */
 
 const Auth = (() => {
@@ -11,35 +11,14 @@ const Auth = (() => {
   const ONBOARDING_KEY = 'yr_onboarding_done';
   const ATTEMPT_KEY = 'yr_pin_attempts';
   const MAX_ATTEMPTS = 5;
-  const LOCKOUT_MS = 60000; // 1분 잠금
-
-  async function sha256(text) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(text);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hash))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-  }
-
-  // 랜덤 솔트 생성 (16바이트 hex)
-  function generateSalt() {
-    const arr = new Uint8Array(16);
-    crypto.getRandomValues(arr);
-    return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
-  }
-
-  // 솔트 + PIN → SHA-256 해시
-  async function hashWithSalt(pin, salt) {
-    return sha256(salt + ':' + pin);
-  }
+  const LOCKOUT_MS = 900000; // 서버와 동일하게 15분 잠금
 
   function isAuthenticated() {
-    return sessionStorage.getItem(SESSION_KEY) === 'true';
+    return !!sessionStorage.getItem('yr_auth_token') && Number(sessionStorage.getItem('yr_auth_expires')) > Date.now();
   }
 
   function hasPinSet() {
-    return !!localStorage.getItem(PIN_HASH_KEY);
+    return localStorage.getItem(ONBOARDING_KEY) === 'true';
   }
 
   // 시도 횟수 확인 — 잠금 상태면 남은 초 반환, 아니면 0
@@ -68,17 +47,25 @@ const Auth = (() => {
     localStorage.removeItem(ATTEMPT_KEY);
   }
 
-  // PIN 설정 — 솔트 생성 + localStorage + 서버(구글시트) 동시 저장
+  // 서버 확인이 끝난 뒤에만 새 세션으로 변경.
   async function setPin(pin) {
-    const salt = generateSalt();
-    const hash = await hashWithSalt(pin, salt);
-    localStorage.setItem(PIN_SALT_KEY, salt);
-    localStorage.setItem(PIN_HASH_KEY, hash);
-    localStorage.setItem(ONBOARDING_KEY, 'true');
-    try {
-      await API.saveSettings({ pinHash: hash, pinSalt: salt });
-    } catch {}
+    const result = await API.request('POST', { action: 'changePin', pin });
+    acceptSession(result);
   }
+
+  function acceptSession(result) {
+    if (!result?.token || !result.expiresAt) throw new Error('로그인 응답을 확인할 수 없습니다. 서버 배포 버전을 확인하세요.');
+    sessionStorage.setItem('yr_auth_token', result.token);
+    sessionStorage.setItem('yr_auth_expires', String(result.expiresAt));
+    localStorage.setItem(ONBOARDING_KEY, 'true');
+    localStorage.removeItem(PIN_HASH_KEY);
+    localStorage.removeItem(PIN_SALT_KEY);
+    resetAttempts();
+  }
+  // 이전 버전이 저장했던 재사용 가능한 인증 정보를 즉시 제거한다.
+  localStorage.removeItem(PIN_HASH_KEY);
+  localStorage.removeItem(PIN_SALT_KEY);
+  sessionStorage.removeItem(SESSION_KEY);
 
   // PIN 검증 — 솔트 + 해시 비교 + 시도 횟수 제한
   async function verifyPin(pin) {
@@ -86,32 +73,29 @@ const Auth = (() => {
     const lockout = getLockoutRemaining();
     if (lockout > 0) return false;
 
-    const salt = localStorage.getItem(PIN_SALT_KEY) || '';
-    const hash = salt ? await hashWithSalt(pin, salt) : await sha256(pin);
-    const stored = localStorage.getItem(PIN_HASH_KEY);
-    if (hash === stored) {
-      sessionStorage.setItem(SESSION_KEY, 'true');
-      resetAttempts();
+    try {
+      const result = await API.request('POST', { action: 'authenticate', pin }, { admin: false });
+      acceptSession(result);
       return true;
+    } catch (err) {
+      if (err.code !== 'INVALID_PIN') throw err;
+      recordFailedAttempt();
+      return false;
     }
-    recordFailedAttempt();
-    return false;
   }
 
-  // 서버에서 PIN 해시를 가져와 localStorage에 동기화
+  // 공개 가능한 브랜딩 및 초기 설정 여부만 확인.
   async function fetchServerPin() {
     try {
-      const data = await API.getSettings();
+      const data = await API.request('GET', { action: 'getPublicSettings' }, { admin: false });
       if (data.settings) {
         // PIN + 솔트 동기화
-        if (data.settings.pinHash) {
-          localStorage.setItem(PIN_HASH_KEY, data.settings.pinHash);
-          if (data.settings.pinSalt) localStorage.setItem(PIN_SALT_KEY, data.settings.pinSalt);
+        if (data.pinConfigured) {
           localStorage.setItem(ONBOARDING_KEY, 'true');
         }
         // 브랜딩 정보도 동기화
         syncBrandingFromSettings(data.settings);
-        return !!data.settings.pinHash;
+        return !!data.pinConfigured;
       }
     } catch {}
     return false;
@@ -142,10 +126,6 @@ const Auth = (() => {
       const data = await API.getSettings();
       if (data.settings) {
         syncBrandingFromSettings(data.settings);
-        if (data.settings.pinHash) {
-          localStorage.setItem(PIN_HASH_KEY, data.settings.pinHash);
-          if (data.settings.pinSalt) localStorage.setItem(PIN_SALT_KEY, data.settings.pinSalt);
-        }
       }
     } catch {}
   }
@@ -155,7 +135,10 @@ const Auth = (() => {
   }
 
   function logout() {
+    API.request('POST', { action: 'logout' }).catch(() => {});
     sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem('yr_auth_token');
+    sessionStorage.removeItem('yr_auth_expires');
   }
 
   /**
@@ -167,22 +150,7 @@ const Auth = (() => {
 
     if (isAuthenticated()) return true;
 
-    if (hasPinSet()) {
-      // 로컬에 PIN 있음 → PIN 입력 모달
-      showPinModal();
-      return false;
-    }
-
-    // 로컬에 PIN 없음 → 서버에서 확인
-    fetchServerPin().then(found => {
-      if (found) {
-        // 서버에 PIN 있음 → PIN 입력 모달
-        showPinModal();
-      } else {
-        // 서버에도 PIN 없음 → 최초 설정(온보딩)
-        window.location.href = 'settings.html?setup=1';
-      }
-    });
+    showPinModal();
     return false;
   }
 
@@ -195,20 +163,20 @@ const Auth = (() => {
     modal.style.zIndex = '10000';
     modal.innerHTML = `
       <div class="bg-white rounded-2xl p-6 mx-4 w-full max-w-sm text-center">
-        <div class="text-4xl mb-4">🔒</div>
+        <div class="hidden"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
         <h2 class="text-lg font-bold text-gray-800 mb-1">비밀번호를 입력하세요</h2>
         <p class="text-sm text-gray-500 mb-6">PIN 4자리 입력</p>
-        <div class="flex justify-center gap-3 mb-6" id="pin-dots">
-          <div class="w-12 h-12 border-2 border-gray-300 rounded-xl flex items-center justify-center text-2xl pin-dot"></div>
-          <div class="w-12 h-12 border-2 border-gray-300 rounded-xl flex items-center justify-center text-2xl pin-dot"></div>
-          <div class="w-12 h-12 border-2 border-gray-300 rounded-xl flex items-center justify-center text-2xl pin-dot"></div>
-          <div class="w-12 h-12 border-2 border-gray-300 rounded-xl flex items-center justify-center text-2xl pin-dot"></div>
+        <div class="flex justify-center gap-2 mb-6" id="pin-dots">
+          <div class="pin-dot"></div>
+          <div class="pin-dot"></div>
+          <div class="pin-dot"></div>
+          <div class="pin-dot"></div>
         </div>
         <p class="text-sm text-red-500 hidden mb-4" id="pin-error">비밀번호가 틀렸습니다</p>
-        <div class="grid grid-cols-3 gap-3" id="pin-pad">
+        <div class="grid grid-cols-3 gap-2" id="pin-pad">
           ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(n =>
             n === '' ? '<div></div>' :
-            `<button class="h-14 rounded-xl text-xl font-bold ${n === '⌫' ? 'bg-gray-100 text-gray-600' : 'bg-gray-50 text-gray-800 active:bg-[#1e3a5f] active:text-white'} transition-colors" data-key="${n}">${n}</button>`
+            `<button class="pin-key${n === '⌫' ? ' pin-key--del' : ''}" data-key="${n}" aria-label="${n === '⌫' ? '지우기' : n}">${n}</button>`
           ).join('')}
         </div>
       </div>
@@ -221,12 +189,13 @@ const Auth = (() => {
     if (authOverlay) authOverlay.remove();
 
     let pin = '';
+    let checking = false;
     const dots = modal.querySelectorAll('.pin-dot');
     const error = modal.querySelector('#pin-error');
 
     modal.querySelector('#pin-pad').addEventListener('click', async (e) => {
       const btn = e.target.closest('button');
-      if (!btn) return;
+      if (!btn || checking) return;
       const key = btn.dataset.key;
 
       error.classList.add('hidden');
@@ -238,13 +207,7 @@ const Auth = (() => {
       }
 
       dots.forEach((dot, i) => {
-        if (i < pin.length) {
-          dot.textContent = '●';
-          dot.classList.add('border-[#1e3a5f]', 'bg-blue-50');
-        } else {
-          dot.textContent = '';
-          dot.classList.remove('border-[#1e3a5f]', 'bg-blue-50');
-        }
+        dot.classList.toggle('is-on', i < pin.length);
       });
 
       if (pin.length === 4) {
@@ -252,24 +215,29 @@ const Auth = (() => {
         const lockout = getLockoutRemaining();
         if (lockout > 0) {
           pin = '';
-          dots.forEach(d => { d.textContent = ''; d.classList.remove('border-[#1e3a5f]', 'bg-blue-50'); });
+          dots.forEach(d => d.classList.remove('is-on'));
           error.textContent = `${lockout}초 후 다시 시도하세요`;
           error.classList.remove('hidden');
           return;
         }
-        const ok = await verifyPin(pin);
+        checking = true;
+        let ok;
+        try { ok = await verifyPin(pin); } catch (err) {
+          error.textContent = err.message || '서버에 연결하지 못했습니다. 다시 시도하세요.';
+          error.classList.remove('hidden');
+          pin = '';
+          dots.forEach(d => d.classList.remove('is-on'));
+          return;
+        } finally { checking = false; }
         if (ok) {
           modal.remove();
-          syncSettings(); // 인증 후 서버 설정 동기화
+          await syncSettings(); // 브랜딩 동기화 후 화면을 연다.
           window.dispatchEvent(new Event('yr-authenticated'));
         } else {
           pin = '';
-          dots.forEach(d => {
-            d.textContent = '';
-            d.classList.remove('border-[#1e3a5f]', 'bg-blue-50');
-          });
+          dots.forEach(d => d.classList.remove('is-on'));
           const remaining = MAX_ATTEMPTS - (JSON.parse(localStorage.getItem(ATTEMPT_KEY) || '{}').count || 0);
-          error.textContent = remaining > 0 ? `비밀번호가 틀렸습니다 (${remaining}회 남음)` : '1분간 잠금됩니다';
+          error.textContent = remaining > 0 ? `비밀번호가 틀렸습니다 (${remaining}회 남음)` : '15분간 잠금됩니다';
           error.classList.remove('hidden');
           modal.querySelector('.bg-white').classList.add('animate-shake');
           setTimeout(() => modal.querySelector('.bg-white').classList.remove('animate-shake'), 500);

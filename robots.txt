@@ -1,0 +1,24 @@
+User-agent: *
+Allow: /$
+Allow: /request.html
+Allow: /portfolio-public.html
+Allow: /assets/
+Disallow: /app/
+Disallow: /view.html
+Disallow: /dashboard.html
+Disallow: /history.html
+Disallow: /requests.html
+Disallow: /cases.html
+Disallow: /more.html
+Disallow: /settings.html
+Disallow: /admin.html
+Disallow: /admin-push.html
+Disallow: /portfolio.html
+Disallow: /estimate-preview.html
+Disallow: /js/
+Disallow: /css/
+Disallow: /test/
+Disallow: /mockup/
+Disallow: /docs/
+
+Sitemap: https://yongin-rack.com/sitemap.xml

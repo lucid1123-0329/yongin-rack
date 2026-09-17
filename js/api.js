@@ -10,7 +10,7 @@ const API = (() => {
 
   // 인증: PIN 해시를 API 토큰으로 사용 (하드코딩 키 제거)
   function _getAuthToken() {
-    return localStorage.getItem('yr_pin_hash') || '';
+    return sessionStorage.getItem('yr_auth_token') || '';
   }
 
   // Request timeouts (ms)
@@ -26,6 +26,8 @@ const API = (() => {
     }
 
     const isAdmin = options.admin !== false;
+    // 관리 조회도 POST: 인증 토큰/고객 정보를 GET URL과 SW 캐시에 남기지 않는다.
+    if (method === 'GET' && isAdmin) method = 'POST';
 
     // Deduplication: if an identical GET is already in-flight, reuse its promise
     let dedupeKey = null;
@@ -39,7 +41,7 @@ const API = (() => {
 
     if (dedupeKey) {
       _pendingGets.set(dedupeKey, promise);
-      promise.finally(() => _pendingGets.delete(dedupeKey));
+      promise.then(() => _pendingGets.delete(dedupeKey), () => _pendingGets.delete(dedupeKey));
     }
 
     return promise;
@@ -48,9 +50,10 @@ const API = (() => {
   async function _doRequest(method, params, isAdmin, options) {
     const timeout = options.timeout || (method === 'GET' ? GET_TIMEOUT : POST_TIMEOUT);
 
+    let timer;
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeout);
+      timer = setTimeout(() => controller.abort(), timeout);
 
       let response;
       if (method === 'GET') {
@@ -74,18 +77,26 @@ const API = (() => {
         });
       }
 
-      clearTimeout(timer);
-
       if (!response.ok) {
         throw new Error(`서버 오류 (${response.status})`);
       }
 
       const text = await response.text();
-      try {
-        return JSON.parse(text);
-      } catch {
+      let data;
+      try { data = JSON.parse(text); } catch {
         throw new Error('응답 파싱 실패');
       }
+      if (!data || data.error) {
+        if (data && data.code === 'UNAUTHORIZED') {
+          sessionStorage.removeItem('yr_auth_token');
+          sessionStorage.removeItem('yr_auth_expires');
+          if (typeof Auth !== 'undefined') Auth.guard();
+        }
+        const error = new Error(data?.error || '서버 응답이 비어 있습니다');
+        error.code = data?.code;
+        throw error;
+      }
+      return data;
     } catch (err) {
       if (err.name === 'AbortError') {
         const errMsg = `요청 시간 초과 (${timeout / 1000}초)`;
@@ -98,7 +109,7 @@ const API = (() => {
       // 백그라운드 요청(배지 등)은 조용히 실패
       if (options.silent) { console.warn('API silent fail:', err.message); return null; }
       throw err;
-    }
+    } finally { clearTimeout(timer); }
   }
 
   // --- 단가 관련 ---
@@ -132,7 +143,7 @@ const API = (() => {
   }
 
   async function getEstimateByToken(token) {
-    return request('GET', { action: 'getEstimateByToken', token });
+    return request('GET', { action: 'getEstimateByToken', token }, { admin: false });
   }
 
   async function getEstimates() {
@@ -190,7 +201,7 @@ const API = (() => {
   }
 
   async function getBlogPosts() {
-    return request('GET', { action: 'getBlogPosts' });
+    return request('GET', { action: 'getBlogPosts' }, { admin: false });
   }
 
   // --- 설정 ---

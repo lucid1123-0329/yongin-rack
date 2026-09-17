@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <title>더보기 - 중용랙</title>
+  <meta name="description" content="더보기 메뉴">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#2F6BFF',
+            accent: '#FF6B00',
+          },
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Pretendard -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <link rel="stylesheet" href="/css/design.css?v=71">
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1e3a5f">
+  <link rel="icon" type="image/png" href="/assets/favicon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="/assets/icon-192.png">
+
+  <style>
+    :root{--bg:#F2F4F6;--canvas:#F2F4F6;--surface:#FFFFFF;--fill:#F2F4F6;--fill-2:#E5E8EB;--line:#EEF0F2;--rule:#EEF0F2;--text:#191F28;--ink:#191F28;--text-2:#4E5968;--ink-2:#4E5968;--text-3:#8B95A1;--brand:#2F6BFF;--brand-weak:#E8F0FF;--accent:#FF6B00;--ok:#1FA36B;--ok-weak:#E6F7EF;--danger:#F04452;--danger-weak:#FEECEE;--r-card:20px;--r-ctl:14px;--r-chip:999px;--r-sheet:24px;--shadow-card:0 2px 12px rgba(25,31,40,.06);--s1:8px;--s2:12px;--s3:16px;--s4:20px;--s5:24px;--s6:32px}
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+    .animate-shake { animation: shake 0.3s ease-in-out; }
+    body { font-family: 'Pretendard', sans-serif; padding-bottom: 80px; }
+  </style>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script src="/js/onesignal-init.js?v=71" defer></script>
+  <script src="/js/version-check.js" defer></script>
+</head>
+<body class="bg-[#f7fafc] min-h-screen">
+  <!-- 헤더 -->
+  <header class="bg-primary text-white px-4 py-4 sticky top-0 z-40">
+    <h1 class="text-lg font-bold">더보기</h1>
+  </header>
+
+  <main class="max-w-lg mx-auto">
+    <!-- 브랜딩 요약 -->
+    <div class="mx-4 mt-4 bg-primary rounded-2xl p-5 text-white">
+      <p class="text-lg font-bold" id="brand-name">중용</p>
+      <p class="text-sm opacity-80 mt-1" id="brand-tagline">용인 랙(선반) 전문 시공</p>
+    </div>
+
+    <!-- 메뉴 목록 -->
+    <div class="v2-menu-list mx-4 mt-4 bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <a href="admin.html"
+        class="flex items-center h-14 px-4 border-b border-gray-100 active:bg-gray-50 transition-colors">
+        <span class="hidden"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg></span>
+        <span class="flex-1 text-sm font-semibold text-gray-800">단가 관리</span>
+        <span class="text-gray-300 text-sm">›</span>
+      </a>
+      <a href="settings.html"
+        class="flex items-center h-14 px-4 border-b border-gray-100 active:bg-gray-50 transition-colors">
+        <span class="hidden"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V3h10v18m0-12h4v12M8 7h4m-4 4h4m-4 4h4"/></svg></span>
+        <span class="flex-1 text-sm font-semibold text-gray-800">브랜딩 설정</span>
+        <span class="text-gray-300 text-sm">›</span>
+      </a>
+      <a href="settings.html?section=pin"
+        class="flex items-center h-14 px-4 border-b border-gray-100 active:bg-gray-50 transition-colors">
+        <span class="hidden"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
+        <span class="flex-1 text-sm font-semibold text-gray-800">PIN 변경</span>
+        <span class="text-gray-300 text-sm">›</span>
+      </a>
+      <a href="admin-push.html"
+        class="flex items-center h-14 px-4 active:bg-gray-50 transition-colors">
+        <span class="hidden"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0v5l2 3H4l2-3V9Zm4 10h4"/></svg></span>
+        <span class="flex-1 text-sm font-semibold text-gray-800">푸시 알림 설정</span>
+        <span class="text-gray-300 text-sm">›</span>
+      </a>
+      <a href="portfolio.html"
+        class="flex items-center h-14 px-4 border-t border-gray-100 active:bg-gray-50 transition-colors">
+        <span class="hidden"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h4l2-2h4l2 2h4v12H4z"/><circle cx="12" cy="13" r="3"/></svg></span>
+        <span class="flex-1 text-sm font-semibold text-gray-800">시공 사진 업로드</span>
+        <span class="text-gray-300 text-sm">›</span>
+      </a>
+    </div>
+
+    <!-- 앱 설치 -->
+    <div id="pwa-install-card" class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 overflow-hidden hidden">
+      <button onclick="installPWA()"
+        class="flex items-center w-full h-14 px-4 active:bg-gray-50 transition-colors">
+        <span class="hidden"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 18h4"/></svg></span>
+        <span class="flex-1 text-sm font-semibold text-gray-800 text-left">앱 설치하기</span>
+        <span class="text-xs text-accent font-bold">홈 화면에 추가</span>
+      </button>
+    </div>
+
+    <!-- 앱 정보 -->
+    <div class="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 p-4">
+      <div class="flex items-center gap-3">
+        <img src="/assets/icon-192.png" alt="중용랙" class="w-10 h-10 rounded-xl">
+        <div>
+          <p class="text-sm font-bold text-gray-800">중용 스마트 견적</p>
+          <p class="text-xs text-gray-400">버전 1.0.0</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="/js/api.js?v=71"></script>
+  <script src="/js/auth.js?v=71"></script>
+  <script src="/js/ui.js?v=71"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!Auth.guard()) {
+        window.addEventListener('yr-authenticated', init);
+        return;
+      }
+      init();
+    });
+
+    function init() {
+      UI.renderTabBar('more');
+      loadBranding();
+    }
+
+    function loadBranding() {
+      try {
+        const b = JSON.parse(localStorage.getItem('yr_branding') || '{}');
+        if (b.company) document.getElementById('brand-name').textContent = b.company;
+        if (b.tagline) document.getElementById('brand-tagline').textContent = b.tagline;
+      } catch {}
+    }
+  </script>
+
+  <!-- PWA 설치 -->
+  <script>
+    let _deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      _deferredPrompt = e;
+      document.getElementById('pwa-install-card').classList.remove('hidden');
+    });
+
+    // 이미 설치된 경우 버튼 숨김
+    window.addEventListener('appinstalled', () => {
+      document.getElementById('pwa-install-card').classList.add('hidden');
+      _deferredPrompt = null;
+    });
+
+    // standalone 모드로 이미 실행 중이면 숨김
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      // 이미 앱으로 실행 중 — 버튼 불필요
+    }
+
+    async function installPWA() {
+      if (!_deferredPrompt) {
+        // beforeinstallprompt가 아직 안 떨어진 경우 (iOS 등)
+        UI.toast('브라우저 메뉴에서 "홈 화면에 추가"를 눌러주세요', 'info');
+        return;
+      }
+      _deferredPrompt.prompt();
+      const { outcome } = await _deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        UI.toast('앱이 설치되었습니다!', 'success');
+      }
+      _deferredPrompt = null;
+      document.getElementById('pwa-install-card').classList.add('hidden');
+    }
+  </script>
+
+  <script src="/js/sw-register.js"></script>
+</body>
+</html>

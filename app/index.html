@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <title>중용랙 - 스마트 견적</title>
+  <meta name="description" content="경량랙, 중량랙, 파렛트랙 맞춤형 최저가 견적을 즉시 확인하세요.">
+
+  <!-- OG Tags -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="중용랙 - 전문 시공 및 견적 시스템">
+  <meta property="og:description" content="경량랙, 중량랙, 파렛트랙 맞춤형 최저가 견적을 즉시 확인하세요.">
+  <meta property="og:image" content="https://yongin-rack.com/assets/og-image.jpg">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#2F6BFF',
+            accent: '#FF6B00',
+          },
+          fontFamily: {
+            sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Pretendard -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <link rel="stylesheet" href="/css/design.css?v=71">
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1e3a5f">
+  <link rel="icon" type="image/png" href="/assets/favicon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="/assets/icon-192.png">
+
+  <style>
+    :root{--bg:#F2F4F6;--canvas:#F2F4F6;--surface:#FFFFFF;--fill:#F2F4F6;--fill-2:#E5E8EB;--line:#EEF0F2;--rule:#EEF0F2;--text:#191F28;--ink:#191F28;--text-2:#4E5968;--ink-2:#4E5968;--text-3:#8B95A1;--brand:#2F6BFF;--brand-weak:#E8F0FF;--accent:#FF6B00;--ok:#1FA36B;--ok-weak:#E6F7EF;--danger:#F04452;--danger-weak:#FEECEE;--r-card:20px;--r-ctl:14px;--r-chip:999px;--r-sheet:24px;--shadow-card:0 2px 12px rgba(25,31,40,.06);--s1:8px;--s2:12px;--s3:16px;--s4:20px;--s5:24px;--s6:32px}
+    body { font-family: 'Pretendard', sans-serif; padding-bottom: 80px; }
+    .unpriced-toggle { width:100%; min-height:48px; color:var(--ink-2); font-size:17px; font-weight:600; text-align:left; text-decoration:underline; text-underline-offset:3px; }
+    .v2-unpriced-card { background:var(--fill) !important; color:var(--text-2) !important; }
+    .v2-unpriced-card * { color:var(--ink-2) !important; }
+    .v2-spec-card.v2-unpriced-card *, .part-card.v2-unpriced-card *, .d-set-card.v2-unpriced-card *, .d-part-card.v2-unpriced-card * { color:var(--ink-2) !important; }
+    .v2-unpriced-badge { display:inline-flex; min-height:32px; align-items:center; padding:4px 8px; border:none; border-radius:var(--r-chip); background:#FFF3E8; color:var(--accent) !important; font-size:15px; font-weight:700; }
+    #chips-part-cat, #d-chips-part-cat { flex-wrap:wrap; overflow-x:visible; }
+  </style>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script src="/js/onesignal-init.js?v=71" defer></script>
+  <script src="/js/version-check.js" defer></script>
+</head>
+<body class="bg-[#f7fafc] min-h-screen">
+
+  <!-- 로딩 오버레이 -->
+  <div id="page-loading" class="hidden fixed inset-0 bg-white z-50 flex items-center justify-center">
+    <div class="text-center">
+      <div class="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3"></div>
+      <p class="text-sm text-gray-500" id="loading-text">불러오는 중...</p>
+    </div>
+  </div>
+  <script>
+    // HTML 파싱 중 즉시 실행 — DOMContentLoaded 기다리지 않음
+    (function(){
+      var p = new URLSearchParams(location.search);
+      var from = p.get('from');
+      if (from === 'edit' || from === 'request') {
+        var el = document.getElementById('page-loading');
+        var txt = document.getElementById('loading-text');
+        if (el) el.classList.remove('hidden');
+        if (txt) txt.textContent = from === 'edit' ? '기존 견적을 불러오는 중...' : '고객 정보를 불러오는 중...';
+      }
+    })();
+  </script>
+
+  <!-- 수정 모드 배너 (숨김 상태) -->
+  <div id="edit-banner" class="hidden bg-amber-50 border-b-2 border-amber-400 px-4 py-3 sticky top-0 z-50">
+    <div class="max-w-lg mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="hidden"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4Z"/></svg></span>
+        <div>
+          <p class="text-sm font-bold text-amber-800" id="edit-banner-title">견적 수정 중</p>
+          <p class="text-xs text-amber-600" id="edit-banner-detail"></p>
+        </div>
+      </div>
+      <button onclick="App.resetEstimate()" class="text-xs bg-white border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg font-semibold hover:bg-amber-50">새 견적</button>
+    </div>
+  </div>
+
+  <!-- 헤더 -->
+  <header class="bg-primary text-white px-4 py-4 sticky top-0 z-40">
+    <div class="max-w-lg mx-auto flex items-center justify-between">
+      <h1 class="text-lg font-bold" id="page-title">새 견적 작성</h1>
+      <button id="btn-reset" class="hidden text-xs bg-white/20 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-white/30" onclick="App.resetEstimate()">초기화</button>
+    </div>
+  </header>
+
+  <nav id="estimate-wizard-header" class="wizard-header sticky z-40" aria-label="견적 작성 단계">
+    <div class="max-w-lg mx-auto wizard-header-inner">
+      <button id="wizard-back" type="button" class="wizard-back hidden" onclick="EstimateWizard.previous()" aria-label="이전 단계">←</button>
+      <div class="wizard-header-copy">
+        <div id="wizard-progress" class="wizard-progress" aria-live="polite">
+          <button type="button" data-step-link="1" onclick="EstimateWizard.go(1)"><span>1</span><b>종류</b></button><i>·</i>
+          <button type="button" data-step-link="2" onclick="EstimateWizard.go(2)"><span>2</span><b>규격</b></button><i>·</i>
+          <button type="button" data-step-link="3" onclick="EstimateWizard.go(3)"><span>3</span><b>수량</b></button><i>·</i>
+          <button type="button" data-step-link="4" onclick="EstimateWizard.go(4)"><span>4</span><b>추가</b></button><i>·</i>
+          <button type="button" data-step-link="5" onclick="EstimateWizard.go(5)"><span>5</span><b>고객</b></button><i>·</i>
+          <button type="button" data-step-link="6" onclick="EstimateWizard.go(6)"><span>6</span><b>확인</b></button>
+        </div>
+        <button id="wizard-summary" type="button" class="wizard-summary" onclick="EstimateWizard.go(6)" title="선택 요약">
+          <span id="wizard-selection-summary">종류를 선택하세요</span>
+        </button>
+        <button id="wizard-cart-summary-button" type="button" class="wizard-cart-summary-button" onclick="EstimateWizard.openCartSheet()" aria-haspopup="dialog">
+          <span id="wizard-cart-summary">담은 0건 · 0원</span>
+        </button>
+      </div>
+    </div>
+    <div id="wizard-added-banner" class="wizard-added-banner" role="status" aria-live="polite" aria-atomic="true">
+      <div class="wizard-added-banner-inner">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4 4L19 7"/></svg>
+        <span id="wizard-added-banner-copy"></span>
+        <button type="button" onclick="EstimateWizard.openCartSheet()">담은 목록</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-lg mx-auto">
+    <!-- 금액 카드 -->
+    <div data-wizard-step="6" class="wizard-step-panel wizard-inactive v2-total-card mx-4 mt-4 bg-primary rounded-2xl p-5 text-white">
+      <div class="v2-total-main text-center">
+        <p class="text-sm opacity-80">총 견적액 (VAT 포함)</p>
+        <p class="text-3xl font-extrabold my-1" id="total-amount">0원</p>
+        <p class="text-xs opacity-70" id="total-detail">항목을 추가하세요</p>
+      </div>
+      <div class="v2-total-breakdown flex justify-between mt-3 pt-3 border-t border-white/20 text-xs opacity-80">
+        <span><span class="sr-only" aria-hidden="true">공급가액:</span>공급가액 <span id="supply-amount">0원</span></span>
+        <span><span class="sr-only" aria-hidden="true">세액(10%):</span>세액(10%) <span id="vat-amount">0원</span></span>
+      </div>
+    </div>
+
+    <section data-wizard-step="1" class="wizard-step-panel wizard-inactive mx-4 mt-4" aria-label="견적 시작 방법">
+      <button type="button" class="w-full min-h-14 rounded-2xl bg-primary text-white font-bold text-lg" onclick="document.getElementById('price-area').scrollIntoView({behavior:'smooth',block:'start'})">직접 골라 담기</button>
+      <div class="grid grid-cols-2 gap-2 mt-2">
+        <button id="start-recent-button" type="button" disabled class="min-h-12 rounded-xl bg-white text-gray-700 font-bold disabled:opacity-50" onclick="document.getElementById('recent-estimates-start').scrollIntoView({behavior:'smooth',block:'start'})">이전 견적 보기</button>
+        <button type="button" class="min-h-12 rounded-xl bg-white text-gray-700 font-bold" onclick="document.getElementById('voice-add-card').scrollIntoView({behavior:'smooth',block:'start'})">음성으로 담기</button>
+      </div>
+    </section>
+    <section id='voice-add-card' data-wizard-step='1' class='wizard-step-panel wizard-inactive voice-add-card mx-4 mt-4' aria-labelledby='voice-add-title'>
+      <div>
+        <h2 id='voice-add-title'>말로 담기</h2>
+        <p id='voice-support-message'><span aria-hidden='true'>“</span>경량랙 독립 천이백 사백오십 천팔백 세 대<span aria-hidden='true'>”</span>처럼 말하세요</p>
+      </div>
+      <button id='voice-start' type='button' onclick='VoiceAdd.start()' aria-label='말로 품목 담기 시작'>
+        <svg viewBox='0 0 24 24' aria-hidden='true'><path d='M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Z'/><path d='M5 11v1a7 7 0 0 0 14 0v-1M12 19v3M8 22h8'/></svg>
+      </button>
+    </section>
+
+    <!-- 최근 견적에서 시작 (빈 신규 견적에서만 표시) -->
+    <section id='recent-estimates-start' data-wizard-step='1' class='wizard-step-panel wizard-inactive hidden mx-4 mt-4 bg-white border border-gray-100'>
+      <h2 class='px-4 py-3 text-lg font-semibold text-gray-800 border-b border-gray-200'>최근 견적에서 시작</h2>
+      <div id='recent-estimates-list'></div>
+    </section>
+
+    <!-- 랙 추가 영역 -->
+    <div data-wizard-range="1-3" class="wizard-range-panel wizard-inactive mx-4 mt-4 bg-white rounded-2xl border border-gray-100 p-4" id="price-area">
+      <h3 id="wizard-panel-title" class="text-lg font-bold text-gray-700 mb-3">랙 추가</h3>
+      <div id="rack-selector" class="rack-selector-root">
+        <div class="text-center py-8">
+          <div class="animate-pulse">
+            <div class="h-4 bg-gray-200 rounded w-1/2 mx-auto mb-3"></div>
+            <div class="h-12 bg-gray-200 rounded mb-3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div data-wizard-step="3" class="wizard-step-panel wizard-inactive selected-spec-summary" id="selected-spec-summary">
+        <span id="selected-spec-title">선택한 규격을 확인하세요</span>
+        <span id="selected-spec-meta" class="hidden"></span>
+      </div>
+
+      <!-- 수량 + 추가 버튼 (랙 선택 완료 시 표시) -->
+      <div data-wizard-step="3" class="wizard-step-panel wizard-inactive mt-3 hidden" id="add-section">
+        <div class="flex items-end gap-3">
+          <div class="flex-1">
+            <label class="block text-sm font-semibold text-gray-600 mb-2">수량</label>
+            <div class="v2-quantity-row flex items-center">
+              <button onclick="App.changeQuantity(-1)" class="w-10 h-10 bg-gray-100 rounded-l-xl text-lg font-bold text-gray-600 active:bg-gray-200">−</button>
+              <input type="number" id="qty-input" value="1" min="1" max="9999"
+                class="w-16 h-10 text-center text-base font-bold border-y-2 border-gray-200 focus:outline-none"
+                onchange="App.setQuantity(this.value)">
+              <button onclick="App.changeQuantity(1)" class="w-10 h-10 bg-gray-100 rounded-r-xl text-lg font-bold text-gray-600 active:bg-gray-200">+</button>
+              <span class="v2-qty-unit ml-2 text-sm text-gray-500">대</span>
+            </div>
+            <p id="quantity-subtotal" class="quantity-subtotal">소계 0원</p>
+          </div>
+          <button onclick="App.addItem()"
+            class="wizard-inline-action v2-add-item v2-accent-action h-10 px-5 bg-accent text-white rounded-xl font-bold text-sm active:scale-[0.98] transition-transform flex-shrink-0">
+            + 추가
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 추가된 품목 목록 -->
+    <div data-wizard-step="6" class="wizard-step-panel wizard-inactive mx-4 mt-4 bg-white rounded-2xl p-5">
+      <h2 class="font-bold mb-2">받는 고객 확인</h2>
+      <p id="review-customer-summary" class="text-base text-gray-600"></p>
+      <button type="button" class="text-primary font-bold mt-3 min-h-12" onclick="EstimateWizard.go(5)">고객 정보 수정</button>
+    </div>
+    <div data-wizard-step="6" class="wizard-step-panel wizard-inactive mx-4 mt-4" id="items-area"></div>
+
+    <!-- 추가 항목 (운송비, 설치비, 마진, D/C) -->
+    <div data-wizard-step="4" class="wizard-step-panel wizard-inactive mx-4 mt-4 bg-white rounded-2xl border border-gray-100 p-4">
+      <h3 class="text-sm font-bold text-gray-700 mb-3">추가 항목</h3>
+      <div class="v2-add-grid grid grid-cols-2 gap-2 mb-3">
+        <button onclick="App.addPresetItem('운송비')" class="py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 active:bg-gray-200">+ 운송비</button>
+        <button onclick="App.addPresetItem('설치비')" class="py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 active:bg-gray-200">+ 설치비</button>
+        <button onclick="App.addPresetItem('마진')" class="py-1.5 rounded-full text-xs font-bold bg-blue-50 text-blue-600 active:bg-blue-100">+ 마진</button>
+        <button onclick="App.addPresetItem('D/C')" class="py-1.5 rounded-full text-xs font-bold bg-red-50 text-red-500 active:bg-red-100">+ D/C</button>
+      </div>
+
+      <!-- 마진 % 입력 영역 (토글) -->
+      <div id="margin-area" class="hidden mb-3 bg-blue-50 rounded-xl p-3">
+        <p class="text-xs font-bold text-blue-700 mb-2">마진율 설정</p>
+        <div class="flex items-center gap-2">
+          <input id="margin-pct" type="number" value="25" min="1" max="100"
+            oninput="App.calcMarginFromPct()"
+            class="w-20 h-10 px-3 border-2 border-blue-200 rounded-lg text-sm text-center font-bold focus:border-blue-500 focus:outline-none">
+          <span class="text-sm font-bold text-blue-600">%</span>
+          <span class="text-sm text-gray-500 mx-1">=</span>
+          <span id="margin-amount" class="text-sm font-extrabold text-blue-700" data-amount="0">0원</span>
+          <button onclick="App.addMargin()"
+            class="ml-auto h-10 px-4 bg-blue-600 text-white rounded-lg text-sm font-bold active:scale-[0.98]">추가</button>
+        </div>
+        <p class="text-[11px] text-blue-400 mt-1">랙 품목 소계 기준으로 자동 계산됩니다</p>
+      </div>
+
+      <!-- D/C 할인 입력 영역 (토글) -->
+      <div id="dc-area" class="hidden mb-3 bg-red-50 rounded-xl p-3">
+        <p class="text-xs font-bold text-red-600 mb-2">할인(D/C) 금액</p>
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-bold text-red-500">-</span>
+          <input id="dc-amount" type="number" placeholder="할인 금액" min="1"
+            class="flex-1 min-w-0 h-10 px-3 border-2 border-red-200 rounded-lg text-sm font-bold focus:border-red-400 focus:outline-none">
+          <span class="text-sm text-gray-500 shrink-0">원</span>
+          <button onclick="App.addDiscount()"
+            class="h-10 px-4 bg-red-500 text-white rounded-lg text-sm font-bold active:scale-[0.98] shrink-0">적용</button>
+        </div>
+        <p class="text-[11px] text-red-400 mt-1">양수로 입력하면 자동으로 차감됩니다</p>
+      </div>
+
+      <div class="space-y-2">
+        <input id="custom-name" placeholder="항목명" class="w-full h-10 px-3 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none">
+        <div class="flex gap-2">
+          <input id="custom-price" type="number" placeholder="금액" class="flex-1 min-w-0 h-10 px-3 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none">
+          <input id="custom-qty" type="number" value="1" min="1" class="w-14 h-10 px-2 border-2 border-gray-200 rounded-lg text-sm text-center focus:border-primary focus:outline-none">
+          <button onclick="App.addCustomItem()" class="v2-custom-add h-10 px-3 bg-accent text-white rounded-lg text-sm font-bold active:scale-[0.98]">추가</button>
+        </div>
+      </div>
+      <p class="text-[11px] text-gray-400 mt-1.5">* 기타 항목을 자유롭게 추가할 수 있습니다</p>
+      <button type="button" class="wizard-next wizard-inline-action" onclick="EstimateWizard.go(5)">다음</button>
+    </div>
+
+    <!-- 고객 정보 (접이식) -->
+    <div data-wizard-step="5" class="wizard-step-panel wizard-inactive mx-4 mt-4 bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <button id="customer-form-toggle" onclick="document.getElementById('customer-form').classList.toggle('hidden');this.querySelector('span:last-child').textContent=document.getElementById('customer-form').classList.contains('hidden')?'▼':'▲'"
+        class="w-full px-4 py-3 flex items-center justify-between text-sm font-semibold text-gray-700">
+        <span>고객 정보 (선택)</span>
+        <span class="text-gray-400">▼</span>
+      </button>
+      <div id="customer-form" class="hidden px-4 pb-4 space-y-3">
+        <div>
+          <label for="cust-name" class="block text-xs font-semibold text-gray-500 mb-1">고객명/상호</label>
+          <input type="text" id="cust-name" placeholder="홍길동" autocomplete="off"
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none"
+            list="customer-suggestions">
+          <datalist id="customer-suggestions"></datalist>
+        </div>
+        <div>
+          <label for="cust-company" class="block text-xs font-semibold text-gray-500 mb-1">회사명</label>
+          <input type="text" id="cust-company" placeholder="우리물류"
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+        </div>
+        <div>
+          <label for="cust-phone" class="block text-xs font-semibold text-gray-500 mb-1">연락처</label>
+          <input type="tel" id="cust-phone" placeholder="010-0000-0000"
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+        </div>
+        <div>
+          <label for="cust-address" class="block text-xs font-semibold text-gray-500 mb-1">현장 주소</label>
+          <input type="text" id="cust-address" placeholder="용인시 처인구..."
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+        </div>
+        <div>
+          <label for="cust-biz-number" class="block text-xs font-semibold text-gray-500 mb-1">사업자등록번호</label>
+          <input type="text" id="cust-biz-number" placeholder="000-00-00000"
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label for="cust-biz-type" class="block text-xs font-semibold text-gray-500 mb-1">업태</label>
+            <input type="text" id="cust-biz-type" placeholder="제조업"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label for="cust-biz-item" class="block text-xs font-semibold text-gray-500 mb-1">종목</label>
+            <input type="text" id="cust-biz-item" placeholder="식품"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 이전 견적 불러오기 -->
+    <div id="prev-estimates-section" data-wizard-step="5" class="wizard-step-panel wizard-inactive hidden mx-4 mt-2">
+      <button id="btn-load-prev" onclick="showPrevEstimates()"
+        class="w-full h-10 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5">
+        이전 견적 불러오기 (<span id="prev-count">0</span>건)
+      </button>
+      <div id="prev-list" class="hidden mt-2 bg-white rounded-xl border border-gray-100 max-h-48 overflow-y-auto"></div>
+    </div>
+    <div data-wizard-step="5" class="wizard-step-panel wizard-inactive mx-4 mt-4">
+      <button type="button" class="wizard-next wizard-inline-action" onclick="EstimateWizard.go(6)">다음</button>
+    </div>
+
+    <!-- AI 공간 분석 (사진 + 치수) -->
+    <div data-wizard-step="1" class="wizard-step-panel wizard-inactive mx-4 mt-4 bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <button onclick="var s=document.getElementById('ai-photo-section');s.classList.toggle('hidden');this.querySelector('span:last-child').textContent=s.classList.contains('hidden')?'▼':'▲'"
+        class="w-full px-4 py-3 flex items-center justify-between text-sm font-semibold text-gray-700">
+        <span>AI 공간 분석 (사진 + 치수)</span>
+        <span class="text-gray-400">▼</span>
+      </button>
+      <div id="ai-photo-section" class="hidden px-4 pb-4 space-y-3">
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">가로(m)</label>
+            <input type="number" id="space-width" step="0.1" placeholder="10"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">세로(m)</label>
+            <input type="number" id="space-depth" step="0.1" placeholder="20"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1">높이(m)</label>
+            <input type="number" id="space-height" step="0.1" placeholder="5"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">용도/환경</label>
+          <select id="space-purpose"
+            class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none bg-white">
+            <option value="">선택하세요</option>
+            <option value="창고">창고 (일반)</option>
+            <option value="냉동/냉장 창고">냉동/냉장 창고</option>
+            <option value="매장/진열">매장/진열</option>
+            <option value="사무실/복도">사무실/복도</option>
+            <option value="공장/제조">공장/제조</option>
+            <option value="물류센터">물류센터</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">보관물 정보</label>
+          <div class="grid grid-cols-2 gap-2">
+            <input type="text" id="space-cargo-type" placeholder="물건 종류 (예: 식품 박스)"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none">
+            <select id="space-cargo-weight"
+              class="w-full h-12 px-3 border-2 border-gray-200 rounded-lg text-base focus:border-primary focus:outline-none bg-white">
+              <option value="">무게</option>
+              <option value="가벼움 (30kg 이하)">가벼움</option>
+              <option value="보통 (30~100kg)">보통</option>
+              <option value="무거움 (100kg 이상)">무거움</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">메모/요구사항</label>
+          <textarea id="space-memo" rows="2" placeholder="예: 벽면 배치 원함, 통로 확보 필요, 기존 랙 교체..."
+            class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm focus:border-primary focus:outline-none resize-none"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1">현장 사진</label>
+          <input type="file" id="space-photo" accept="image/*" multiple
+            class="w-full text-sm text-gray-500 file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-white file:font-bold">
+          <div id="space-photo-preview" class="hidden mt-2 grid grid-cols-3 gap-2"></div>
+        </div>
+        <button onclick="handlePhotoAnalysis()" id="btn-photo-analyze"
+          class="w-full h-12 bg-purple-600 text-white rounded-xl font-bold text-sm active:scale-[0.98] transition-transform">
+          AI 분석 시작
+        </button>
+        <div id="photo-analysis-result" class="hidden"></div>
+      </div>
+    </div>
+
+    <!-- 저장 버튼 -->
+    <div data-wizard-step="6" class="wizard-step-panel wizard-inactive mx-4 mt-4 mb-6">
+      <button type="button" class="wizard-more-items" onclick="EstimateWizard.go(1)">+ 품목 더 담기</button>
+      <button id="btn-save" disabled
+        onclick="handleSave()"
+        class="w-full h-14 bg-primary text-white rounded-2xl font-bold text-lg disabled:opacity-40 active:scale-[0.98] transition-transform">
+        견적 저장
+      </button>
+    </div>
+  </main>
+
+  <div data-wizard-step="3" class="wizard-step-fixed-actions wizard-inactive">
+    <button type="button" class="v2-accent-action" onclick="App.addItem()">+ 추가</button>
+  </div>
+  <div data-wizard-step="4" class="wizard-step-fixed-actions wizard-inactive">
+    <button type="button" onclick="EstimateWizard.go(5)">다음</button>
+  </div>
+  <div data-wizard-step="5" class="wizard-step-fixed-actions wizard-inactive">
+    <button type="button" onclick="EstimateWizard.go(6)">다음</button>
+  </div>
+
+  <!-- 기존 저장 버튼을 그대로 위임하는 빠른 저장 바 -->
+  <div id='estimate-fixed-bar' class='ux-fixed-bar wizard-inactive fixed left-0 right-0 z-50'>
+    <div class='max-w-lg mx-auto h-full px-4 flex items-center'>
+      <p id='fixed-save-empty' class='w-full text-center text-lg font-semibold text-gray-700'>품목을 추가하세요</p>
+      <div id='fixed-save-ready' class='hidden w-full items-center gap-3'>
+        <span id='fixed-total-amount' class='tnum flex-1 text-lg font-semibold text-gray-800'>총액 0원</span>
+        <button id='btn-save-fixed' type='button' disabled onclick='document.getElementById(&quot;btn-save&quot;).click()'
+          data-mirror-class='save-state' class='is-disabled h-12 px-4 border border-gray-800 bg-primary text-white text-lg font-semibold disabled:bg-gray-200 disabled:text-gray-500 disabled:border-transparent'>
+          견적 저장
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="item-added-sheet" class="wizard-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="item-added-title">
+    <button type="button" class="wizard-sheet-backdrop" onclick="EstimateWizard.closeAddedSheet()" aria-label="닫기"></button>
+    <div class="wizard-sheet-panel">
+      <h2 id="item-added-title">품목을 담았습니다</h2>
+      <button type="button" onclick="EstimateWizard.chooseAfterAdd(2)">같은 종류 더 담기</button>
+      <button type="button" onclick="EstimateWizard.chooseAfterAdd(1)">다른 종류</button>
+      <button type="button" class="wizard-sheet-primary" onclick="EstimateWizard.chooseAfterAdd(4)">다 담았어요</button>
+    </div>
+  </div>
+
+  <div id='voice-result-sheet' class='wizard-sheet hidden' role='dialog' aria-modal='true' aria-labelledby='voice-result-title'>
+    <button type='button' class='wizard-sheet-backdrop' onclick='VoiceAdd.close()' aria-label='닫기'></button>
+    <div class='wizard-sheet-panel voice-result-panel'>
+      <h2 id='voice-result-title'>말씀하신 품목을 확인하세요</h2>
+      <p id='voice-transcript' class='voice-transcript'></p>
+      <p id='voice-failure' class='hidden voice-failure'>잘 못 알아들었어요. 다시 말하거나 직접 고르세요</p>
+      <div id='voice-result-list' class='voice-result-list'></div>
+      <div class='voice-sheet-actions'>
+        <button type='button' onclick='VoiceAdd.retry()'>다시 말하기</button>
+        <button id='voice-add-items' type='button' class='wizard-sheet-primary' onclick='VoiceAdd.addItems()' disabled>0개 담기</button>
+      </div>
+    </div>
+  </div>
+
+  <div id='precheck-sheet' class='wizard-sheet hidden' role='dialog' aria-modal='true' aria-labelledby='precheck-title'>
+    <button type='button' class='wizard-sheet-backdrop' onclick='closePrecheckSheet()' aria-label='닫기'></button>
+    <div class='wizard-sheet-panel precheck-panel'>
+      <h2 id='precheck-title'>발송 전 검사 결과</h2>
+      <div id='precheck-blocks'></div>
+      <div id='precheck-warns'></div>
+      <div class='precheck-actions'>
+        <button type='button' onclick='closePrecheckSheet()'>닫기</button>
+        <button id='precheck-confirm' type='button' class='wizard-sheet-primary' onclick='confirmPrecheckSave()' disabled>확인하고 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/api.js?v=71"></script>
+  <script src="/js/auth.js?v=71"></script>
+  <script src="/js/ui.js?v=71"></script>
+  <div id="cart-sheet" class="wizard-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="cart-sheet-title">
+    <button type="button" class="wizard-sheet-backdrop" onclick="EstimateWizard.closeCartSheet()" aria-label="닫기"></button>
+    <div class="wizard-sheet-panel cart-sheet-panel">
+      <h2 id="cart-sheet-title">담은 목록</h2>
+      <div id="cart-sheet-items" class="cart-sheet-items"></div>
+      <div class="cart-sheet-totals" aria-label="금액 합계">
+        <p><span>공급가</span><strong id="cart-sheet-supply">0원</strong></p>
+        <p><span>세액</span><strong id="cart-sheet-vat">0원</strong></p>
+        <p class="cart-sheet-grand-total"><span>총액</span><strong id="cart-sheet-total">0원</strong></p>
+      </div>
+      <div class="cart-sheet-actions">
+        <button type="button" onclick="EstimateWizard.closeCartSheet()">계속 담기</button>
+        <button type="button" class="wizard-sheet-primary" onclick="EstimateWizard.goToReview()">확인 단계로</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/calc.js?v=71"></script>
+  <script src="/js/app.js?v=71"></script>
+  <script src="/js/estimate.js?v=71"></script>
+  <script src='/js/voice.js?v=71'></script>
+  <script src='/js/precheck.js?v=71'></script>
+  <script>
+    const EstimateWizard = (() => {
+      let currentStep = 1;
+      let initialized = false;
+      let lastType = '';
+      let lastSelection = null;
+      let bannerTimer = null;
+      let summaryPulseTimer = null;
+      let step4Passed = false;
+      let step5Skipped = false;
+      let step6Completed = false;
+      const visitedSteps = { 4: false, 5: false };
+      const titles = { 1:'종류 선택', 2:'규격 선택', 3:'수량 선택', 4:'추가 항목', 5:'고객 정보', 6:'견적 확인' };
+      const checkSvg = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4 4L19 7"/></svg>';
+
+      function displayValue(value) {
+        return String(value || '').replace(/\*/g, '×');
+      }
+
+      function formatSelection(item) {
+        if (!item) return lastType || '종류를 선택하세요';
+        return [item.type, item.layoutType || item.form, item.setName || displayValue(item.spec)]
+          .filter(Boolean).join(' · ');
+      }
+
+      function formatSelectionMeta(item) {
+        if (!item) return '';
+        const tier = item.tier
+          ? (String(item.tier).includes('단') ? String(item.tier) : String(item.tier) + '단')
+          : '';
+        return ['단가 ' + UI.formatCurrency(Number(item.unitPrice) || 0), tier].filter(Boolean).join(' · ');
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, character => ({
+          '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+        })[character]);
+      }
+      function itemName(item) {
+        if (item.itemType === 'custom' || item.itemType === 'accessory') {
+          return item.name || item.type || '항목';
+        }
+        return [item.type, item.layoutType || item.form, item.setName].filter(Boolean).join(' · ') || '품목';
+      }
+
+      function itemSpec(item) {
+        const tier = item.tier ? (String(item.tier).includes('단') ? String(item.tier) : String(item.tier) + '단') : '';
+        return [displayValue(item.spec), tier].filter(Boolean).join(' · ');
+      }
+
+      function itemUnit(item) {
+        return item.itemType === 'custom' || item.itemType === 'accessory' || item.pricingModel === 'C' ? '개' : '대';
+      }
+
+      function itemAmount(item) {
+        if (item && Number.isFinite(Number(item.itemTotal))) return Number(item.itemTotal);
+        const quantity = Number(item?.quantity) || (item?.itemType === 'custom' ? 1 : 0);
+        const installFee = item?.itemType === 'custom' ? 0 : Number(item?.installFee) || 0;
+        return ((Number(item?.unitPrice) || 0) + installFee) * quantity;
+      }
+
+      function formatAddedItem(item) {
+        const quantity = Number(item?.quantity) || 1;
+        const parts = [itemName(item), displayValue(item?.spec)].filter(Boolean);
+        return parts.join(' · ') + ' × ' + quantity + itemUnit(item) + ' 담김 (' + UI.formatCurrency(itemAmount(item)) + ')';
+      }
+
+      function customerIsComplete() {
+        if (typeof App !== 'undefined' && typeof App.getCustomerInfo === 'function') {
+          const customer = App.getCustomerInfo();
+          return Boolean(customer.name || customer.phone);
+        }
+        return Boolean(document.getElementById('cust-name')?.value?.trim() || document.getElementById('cust-phone')?.value?.trim());
+      }
+
+      function hasAdditionalItem(items) {
+        return items.some(item => item.itemType === 'custom' || item.itemType === 'accessory');
+      }
+
+      function stepIsComplete(step, items) {
+        if (step <= 3) return items.length > 0;
+        if (step === 4) return step4Passed || hasAdditionalItem(items);
+        if (step === 5) return customerIsComplete();
+        return step === 6 && step6Completed;
+      }
+
+      function renderStepStates(items) {
+        const customerSummary = document.getElementById('review-customer-summary');
+        if (customerSummary && typeof App !== 'undefined' && App.getCustomerInfo) {
+          const customer = App.getCustomerInfo();
+          customerSummary.textContent = [customer.name, customer.company, customer.phone, customer.address].filter(Boolean).join(' · ') || '고객 정보가 없습니다. 저장 전 받는 고객을 확인해주세요.';
+        }
+        if (customerIsComplete()) step5Skipped = false;
+        document.querySelectorAll('[data-step-link]').forEach(button => {
+          const linkStep = Number(button.dataset.stepLink);
+          const active = linkStep === currentStep;
+          const complete = !active && stepIsComplete(linkStep, items);
+          const skipped = !active && linkStep === 5 && step5Skipped && !complete;
+          const past = linkStep < currentStep;
+          const number = button.querySelector('span');
+          const label = button.querySelector('b')?.textContent || titles[linkStep] || '';
+          if (number) number.innerHTML = complete ? checkSvg : (skipped ? '–' : String(linkStep));
+          button.classList.toggle('is-current', active);
+          button.classList.toggle('is-past', past);
+          button.classList.toggle('is-complete', complete);
+          button.classList.toggle('is-skipped', skipped);
+          button.disabled = false;
+          button.setAttribute('aria-current', active ? 'step' : 'false');
+          button.setAttribute('aria-disabled', 'false');
+          if (complete) button.setAttribute('aria-label', linkStep + '단계 ' + label + ' 완료');
+          else if (skipped) button.setAttribute('aria-label', linkStep + '단계 ' + label + ' 건너뜀');
+          else button.setAttribute('aria-label', linkStep + '단계 ' + label + (active ? ' 현재' : ''));
+        });
+      }
+
+      function renderCartSheet(items, result) {
+        const container = document.getElementById('cart-sheet-items');
+        if (container) {
+          if (!items.length) {
+            container.innerHTML = '<p class="cart-sheet-empty">아직 담은 품목이 없습니다</p>';
+          } else {
+            const calculatedItems = result.items || items;
+            container.innerHTML = calculatedItems.map((item, index) => {
+              const spec = itemSpec(item);
+              const meta = (spec ? spec + ' · ' : '') + '수량 ' + (Number(item.quantity) || 1) + itemUnit(item);
+              return '<div class="cart-sheet-row">' +
+                '<div class="cart-sheet-item-copy"><p class="cart-sheet-item-name">' + escapeHtml(itemName(item)) + '</p>' +
+                '<p class="cart-sheet-item-meta">' + escapeHtml(meta) + '</p></div>' +
+                '<p class="cart-sheet-item-amount">' + UI.formatCurrency(itemAmount(item)) + '</p>' +
+                '<button type="button" class="cart-sheet-remove" onclick="App.removeItem(' + index + ')">빼기</button></div>';
+            }).join('');
+          }
+        }
+        const supply = document.getElementById('cart-sheet-supply');
+        const vat = document.getElementById('cart-sheet-vat');
+        const total = document.getElementById('cart-sheet-total');
+        if (supply) supply.textContent = UI.formatCurrency(result.supplyTotal || 0);
+        if (vat) vat.textContent = UI.formatCurrency(result.vat || 0);
+        if (total) total.textContent = UI.formatCurrency(result.total || 0);
+      }
+
+      function sync() {
+        const selection = (typeof App !== 'undefined' && App.currentSelection) || lastSelection;
+        const selectionText = document.getElementById('wizard-selection-summary');
+        const selectedSpec = document.getElementById('selected-spec-summary');
+        const selectedSpecTitle = document.getElementById('selected-spec-title');
+        const selectedSpecMeta = document.getElementById('selected-spec-meta');
+        const cartText = document.getElementById('wizard-cart-summary');
+        const items = (typeof App !== 'undefined' && App.items) || [];
+        const summary = formatSelection(selection);
+        if (selectionText) selectionText.textContent = summary;
+        if (selectedSpecTitle) selectedSpecTitle.textContent = summary;
+        else if (selectedSpec) selectedSpec.textContent = summary;
+        if (selectedSpecMeta) {
+          const meta = formatSelectionMeta(selection);
+          selectedSpecMeta.textContent = meta;
+          selectedSpecMeta.classList.toggle('hidden', !meta);
+        }
+        const result = typeof App !== 'undefined' && typeof App.calculate === 'function'
+          ? App.calculate()
+          : { supplyTotal: 0, vat: 0, total: 0, items: [] };
+        if (cartText) {
+          cartText.textContent = '담은 ' + items.length + '건 · ' + UI.formatCurrency(result.total || 0);
+          cartText.classList.remove('hidden');
+        }
+        renderStepStates(items);
+        renderCartSheet(items, result);
+        if (typeof App !== 'undefined' && typeof App.updateQuantitySubtotal === 'function') {
+          App.updateQuantitySubtotal();
+        }
+        if (typeof syncEstimateFixedBar === 'function') syncEstimateFixedBar();
+      }
+
+      function applyStep(step) {
+        currentStep = Math.max(1, Math.min(6, Number(step) || 1));
+        if (currentStep === 4 || currentStep === 5) visitedSteps[currentStep] = true;
+        if (currentStep === 6 && typeof App !== 'undefined' && typeof App.renderItems === 'function') App.renderItems();
+        document.querySelectorAll('[data-wizard-step]').forEach(element => {
+          element.classList.toggle('wizard-inactive', Number(element.dataset.wizardStep) !== currentStep);
+        });
+        document.querySelectorAll('[data-wizard-range]').forEach(element => {
+          const limits = String(element.dataset.wizardRange).split('-').map(Number);
+          element.classList.toggle('wizard-inactive', currentStep < limits[0] || currentStep > limits[1]);
+        });
+        document.querySelectorAll('[data-step-link]').forEach(button => {
+          const linkStep = Number(button.dataset.stepLink);
+          const active = linkStep === currentStep;
+          const past = linkStep < currentStep;
+          button.classList.toggle('is-current', active);
+          button.classList.toggle('is-past', past);
+          button.disabled = false;
+          button.setAttribute('aria-current', active ? 'step' : 'false');
+          button.setAttribute('aria-disabled', 'false');
+        });
+        document.getElementById('wizard-back')?.classList.toggle('hidden', currentStep === 1);
+        document.getElementById('estimate-fixed-bar')?.classList.toggle('wizard-inactive', currentStep !== 6);
+        const title = document.getElementById('wizard-panel-title');
+        if (title) title.textContent = titles[currentStep] || '랙 추가';
+        if (currentStep === 5) {
+          document.getElementById('customer-form')?.classList.remove('hidden');
+          const indicator = document.getElementById('customer-form-toggle')?.querySelector('span:last-child');
+          if (indicator) indicator.textContent = '▲';
+        }
+        sync();
+        if (typeof window.scrollTo === 'function') window.scrollTo(0, 0);
+      }
+
+      function go(step, options) {
+        const requested = Math.max(1, Math.min(6, Number(step) || 1));
+        let next = requested;
+        if (requested === 2 && !lastType) {
+          next = 1;
+          if (initialized) UI.toast('먼저 종류를 선택하세요', 'warning');
+        } else if (requested === 3 && !(typeof App !== 'undefined' && App.currentSelection) && !lastSelection) {
+          next = 2;
+          if (initialized) UI.toast('먼저 규격을 선택하세요', 'warning');
+        }
+        const replace = options && options.replace;
+        const fromPopState = options && options.fromPopState;
+        if (currentStep === 4 && next > 4) step4Passed = true;
+        if (currentStep === 5 && next > 5 && !customerIsComplete()) step5Skipped = true;
+        const changed = next !== currentStep || !initialized;
+        applyStep(next);
+        if (!fromPopState && changed) {
+          const state = { estimateWizard: true, step: next };
+          if (replace || !initialized) history.replaceState(state, '', location.href);
+          else history.pushState(state, '', location.href);
+        }
+        initialized = true;
+        queueDraftSave();
+      }
+
+      function queueDraftSave() {
+        if (typeof App !== 'undefined' && typeof App.saveDraft === 'function') App.saveDraft();
+      }
+
+      function previous() {
+        if (currentStep > 1) go(currentStep - 1);
+      }
+
+      function init(step) {
+        go(step, { replace: true });
+        ['cust-name', 'cust-phone'].forEach(id => {
+          document.getElementById(id)?.addEventListener('input', () => {
+            if (customerIsComplete()) step5Skipped = false;
+            sync();
+            queueDraftSave();
+          });
+        });
+        window.addEventListener('popstate', event => {
+          if (event.state && event.state.estimateWizard) {
+            go(event.state.step, { fromPopState: true });
+          }
+        });
+      }
+
+      function onTypeSelected(type) {
+        lastType = type || '';
+        lastSelection = null;
+        sync();
+        go(2);
+      }
+
+      function onSpecSelected(item) {
+        lastSelection = item || null;
+        sync();
+        go(3);
+      }
+
+      function showAddedBanner(item) {
+        const message = formatAddedItem(item || {});
+        const banner = document.getElementById('wizard-added-banner');
+        const copy = document.getElementById('wizard-added-banner-copy');
+        const sheetCopy = document.getElementById('item-added-sheet-summary');
+        if (copy) copy.textContent = message;
+        if (sheetCopy) sheetCopy.textContent = '✓ ' + message;
+        if (banner) {
+          banner.setAttribute('aria-label', '✓ ' + message);
+          banner.classList.add('is-visible');
+          clearTimeout(bannerTimer);
+          bannerTimer = setTimeout(() => banner.classList.remove('is-visible'), 2500);
+        }
+        const cartButton = document.getElementById('wizard-cart-summary-button');
+        if (cartButton) {
+          cartButton.classList.remove('is-updated');
+          void cartButton.offsetWidth;
+          cartButton.classList.add('is-updated');
+          clearTimeout(summaryPulseTimer);
+          summaryPulseTimer = setTimeout(() => cartButton.classList.remove('is-updated'), 400);
+        }
+      }
+
+      function onCartItemAdded(item) {
+        sync();
+        showAddedBanner(item);
+        queueDraftSave();
+      }
+
+      function onItemAdded(item) {
+        lastSelection = null;
+        onCartItemAdded(item);
+        document.getElementById('item-added-sheet')?.classList.remove('hidden');
+      }
+
+      function closeAddedSheet() {
+        document.getElementById('item-added-sheet')?.classList.add('hidden');
+      }
+
+      function chooseAfterAdd(step) {
+        closeAddedSheet();
+        if (Number(step) === 2 && lastType && typeof App !== 'undefined') {
+          go(2);
+          App.onTypeChip(lastType);
+          return;
+        }
+        go(step);
+      }
+
+      function openCartSheet() {
+        sync();
+        document.getElementById('cart-sheet')?.classList.remove('hidden');
+      }
+
+      function closeCartSheet() {
+        document.getElementById('cart-sheet')?.classList.add('hidden');
+      }
+
+      function goToReview() {
+        closeCartSheet();
+        go(6);
+      }
+
+      function getDraftState() {
+        return {
+          step4Passed,
+          step5Skipped,
+          step6Completed,
+          visitedSteps: { 4: visitedSteps[4], 5: visitedSteps[5] },
+        };
+      }
+
+      function restoreDraftState(state) {
+        if (!state) return;
+        step4Passed = Boolean(state.step4Passed);
+        step5Skipped = Boolean(state.step5Skipped);
+        step6Completed = Boolean(state.step6Completed);
+        visitedSteps[4] = Boolean(state.visitedSteps?.[4] ?? state.visitedSteps?.['4']);
+        visitedSteps[5] = Boolean(state.visitedSteps?.[5] ?? state.visitedSteps?.['5']);
+      }
+
+      function markSaved() {
+        step6Completed = true;
+        sync();
+      }
+
+      function resetState() {
+        lastType = '';
+        lastSelection = null;
+        step4Passed = false;
+        step5Skipped = false;
+        step6Completed = false;
+        visitedSteps[4] = false;
+        visitedSteps[5] = false;
+        sync();
+      }
+
+      return { init, go, previous, sync, onTypeSelected, onSpecSelected, onCartItemAdded, onItemAdded,
+        closeAddedSheet, chooseAfterAdd, openCartSheet, closeCartSheet, goToReview,
+        getDraftState, restoreDraftState, markSaved, resetState,
+        get step() { return currentStep; } };
+    })();
+    window.EstimateWizard = EstimateWizard;
+
+    function getInitialWizardStep(entryFrom, itemCount) {
+      if (entryFrom === 'edit' || entryFrom === 'ai-analysis') return 6;
+      if (entryFrom === 'request') return 1;
+      return Number(itemCount) > 0 ? 6 : 1;
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      initEstimateFixedBar();
+      if (!Auth.guard()) {
+        window.addEventListener('yr-authenticated', init);
+        return;
+      }
+      init();
+    });
+
+    function syncEstimateFixedBar() {
+      const sourceButton = document.getElementById('btn-save');
+      const fixedButton = document.getElementById('btn-save-fixed');
+      const fixedTotal = document.getElementById('fixed-total-amount');
+      const emptyState = document.getElementById('fixed-save-empty');
+      const readyState = document.getElementById('fixed-save-ready');
+      const hasItems = Boolean(App.items && App.items.length);
+      if (fixedTotal) fixedTotal.textContent = '총액 ' + (document.getElementById('total-amount')?.textContent || '0원');
+      if (fixedButton && sourceButton) {
+        fixedButton.disabled = sourceButton.disabled;
+        fixedButton.textContent = sourceButton.textContent.trim();
+        fixedButton.classList.toggle('is-enabled', !sourceButton.disabled);
+        fixedButton.classList.toggle('is-disabled', sourceButton.disabled);
+      }
+      if (emptyState) emptyState.classList.toggle('hidden', hasItems);
+      if (readyState) {
+        readyState.classList.toggle('hidden', !hasItems);
+        readyState.classList.toggle('flex', hasItems);
+      }
+      updateRecentEstimateVisibility();
+    }
+
+    function initEstimateFixedBar() {
+      const sourceButton = document.getElementById('btn-save');
+      const total = document.getElementById('total-amount');
+      if (sourceButton && total && typeof MutationObserver !== 'undefined') {
+        const observer = new MutationObserver(syncEstimateFixedBar);
+        observer.observe(sourceButton, { attributes: true, childList: true, subtree: true });
+        observer.observe(total, { childList: true, subtree: true, characterData: true });
+      }
+      syncEstimateFixedBar();
+    }
+
+    async function init() {
+      UI.renderTabBar('estimate');
+      const entryFrom = new URLSearchParams(location.search).get('from');
+      await App.loadPrices();
+      VoiceAdd.init();
+      loadCustomerSuggestions();
+
+      // 임시 저장 복원
+      const draft = ['edit', 'request', 'ai-analysis'].includes(entryFrom) ? null : App.loadDraft();
+      if (draft) {
+        if (draft.items && draft.items.length > 0) {
+          App.items = draft.items;
+          App.renderItems();
+          App.updateTotal();
+        }
+        EstimateWizard.restoreDraftState(draft.wizard);
+        if (draft.customer) {
+          if (draft.customer.name) document.getElementById('cust-name').value = draft.customer.name;
+          if (draft.customer.company) document.getElementById('cust-company').value = draft.customer.company;
+          if (draft.customer.phone) document.getElementById('cust-phone').value = draft.customer.phone;
+          if (draft.customer.address) document.getElementById('cust-address').value = draft.customer.address;
+          if (draft.customer.bizNumber) document.getElementById('cust-biz-number').value = draft.customer.bizNumber;
+          if (draft.customer.bizType) document.getElementById('cust-biz-type').value = draft.customer.bizType;
+          if (draft.customer.bizItem) document.getElementById('cust-biz-item').value = draft.customer.bizItem;
+        }
+      }
+
+      // 수정 모드가 sessionStorage에 남아있으면 배너 복원
+      const pendingEditId = sessionStorage.getItem('yr_edit_id');
+      if (pendingEditId) {
+        const custName = document.getElementById('cust-name')?.value || '';
+        showEditBanner(pendingEditId, custName);
+        document.getElementById('btn-save').textContent = '견적 수정 저장';
+      }
+
+      // URL 파라미터로 고객정보 프리필 (요청→견적)
+      await prefillFromUrl();
+      const initialStep = getInitialWizardStep(entryFrom, App.items.length);
+      EstimateWizard.init(initialStep);
+    }
+
+    function applyEstimateData(data) {
+      const fields = {
+        customerName: 'cust-name', company: 'cust-company', phone: 'cust-phone', address: 'cust-address',
+        bizNumber: 'cust-biz-number', bizType: 'cust-biz-type', bizItem: 'cust-biz-item'
+      };
+      Object.entries(fields).forEach(([key, id]) => {
+        if (data[key]) document.getElementById(id).value = data[key];
+      });
+      document.getElementById('customer-form').classList.remove('hidden');
+      let loadedItems = data.items || [];
+      if (typeof loadedItems === 'string') {
+        try { loadedItems = JSON.parse(loadedItems); } catch { loadedItems = []; }
+      }
+      App.loadItems(loadedItems);
+    }
+
+    async function prefillFromUrl() {
+      const p = new URLSearchParams(location.search);
+      const from = p.get('from');
+
+      // 수정 모드: 기존 견적 데이터 로드
+      if (from === 'edit' && p.get('editId')) {
+        sessionStorage.setItem('yr_edit_id', p.get('editId'));
+        try {
+          const data = await API.getEstimate(p.get('editId'));
+          if (data && !data.error) {
+            applyEstimateData(data);
+            document.getElementById('btn-save').textContent = '견적 수정 저장';
+            // 수정 모드 배너 표시
+            showEditBanner(p.get('editId'), data.customerName);
+            UI.toast('기존 견적을 불러왔습니다. 수정 후 저장하세요.', 'info', 3000);
+          }
+        } catch {}
+        document.getElementById('page-loading').classList.add('hidden');
+        history.replaceState(null, '', location.pathname);
+        return;
+      }
+
+      // 요청→견적 프리필 (request 또는 ai-analysis)
+      if (from !== 'request' && from !== 'ai-analysis') return;
+      const fields = { name:'cust-name', company:'cust-company', phone:'cust-phone', address:'cust-address',
+        bizNumber:'cust-biz-number', bizType:'cust-biz-type', bizItem:'cust-biz-item' };
+      let filled = false;
+      for (const [key, id] of Object.entries(fields)) {
+        const val = p.get(key);
+        if (val) { document.getElementById(id).value = val; filled = true; }
+      }
+      if (filled) {
+        document.getElementById('customer-form').classList.remove('hidden');
+      }
+      // requestRowIndex 저장 (공유 시 자동 상태 전환용)
+      const reqRow = p.get('requestRowIndex');
+      if (reqRow) sessionStorage.setItem('yr_request_row', reqRow);
+
+      // AI 분석에서 넘어온 경우: 추천 품목 자동 추가
+      if (from === 'ai-analysis') {
+        var aiType = p.get('aiType');
+        var aiForm = p.get('aiForm');
+        var aiSpec = p.get('aiSpec');
+        var aiQty = parseInt(p.get('aiQty')) || 1;
+        if (aiType && App.priceData && App.priceData.length > 0) {
+          // 1차: 정확 매칭 (type + form + spec)
+          var match = App.priceData.find(function(pr) {
+            return pr.type === aiType && (!aiForm || pr.form === aiForm) && (!aiSpec || String(pr.spec) === aiSpec);
+          });
+          // 2차: type + form만 매칭 (spec 무시)
+          if (!match && aiForm) {
+            match = App.priceData.find(function(pr) {
+              return pr.type === aiType && pr.form === aiForm && !pr.isAccessory;
+            });
+          }
+          // 3차: type만 매칭 (부속품 제외)
+          if (!match) {
+            match = App.priceData.find(function(pr) {
+              return pr.type === aiType && !pr.isAccessory;
+            });
+          }
+          // 4차: 부분 문자열 매칭 (AI가 약간 다른 이름 반환 시)
+          if (!match) {
+            var aiTypeLower = aiType.replace(/\s/g, '').toLowerCase();
+            match = App.priceData.find(function(pr) {
+              return pr.type && pr.type.replace(/\s/g, '').toLowerCase().includes(aiTypeLower) && !pr.isAccessory;
+            });
+          }
+          if (match) {
+            App.items.push({
+              type: match.type, form: match.form || '', spec: String(match.spec), tier: match.tier,
+              unitPrice: Number(match.unitPrice) || 0, installFee: Number(match.installFee) || 0,
+              vat: match.vat || '별도', quantity: aiQty,
+              pricingModel: match.pricingModel || '', layoutType: match.layoutType || '',
+              setName: match.setName || '', partCategory: match.partCategory || ''
+            });
+            App.renderItems();
+            App.updateTotal();
+            App.notifyItemAdded(App.items[App.items.length - 1]);
+            UI.toast('AI 추천 품목이 추가되었습니다', 'success');
+          } else {
+            UI.toast('추천 랙(' + aiType + ')을 단가표에서 찾을 수 없습니다. 직접 선택하세요.', 'warning', 5000);
+          }
+        }
+      }
+
+      document.getElementById('page-loading').classList.add('hidden');
+      // URL 정리
+      history.replaceState(null, '', location.pathname);
+    }
+
+    var _precheckResult = null;
+
+    function closePrecheckSheet() {
+      document.getElementById('precheck-sheet').classList.add('hidden');
+    }
+
+    function updatePrecheckConfirm() {
+      var button = document.getElementById('precheck-confirm');
+      var checks = Array.from(document.querySelectorAll('.precheck-confirm-box'));
+      button.disabled = !_precheckResult || _precheckResult.blocks.length > 0 || checks.some(function (check) { return !check.checked; });
+    }
+
+    function renderPrecheckSheet(result) {
+      _precheckResult = result;
+      var blocks = document.getElementById('precheck-blocks');
+      var warns = document.getElementById('precheck-warns');
+      blocks.innerHTML = result.blocks.length ? '<h3 class=precheck-block-title>수정이 필요한 항목</h3>' + result.blocks.map(function (item) {
+        return `<div class=precheck-item><p>${item.message}</p><button type=button onclick=goToPrecheckIssue(${item.step})>수정하기</button></div>`;
+      }).join('') : '';
+      warns.innerHTML = result.warns.length ? '<h3 class=precheck-warn-title>확인이 필요한 항목</h3>' + result.warns.map(function (item,index) {
+        var merge = item.action === 'merge' ? `<button type=button onclick=mergePrecheckWarning(${index})>합치기</button>` : '';
+        return `<div class=precheck-item><label><input type=checkbox class=precheck-confirm-box onchange=updatePrecheckConfirm()><span>${item.message}</span></label>${merge}</div>`;
+      }).join('') : '';
+      document.getElementById('precheck-sheet').classList.remove('hidden');
+      updatePrecheckConfirm();
+    }
+
+    function runSavePrecheck() {
+      var totals = App.calculate();
+      var result = Precheck.run(App.items, App.getCustomerInfo(), totals, { estimates:_allEstimates, priceData:App.priceData });
+      if (!result.blocks.length && !result.warns.length) return true;
+      renderPrecheckSheet(result);
+      return false;
+    }
+
+    function goToPrecheckIssue(step) {
+      closePrecheckSheet();
+      EstimateWizard.go(step || 6);
+    }
+
+    function mergePrecheckWarning(index) {
+      var warning = _precheckResult && _precheckResult.warns[index];
+      if (!warning || !warning.key) return;
+      App.loadItems(Precheck.mergeDuplicates(App.items, warning.key));
+      renderPrecheckSheet(Precheck.run(App.items, App.getCustomerInfo(), App.calculate(), { estimates:_allEstimates, priceData:App.priceData }));
+    }
+
+    function confirmPrecheckSave() {
+      if (document.getElementById('precheck-confirm').disabled) return;
+      closePrecheckSheet();
+      handleSave({ prechecked:true });
+    }
+
+    async function handleSave(options) {
+      if (!(options && options.prechecked) && !runSavePrecheck()) return;
+      const btn = document.getElementById('btn-save');
+      UI.setLoading(btn, true);
+      try {
+        const editId = sessionStorage.getItem('yr_edit_id');
+        console.log('handleSave mode:', editId ? 'UPDATE ' + editId : 'NEW');
+
+        if (editId) {
+          // 수정 모드: 기존 견적 업데이트
+          const { supplyTotal, vat, total, items: calcItems } = App.calculate();
+          if (!calcItems || calcItems.length === 0) {
+            UI.toast('품목을 추가하세요', 'warning');
+            return;
+          }
+          const customer = App.getCustomerInfo();
+          const result = await API.updateEstimate({
+            estimateId: editId,
+            items: calcItems,
+            supplyTotal, vat, total,
+            ...customer,
+          });
+          console.log('updateEstimate result:', result);
+          if (result && (result.estimateId || result.result === 'success')) {
+            EstimateWizard.markSaved();
+            sessionStorage.removeItem('yr_edit_id');
+            sessionStorage.removeItem('yr-estimate-' + editId);
+            UI.toast('견적이 수정되었습니다', 'success');
+            window.location.href = `estimate-preview.html?id=${result.estimateId || editId}&just_saved=1`;
+          } else {
+            UI.toast('수정 실패: ' + (result?.error || '알 수 없는 오류'), 'error');
+          }
+        } else {
+          // 신규 저장
+          const result = await App.saveEstimate();
+          if (result && result.estimateId) {
+            UI.toast('견적이 저장되었습니다', 'success');
+            const reqRow = sessionStorage.getItem('yr_request_row');
+            if (reqRow) {
+              try { await API.linkEstimateToRequest(Number(reqRow), result.estimateId); } catch {}
+            }
+            const reqParam = reqRow ? `&requestRowIndex=${reqRow}` : '';
+            sessionStorage.removeItem('yr_request_row');
+            window.location.href = `estimate-preview.html?id=${result.estimateId}${reqParam}&just_saved=1`;
+          }
+        }
+      } catch (err) {
+        UI.toast(err.message || '저장 실패', 'error');
+      } finally {
+        UI.setLoading(btn, false);
+      }
+    }
+
+    function showEditBanner(editId, customerName) {
+      const banner = document.getElementById('edit-banner');
+      const title = document.getElementById('edit-banner-title');
+      const detail = document.getElementById('edit-banner-detail');
+      const pageTitle = document.getElementById('page-title');
+      const btnReset = document.getElementById('btn-reset');
+      if (banner) {
+        banner.classList.remove('hidden');
+        title.textContent = `${customerName || '고객'} 견적 수정 중`;
+        detail.textContent = editId || '';
+        pageTitle.textContent = '견적 수정';
+        btnReset.classList.remove('hidden');
+      }
+    }
+
+    function updateResetButton() {
+      const btnReset = document.getElementById('btn-reset');
+      const editId = sessionStorage.getItem('yr_edit_id');
+      if (!editId && App.items && App.items.length > 0) {
+        btnReset.classList.remove('hidden');
+      }
+    }
+
+    var _allEstimates = [];
+    var _matchedEstimates = [];
+
+    function updateRecentEstimateVisibility() {
+      const section = document.getElementById('recent-estimates-start');
+      if (!section) return;
+      const params = new URLSearchParams(location.search);
+      const isEdit = params.get('from') === 'edit' || Boolean(sessionStorage.getItem('yr_edit_id'));
+      const hasRecent = document.getElementById('recent-estimates-list')?.childElementCount > 0;
+      section.classList.toggle('hidden', isEdit || !hasRecent || Boolean(App.items && App.items.length));
+      const recentButton = document.getElementById('start-recent-button');
+      if (recentButton) recentButton.disabled = isEdit || !hasRecent || Boolean(App.items && App.items.length);
+    }
+
+    function renderRecentEstimates(estimates) {
+      const list = document.getElementById('recent-estimates-list');
+      if (!list) return;
+      list.innerHTML = '';
+      estimates.slice(0, 5).forEach(estimate => {
+        const button = document.createElement('button');
+        const info = document.createElement('span');
+        const title = document.createElement('span');
+        const detail = document.createElement('span');
+        const amount = document.createElement('span');
+        button.type = 'button';
+        button.className = 'recent-estimate-row w-full min-h-16 px-4 flex items-center gap-3 text-left border-b border-gray-200';
+        info.className = 'flex-1 min-w-0';
+        title.className = 'block text-lg font-semibold text-gray-800 truncate';
+        detail.className = 'block text-base text-gray-600 truncate';
+        amount.className = 'tnum text-lg font-semibold text-gray-800 shrink-0';
+        title.textContent = (estimate.customerName || '미지정') + ' · ' + UI.formatDate(estimate.date || '');
+        detail.textContent = estimate.itemSummary || '품목 정보 없음';
+        amount.textContent = UI.formatCurrency(Number(estimate.total) || 0);
+        info.append(title, detail);
+        button.append(info, amount);
+        button.addEventListener('click', () => copyRecentEstimate(estimate.estimateId));
+        list.appendChild(button);
+      });
+      updateRecentEstimateVisibility();
+    }
+
+    function copyRecentEstimate(estimateId) {
+      UI.confirm('이전 견적 복사', '이 견적의 품목과 고객 정보를 새 견적에 불러올까요?', async () => {
+        try {
+          const data = await API.getEstimate(estimateId);
+          if (!data || data.error) throw new Error(data?.error || '견적을 불러올 수 없습니다');
+          await App.loadPrices(true);
+          const updated = Precheck.reprice(data.items, App.priceData);
+          if (!confirm('현재 단가로 새 견적을 만듭니다. 단가 변경 ' + updated.changed + '개 품목. 운송비·할인 등 직접 입력 항목은 유지되므로 확인해주세요.')) return;
+          data.items = updated.items;
+          App.clearDraft();
+          sessionStorage.removeItem('yr_edit_id');
+          sessionStorage.removeItem('yr_request_row');
+          applyEstimateData(data);
+          UI.toast('이전 견적을 불러왔습니다. 수정 후 저장하세요.', 'success', 3000);
+          syncEstimateFixedBar();
+          EstimateWizard.go(6);
+        } catch (err) {
+          UI.toast(err.message || '견적을 불러오지 못했습니다', 'error');
+        }
+      });
+    }
+
+    function applyCustomerMatches(matches, keepPhone) {
+      _matchedEstimates = matches;
+      if (matches.length === 0) {
+        document.getElementById('prev-estimates-section').classList.add('hidden');
+        App.setCustomerPatternItems([]);
+        App.renderRackSelector();
+        return;
+      }
+      const latest = matches[0];
+      document.getElementById('cust-name').value = latest.customerName || '';
+      document.getElementById('cust-company').value = latest.company || '';
+      if (!keepPhone) document.getElementById('cust-phone').value = latest.phone || '';
+      document.getElementById('cust-address').value = latest.address || '';
+      document.getElementById('cust-biz-number').value = latest.bizNumber || '';
+      document.getElementById('cust-biz-type').value = latest.bizType || '';
+      document.getElementById('cust-biz-item').value = latest.bizItem || '';
+      document.getElementById('customer-form').classList.remove('hidden');
+      document.getElementById('prev-count').textContent = matches.length;
+      document.getElementById('prev-estimates-section').classList.remove('hidden');
+      App.setCustomerPatternItems(matches);
+      App.renderRackSelector();
+    }
+
+    async function loadCustomerSuggestions() {
+      try {
+        const data = await API.getEstimates();
+        if (data && data.estimates) {
+          _allEstimates = data.estimates;
+          renderRecentEstimates(_allEstimates);
+          const seen = new Set();
+          const datalist = document.getElementById('customer-suggestions');
+          data.estimates.forEach(e => {
+            if (e.customerName && !seen.has(e.customerName)) {
+              seen.add(e.customerName);
+              const opt = document.createElement('option');
+              opt.value = e.customerName;
+              datalist.appendChild(opt);
+            }
+          });
+
+          document.getElementById('cust-name').addEventListener('change', (ev) => {
+            const name = ev.target.value;
+            applyCustomerMatches(_allEstimates.filter(e => e.customerName === name), false);
+          });
+
+          document.getElementById('cust-phone').addEventListener('change', (ev) => {
+            const suffix = String(ev.target.value || '').replace(/\D/g, '');
+            if (suffix.length < 4) return;
+            const matches = _allEstimates.filter(e => String(e.phone || '').replace(/\D/g, '').endsWith(suffix));
+            const customers = new Set(matches.map(e => (e.customerName || '') + '|' + String(e.phone || '').replace(/\D/g, '')));
+            if (customers.size === 1) applyCustomerMatches(matches, true);
+          });
+        }
+      } catch {}
+    }
+
+    function showPrevEstimates() {
+      const list = document.getElementById('prev-list');
+      list.classList.toggle('hidden');
+      if (!list.classList.contains('hidden')) {
+        list.innerHTML = _matchedEstimates.map((e, i) => {
+          const d = typeof e.date === 'string' ? e.date.substring(0, 10) : '';
+          const total = Number(e.total || 0).toLocaleString();
+          return `<button onclick="loadPrevEstimate(${i})" class="w-full px-3 py-2.5 text-left border-b border-gray-50 hover:bg-blue-50 active:bg-blue-100 transition-colors">
+            <div class="flex justify-between items-center">
+              <span class="text-sm font-bold text-gray-700">${d}</span>
+              <span class="text-sm font-bold text-primary">₩${total}</span>
+            </div>
+            <p class="text-xs text-gray-500 mt-0.5">${e.itemSummary || ''} (${e.totalQuantity || 0}개)</p>
+          </button>`;
+        }).join('');
+      }
+    }
+
+    // --- AI 공간 분석 ---
+    document.getElementById('space-photo').addEventListener('change', function(e) {
+      var files = e.target.files;
+      var preview = document.getElementById('space-photo-preview');
+      preview.innerHTML = '';
+      if (!files.length) { preview.classList.add('hidden'); return; }
+      preview.classList.remove('hidden');
+      Array.from(files).forEach(function(file) {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          var img = document.createElement('img');
+          img.src = ev.target.result;
+          img.className = 'rounded-lg max-h-48 w-full object-cover';
+          preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    function resizeAndEncode(file, maxSize) {
+      return new Promise(function(resolve) {
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          var w = img.width, h = img.height;
+          if (w > maxSize || h > maxSize) {
+            var ratio = Math.min(maxSize / w, maxSize / h);
+            w = Math.round(w * ratio);
+            h = Math.round(h * ratio);
+          }
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          var dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          resolve({ data: dataUrl.split(',')[1], mimeType: 'image/jpeg' });
+        };
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
+    async function handlePhotoAnalysis() {
+      var width = parseFloat(document.getElementById('space-width').value) || 0;
+      var depth = parseFloat(document.getElementById('space-depth').value) || 0;
+      var height = parseFloat(document.getElementById('space-height').value) || 0;
+      var fileInput = document.getElementById('space-photo');
+
+      if (!width || !depth || !height) {
+        UI.toast('가로, 세로, 높이를 입력하세요', 'warning');
+        return;
+      }
+      if (!fileInput.files[0]) {
+        UI.toast('현장 사진을 선택하세요', 'warning');
+        return;
+      }
+
+      var btn = document.getElementById('btn-photo-analyze');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full mx-auto"></div>';
+
+      try {
+        var photos = [];
+        for (var i = 0; i < fileInput.files.length; i++) {
+          photos.push(await resizeAndEncode(fileInput.files[i], 1024));
+        }
+        var purpose = document.getElementById('space-purpose').value || '';
+        var cargoType = document.getElementById('space-cargo-type').value || '';
+        var cargoWeight = document.getElementById('space-cargo-weight').value || '';
+        var memo = document.getElementById('space-memo').value || '';
+        var payload = {
+          width: width, depth: depth, height: height,
+          purpose: purpose, cargoType: cargoType, cargoWeight: cargoWeight, memo: memo,
+          imageBase64: photos[0].data, imageMimeType: photos[0].mimeType
+        };
+        if (photos.length > 1) {
+          payload.images = photos.map(function(p) { return { base64: p.data, mimeType: p.mimeType }; });
+        }
+        var result = await API.analyzePhoto(payload);
+
+        console.log('[AI Photo] response:', JSON.stringify(result));
+        if (result.error) {
+          UI.toast(result.error, 'error');
+          return;
+        }
+        renderPhotoAnalysis(result);
+      } catch (e) {
+        UI.toast('AI 분석 실패: ' + e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'AI 분석 시작';
+      }
+    }
+
+    var _photoRecommendation = null;
+
+    function renderPhotoAnalysis(result) {
+      var container = document.getElementById('photo-analysis-result');
+      container.classList.remove('hidden');
+
+      var pa = result.photoAnalysis || {};
+      var rec = result.recommendation || {};
+      var warnings = result.warnings || [];
+      _photoRecommendation = rec;
+
+      container.innerHTML =
+        '<div class="space-y-3">' +
+          '<div class="p-3 bg-gray-50 rounded-lg">' +
+            '<p class="text-xs font-bold text-gray-500 mb-1">공간 분석</p>' +
+            '<div class="text-xs text-gray-600 space-y-0.5">' +
+              '<p>바닥: ' + (pa.floorType || '-') + '</p>' +
+              '<p>기존 설비: ' + (pa.existingRacks || '-') + '</p>' +
+              '<p>장애물: ' + (pa.obstacles || '-') + '</p>' +
+              '<p>환경: ' + (pa.environment || '-') + '</p>' +
+            '</div>' +
+          '</div>' +
+          '<div class="p-3 bg-blue-50 rounded-lg">' +
+            '<p class="text-xs font-bold text-blue-700 mb-1">추천</p>' +
+            '<p class="text-sm font-bold text-blue-900">' + (rec.rackType || '-') + ' × ' + (rec.estimatedQty || '?') + '대</p>' +
+            '<p class="text-xs text-blue-600 mt-1">' + (rec.layout || '') + '</p>' +
+            '<p class="text-xs text-blue-500 mt-1">' + (rec.reasoning || '') + '</p>' +
+          '</div>' +
+          (warnings.length > 0 ?
+            '<div class="p-3 bg-amber-50 rounded-lg">' +
+              '<p class="text-xs font-bold text-amber-700 mb-1">주의사항</p>' +
+              warnings.map(function(w) { return '<p class="text-xs text-amber-600">• ' + w + '</p>'; }).join('') +
+            '</div>' : '') +
+          '<button onclick="applyPhotoRecommendation()" class="w-full h-10 bg-primary text-white rounded-lg text-sm font-bold active:scale-[0.98]">' +
+            '추천 품목으로 견적 작성' +
+          '</button>' +
+        '</div>';
+      var resultSections = container.querySelectorAll('.space-y-3 > div');
+      if (resultSections[0]) {
+        resultSections[0].innerHTML = `<p class='text-sm font-bold text-gray-700 mb-2'>현장 체크리스트</p><div class='text-sm text-gray-600 space-y-1'><p>바닥: ${pa.floorType || '-'}</p><p>기존 설비: ${pa.existingRacks || '-'}</p><p>장애물: ${pa.obstacles || '-'}</p><p>환경: ${pa.environment || '-'}</p>${warnings.map(function (warning) { return '<p>주의사항: '+warning+'</p>'; }).join('')}</div>`;
+      }
+      if (resultSections[1]) {
+        resultSections[1].innerHTML = `<p class='text-sm font-bold text-gray-700'>추천 후보 ${rec.rackType || '-'}</p><p class='text-[15px] text-gray-400 mt-1'>참고 수량 ${rec.estimatedQty || '?'}대 · ${rec.reasoning || ''}</p>`;
+      }
+      var oldApplyButton = container.querySelector('button');
+      if (oldApplyButton) oldApplyButton.hidden = true;
+      var candidateButton = document.createElement('button');
+      candidateButton.type = 'button';
+      candidateButton.className = 'w-full h-12 bg-primary text-white rounded-xl text-base font-bold';
+      candidateButton.textContent = '추천 후보 보기';
+      candidateButton.onclick = showPhotoCandidates;
+      container.querySelector('.space-y-3').appendChild(candidateButton);
+    }
+
+    function showPhotoCandidates() {
+      if (!_photoRecommendation || !_photoRecommendation.rackType) {
+        UI.toast('추천 정보가 없습니다', 'warning');
+        return;
+      }
+      EstimateWizard.go(1);
+      App.onTypeChip(_photoRecommendation.rackType);
+    }
+
+    function applyPhotoRecommendation() {
+      if (!_photoRecommendation || !_photoRecommendation.rackType) {
+        UI.toast('추천 정보가 없습니다', 'warning');
+        return;
+      }
+      var rec = _photoRecommendation;
+      var match = App.priceData.find(function(p) {
+        return p.type === rec.rackType && !p.isAccessory;
+      });
+      if (match) {
+        App.items.push({
+          type: match.type, form: match.form || '', spec: String(match.spec), tier: match.tier,
+          unitPrice: Number(match.unitPrice) || 0, installFee: Number(match.installFee) || 0,
+          vat: match.vat || '별도', quantity: rec.estimatedQty || 1,
+          pricingModel: match.pricingModel || '', layoutType: match.layoutType || '',
+          setName: match.setName || '', partCategory: match.partCategory || ''
+        });
+        App.renderItems();
+        App.updateTotal();
+        App.notifyItemAdded(App.items[App.items.length - 1]);
+        UI.toast('추천 품목이 추가되었습니다', 'success');
+        if (window.EstimateWizard && EstimateWizard.go) EstimateWizard.go(6);
+      } else {
+        UI.toast('매칭되는 품목을 찾을 수 없습니다. 직접 선택하세요.', 'warning');
+      }
+    }
+
+    async function loadPrevEstimate(index) {
+      const est = _matchedEstimates[index];
+      if (!est || !est.items) return;
+      if (!confirm('현재 품목을 이전 견적으로 교체할까요?')) return;
+      try {
+      await App.loadPrices(true);
+      const updated = Precheck.reprice(est.items, App.priceData);
+      if (!confirm('현재 단가로 적용합니다. 변경 ' + updated.changed + '개 품목. 직접 입력 비용은 별도로 확인하세요.')) return;
+      App.loadItems(updated.items);
+      if (App.items.length) App.notifyItemAdded(App.items[App.items.length - 1]);
+      document.getElementById('prev-list').classList.add('hidden');
+      UI.toast('이전 견적 품목이 로드되었습니다', 'success');
+      } catch (err) { UI.toast(err.message, 'error'); }
+    }
+  </script>
+
+  <script src="/js/sw-register.js"></script>
+</body>
+</html>

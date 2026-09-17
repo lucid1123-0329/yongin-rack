@@ -13,6 +13,10 @@ const Estimate = (() => {
   let _brandingCache = null;
   let _brandingCacheTs = 0;
   const BRANDING_CACHE_TTL = 60000; // 1 minute
+  function setBranding(branding) {
+    _brandingCache = branding || {};
+    _brandingCacheTs = Date.now();
+  }
 
   function getBranding() {
     const now = Date.now();
@@ -77,7 +81,6 @@ const Estimate = (() => {
     if (marginItems.length === 0) return items;
 
     const totalMargin = marginItems.reduce((sum, i) => sum + (Number(i.unitPrice) || 0) * (Number(i.quantity) || 1), 0);
-    if (totalMargin <= 0) return items;
 
     // 랙 항목만 추출
     const rackItems = items.filter(i => i.itemType !== 'custom');
@@ -88,14 +91,15 @@ const Estimate = (() => {
       return sum + ((Number(i.unitPrice) || 0) + (Number(i.installFee) || 0)) * (Number(i.quantity) || 0);
     }, 0);
 
-    if (rackTotal <= 0) return items;
+    if (rackTotal <= 0) throw new Error('마진을 배분할 랙 품목이 없습니다. 품목 구성을 확인하세요.');
 
     // 각 랙 항목에 마진 비례 배분
     let distributed = 0;
-    const adjustedRacks = rackItems.map((item, idx) => {
+    const adjustedRacks = rackItems.flatMap((item, idx) => {
       const itemTotal = ((Number(item.unitPrice) || 0) + (Number(item.installFee) || 0)) * (Number(item.quantity) || 0);
       const ratio = itemTotal / rackTotal;
       const qty = Number(item.quantity) || 1;
+      if (!Number.isSafeInteger(qty) || qty <= 0) throw new Error('품목 수량을 확인하세요.');
 
       // 마지막 항목은 잔여분 할당 (반올림 오차 보정)
       let marginShare;
@@ -107,11 +111,12 @@ const Estimate = (() => {
       }
 
       // 단가에 마진 배분 (대당)
-      const perUnit = Math.round(marginShare / qty);
-      return {
-        ...item,
-        unitPrice: (Number(item.unitPrice) || 0) + perUnit,
-      };
+      const perUnit = Math.floor(marginShare / qty);
+      const extra = marginShare - perUnit * qty;
+      const result = [];
+      if (qty - extra) result.push({ ...item, quantity: qty - extra, unitPrice: (Number(item.unitPrice) || 0) + perUnit });
+      if (extra) result.push({ ...item, quantity: extra, unitPrice: (Number(item.unitPrice) || 0) + perUnit + 1 });
+      return result;
     });
 
     return [...adjustedRacks, ...otherCustom];
@@ -223,7 +228,7 @@ const Estimate = (() => {
                 <td style="${S.infoTh}">상 호</td>
                 <td style="${S.infoTd}">${brand.company || '중용'}</td>
                 <td style="${S.infoTh}">성 명</td>
-                <td style="${S.infoTd};position:relative;">${brand.representative || '김영준'}<img src="assets/sign_rack.png" style="position:absolute;top:50%;right:2px;transform:translateY(-50%);width:48px;height:48px;opacity:0.85;" crossorigin="anonymous"></td>
+                <td style="${S.infoTd};position:relative;">${brand.representative || '김영준'}<img src="/assets/sign_rack.png" style="position:absolute;top:50%;right:2px;transform:translateY(-50%);width:48px;height:48px;opacity:0.85;" crossorigin="anonymous"></td>
               </tr>
               <tr>
                 <td style="${S.infoTh}">주 소</td>
@@ -386,7 +391,7 @@ const Estimate = (() => {
                 <td style="${S.infoTh}">상 호</td>
                 <td style="${S.infoTd}">${brand.company || '중용'}</td>
                 <td style="${S.infoTh}">성 명</td>
-                <td style="${S.infoTd};position:relative;">${brand.representative || '김영준'}<img src="assets/sign_rack.png" style="position:absolute;top:50%;right:2px;transform:translateY(-50%);width:48px;height:48px;opacity:0.85;" crossorigin="anonymous"></td>
+                <td style="${S.infoTd};position:relative;">${brand.representative || '김영준'}<img src="/assets/sign_rack.png" style="position:absolute;top:50%;right:2px;transform:translateY(-50%);width:48px;height:48px;opacity:0.85;" crossorigin="anonymous"></td>
               </tr>
               <tr>
                 <td style="${S.infoTh}">주 소</td>
@@ -536,15 +541,13 @@ const Estimate = (() => {
   }
 
   async function _buildShareUrl(data, docType, options) {
-    if (!data.estimateId) return window.location.href;
-    try {
-      const hideMargin = !!(options && options.hideMargin);
+    if (!data.estimateId) throw new Error('견적을 먼저 저장하세요.');
+      const hideMargin = true; // 고객 링크에는 내부 마진을 전달하지 않는다.
       const tokenRes = await API.createShareToken(data.estimateId, hideMargin, docType || 'formal');
       if (tokenRes && tokenRes.token) {
         return `${location.origin}/view.html?token=${tokenRes.token}`;
       }
-    } catch {}
-    return _buildFallbackUrl(data.estimateId, docType);
+    throw new Error('공유 링크를 만들지 못했습니다. 다시 시도하세요.');
   }
 
   // ========== 공유 ==========
@@ -571,9 +574,9 @@ const Estimate = (() => {
       try {
         await navigator.share({ title, text, url });
         UI.toast('공유 완료', 'success');
-        return;
+        return true;
       } catch (err) {
-        if (err.name === 'AbortError') return;
+        if (err.name === 'AbortError') return false;
       }
     }
 
@@ -587,6 +590,8 @@ const Estimate = (() => {
       document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
       UI.toast('견적 정보가 복사되었습니다.', 'success', 4000);
     }
+    // 클립보드 복사는 실제 발송 완료가 아니므로 요청 상태를 자동 변경하지 않는다.
+    return false;
   }
 
   // ========== 이미지 다운로드 ==========
@@ -651,7 +656,7 @@ const Estimate = (() => {
 
   return {
     renderPreview, renderFormalQuotation, renderTransactionStatement,
-    applyMarginToUnitPrices, share, downloadImage, getBranding,
+    applyMarginToUnitPrices, share, downloadImage, getBranding, setBranding,
     calcTotals: (data) => {
       const items = parseItems(data);
       return calcTotals(items);

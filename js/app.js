@@ -14,6 +14,18 @@ const App = (() => {
   const RECENT_KEY = 'yr_recent_items';
   const PRICE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   let draftTimer = null;
+  let draftClientId = null;
+  let savePromise = null;
+
+  function _wizardCall(method, value) {
+    if (typeof window === 'undefined' || !window.EstimateWizard) return;
+    const handler = window.EstimateWizard[method];
+    if (typeof handler === 'function') handler(value);
+  }
+
+  function notifyItemAdded(item) {
+    _wizardCall('onCartItemAdded', item);
+  }
 
   // 랙 종류별 형태 매핑
   const RACK_TYPES = ['무볼트앵글', '경량랙', '고급경량랙', '아연랙', '중량랙', '파렛트랙', '곤도라 진열대', '하이퍼 진열대'];
@@ -40,7 +52,7 @@ const App = (() => {
   }
 
   // --- 단가 데이터 로드 ---
-  async function loadPrices() {
+  async function loadPrices(force = false) {
     const cached = _lsGet('yr_prices_cache');
     const cacheTs = Number(_lsGet('yr_prices_cache_ts')) || 0;
     const cacheIsFresh = cached && (Date.now() - cacheTs < PRICE_CACHE_TTL);
@@ -53,7 +65,7 @@ const App = (() => {
     }
 
     // Skip network fetch if cache is fresh
-    if (cacheIsFresh) return;
+    if (cacheIsFresh && !force) return;
 
     try {
       const data = await API.getPrices();
@@ -64,9 +76,10 @@ const App = (() => {
         renderRackSelector();
       }
     } catch (err) {
+      if (force) throw err;
       if (!cached) {
         document.getElementById('price-area').innerHTML = UI.empty(
-          '📡', '단가를 불러올 수 없습니다',
+          '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.5a10 10 0 0 1 14 0M8 16a6 6 0 0 1 8 0m-4 4h.01"/></svg>', '단가를 불러올 수 없습니다',
           '네트워크를 확인하고 다시 시도하세요.',
           '새로고침', 'javascript:location.reload()'
         );
@@ -91,10 +104,10 @@ const App = (() => {
   function _getPricingModel(type) {
     if (!type) return 'A';
     var t = type.trim();
-    if (['고급경량랙','MD경량랙','경량랙','아연랙','MD중량랙','KD중량랙','중량랙','파렛트랙'].indexOf(t) >= 0) return 'A';
+    if (['고급경량랙','MD경량랙','경량랙','아연랙','MD중량랙','KD중량랙','중량랙'].indexOf(t) >= 0) return 'A';
     if (t === '하이퍼 진열대' || t.indexOf('하이퍼') >= 0) return 'B';
     if (t === '곤도라 진열대' || t.indexOf('곤도라') >= 0) return 'D';
-    if (t === '무볼트앵글' || t.indexOf('앵글') >= 0) return 'C';
+    if (t === '파렛트랙' || t.indexOf('파렛트') >= 0 || t === '무볼트앵글' || t.indexOf('앵글') >= 0) return 'C';
     return 'A';
   }
 
@@ -129,29 +142,83 @@ const App = (() => {
 
   // --- 빈도 기반 추천 ---
   var FREQ_KEY = 'yr_item_freq';
+  var FREQ_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+  var FREQ_WINDOW_MS = 15 * 24 * 60 * 60 * 1000;
+  var FREQ_MIN_USES = 3;
 
-  function addItemFrequency(item) {
-    try {
-      var freq = JSON.parse(_lsGet(FREQ_KEY) || '{}');
-      var key = item.type + '|' + (item.form || '') + '|' + item.spec + '|' + item.tier;
-      freq[key] = (freq[key] || 0) + 1;
-      _lsSet(FREQ_KEY, JSON.stringify(freq));
-    } catch {}
+  function _itemFrequencyKey(item) {
+    return item.type + '|' + (item.form || '') + '|' + item.spec + '|' + item.tier;
   }
 
-  function getTopItems(n) {
+  function _readItemFrequency(now) {
+    var currentTime = Number.isFinite(Number(now)) ? Number(now) : Date.now();
+    var cutoff = currentTime - FREQ_RETENTION_MS;
+    var raw = {};
     try {
-      var freq = JSON.parse(_lsGet(FREQ_KEY) || '{}');
-      var entries = Object.entries(freq).sort(function(a, b) { return b[1] - a[1]; });
+      raw = JSON.parse(_lsGet(FREQ_KEY) || '{}');
+    } catch {
+      raw = {};
+    }
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) raw = {};
+
+    var cleaned = {};
+    var changed = false;
+    Object.entries(raw).forEach(function(entry) {
+      var key = entry[0];
+      var value = entry[1];
+      if (Array.isArray(value)) {
+        var timestamps = value.map(Number).filter(function(timestamp) {
+          return Number.isFinite(timestamp) && timestamp >= cutoff && timestamp <= currentTime;
+        });
+        if (timestamps.length > 0) cleaned[key] = timestamps;
+        if (JSON.stringify(timestamps) !== JSON.stringify(value)) changed = true;
+      } else if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+        // Legacy counts become one current use so old totals cannot qualify by themselves.
+        cleaned[key] = [currentTime];
+        changed = true;
+      } else {
+        changed = true;
+      }
+    });
+
+    if (changed) _lsSet(FREQ_KEY, JSON.stringify(cleaned));
+    return cleaned;
+  }
+
+  function addItemFrequency(item, now) {
+    var currentTime = Number.isFinite(Number(now)) ? Number(now) : Date.now();
+    var freq = _readItemFrequency(currentTime);
+    var key = _itemFrequencyKey(item);
+    if (!Array.isArray(freq[key])) freq[key] = [];
+    freq[key].push(currentTime);
+    _lsSet(FREQ_KEY, JSON.stringify(freq));
+  }
+
+  function getTopItems(n, now) {
+    try {
+      var currentTime = Number.isFinite(Number(now)) ? Number(now) : Date.now();
+      var windowStart = currentTime - FREQ_WINDOW_MS;
+      var limit = Math.min(6, Math.max(1, Number(n) || 6));
+      var freq = _readItemFrequency(currentTime);
+      var entries = Object.entries(freq).map(function(entry) {
+        var recentUses = entry[1].filter(function(timestamp) {
+          return timestamp >= windowStart && timestamp <= currentTime;
+        });
+        return { key: entry[0], count: recentUses.length, lastUsed: recentUses.length ? Math.max.apply(null, recentUses) : 0 };
+      }).filter(function(entry) {
+        return entry.count >= FREQ_MIN_USES;
+      }).sort(function(a, b) {
+        return b.count - a.count || b.lastUsed - a.lastUsed || a.key.localeCompare(b.key);
+      });
       var tops = [];
-      for (var i = 0; i < Math.min(entries.length, n || 3); i++) {
-        var parts = entries[i][0].split('|');
+      for (var i = 0; i < entries.length && tops.length < limit; i++) {
+        var parts = entries[i].key.split('|');
         var match = priceData.find(function(p) {
           return p.type === parts[0] && (p.form || '') === parts[1] && String(p.spec) === parts[2] && String(p.tier) === parts[3];
         });
         if (match) {
           tops.push({ type: match.type, form: match.form, spec: match.spec, tier: match.tier,
-            unitPrice: match.unitPrice, installFee: match.installFee, vat: match.vat, _count: entries[i][1] });
+            unitPrice: match.unitPrice, installFee: match.installFee, vat: match.vat, _count: entries[i].count });
         }
       }
       return tops;
@@ -188,6 +255,31 @@ const App = (() => {
   // --- 칩/카드 기반 렌더링 ---
   let _selType = '';
   let _selForm = '';
+  let _recentItemsExpanded = false;
+
+  function _quickItemTier(tier) {
+    var value = String(tier || '').trim();
+    if (!value) return '';
+    var tierInParens = value.match(/\((\d+)\s*단\)/);
+    if (tierInParens) return tierInParens[1] + '단';
+    return /단$/.test(value) ? value : value + '단';
+  }
+
+  function _quickItemCard(item, index, handler, count) {
+    var firstLine = item.type + (item.form ? ' · ' + item.form : '');
+    var secondLine = String(item.spec || '').replace(/\*/g, '×');
+    var tier = _quickItemTier(item.tier);
+    if (tier) secondLine += ' · ' + tier;
+    var priceLabel = UI.formatCurrency(item.unitPrice || 0);
+    var thirdLine = priceLabel;
+    if (count) thirdLine += ' · ' + count + '회';
+    var countLabel = count ? ' (' + count + '회)' : '';
+    return `<button type="button" onclick="App.${handler}(${index})" class="quick-item-card" aria-label="${firstLine} ${secondLine} ${priceLabel}${countLabel}">
+      <span class="quick-item-card-title">${firstLine}</span>
+      <span class="quick-item-card-spec">${secondLine}</span>
+      <span class="quick-item-card-price">${thirdLine}</span>
+    </button>`;
+  }
 
   function renderRackSelector() {
     const container = document.getElementById('rack-selector');
@@ -202,87 +294,84 @@ const App = (() => {
     _selForm = '';
     currentSelection = null;
 
-    let html = '';
+    let html = '<div data-wizard-step="1" class="wizard-step-panel wizard-inactive">';
 
-    // 자주 사용하는 품목 (빈도 기반 TOP3, 없으면 최근 사용)
-    var topItems = getTopItems(3);
-    var quickItems = topItems.length > 0 ? topItems : getRecentItems();
-    var quickLabel = topItems.length > 0 ? '자주 사용하는 품목' : '최근 사용';
-    if (quickItems.length > 0) {
-      html += `<div class="mb-4">
-        <label class="block text-xs font-semibold text-gray-500 mb-2">${quickLabel}</label>
-        <div class="flex flex-wrap gap-2">
-          ${quickItems.map((r, i) => {
-            const specShort = String(r.spec || '');
-            const tierStr = r.tier ? '*' + r.tier + 's' : '';
-            const label = r.type + (r.form ? '(' + r.form + ')' : '') + ' ' + specShort + tierStr;
-            const countBadge = r._count ? ' (' + r._count + '회)' : '';
-            return `<button type="button" onclick="App.addRecentQuick(${i})"
-              class="px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl text-xs font-semibold text-blue-700 active:bg-blue-100 text-left">
-              <span class="block">${label}${countBadge}</span>
-              <span class="block text-blue-500 text-[10px]">${UI.formatCurrency(r.unitPrice || 0)}</span>
-            </button>`;
-          }).join('')}
+    var topItems = getTopItems(6);
+    var recentItems = getRecentItems();
+    html += '<div class="quick-item-sections">';
+
+    if (topItems.length > 0) {
+      html += `<div id="quick-frequent-section" class="quick-item-section">
+        <label class="quick-item-heading">자주 사용</label>
+        <div class="quick-item-row">
+          ${topItems.map((item, index) => _quickItemCard(item, index, 'addFrequentlyUsedQuick', item._count)).join('')}
+        </div>
+      </div>`;
+    }
+
+    if (recentItems.length > 0) {
+      if (topItems.length > 0) {
+        html += `<button id="recent-items-toggle" type="button" class="recent-items-toggle" onclick="App.toggleRecentItems()" aria-expanded="${_recentItemsExpanded}">${_recentItemsExpanded ? '최근 사용 접기' : '최근 사용 보기'}</button>`;
+      }
+      html += `<div id="quick-recent-section" class="quick-item-section${topItems.length > 0 && !_recentItemsExpanded ? ' hidden' : ''}">
+        <label class="quick-item-heading">최근 사용</label>
+        <div class="quick-item-row">
+          ${recentItems.map((item, index) => _quickItemCard(item, index, 'addRecentQuick')).join('')}
         </div>
       </div>`;
     }
 
     // 이 고객 패턴
     if (_customerPatternItems.length > 0) {
-      html += `<div class="mb-4">
-        <label class="block text-xs font-semibold text-gray-500 mb-2">이 고객이 사용한 품목</label>
-        <div class="flex flex-wrap gap-2">
-          ${_customerPatternItems.slice(0, 5).map((r, i) => {
-            const specShort = String(r.spec || '');
-            const label = r.type + (r.form ? '(' + r.form + ')' : '') + ' ' + specShort;
-            return `<button type="button" onclick="App._addPatternItem(${i})"
-              class="px-3 py-2 bg-green-50 border border-green-200 rounded-xl text-xs font-semibold text-green-700 active:bg-green-100 text-left">
-              <span class="block">${label}</span>
-              <span class="block text-green-500 text-[10px]">${UI.formatCurrency(r.unitPrice || 0)}</span>
-            </button>`;
-          }).join('')}
+      html += `<div id="quick-customer-section" class="quick-item-section">
+        <label class="quick-item-heading">이 고객 품목</label>
+        <div class="quick-item-row">
+          ${_customerPatternItems.slice(0, 5).map((item, index) => _quickItemCard(item, index, '_addPatternItem')).join('')}
         </div>
       </div>`;
     }
+    html += '</div>';
 
     // 종류 칩
     const categories = getCategories();
     const allTypes = [...new Set([...RACK_TYPES, ...categories])];
     html += `<div class="mb-3">
       <label class="block text-xs font-semibold text-gray-500 mb-2">랙 종류</label>
-      <div id="chips-type" class="flex flex-wrap gap-2">
+      <div id="chips-type" class="wizard-type-grid">
         ${allTypes.map(t => `<span class="chip" onclick="App.onTypeChip('${t}')">${t}</span>`).join('')}
       </div>
-    </div>`;
+    </div></div>`;
 
     // 형태 영역 (hidden) — 모델 A/B 공통
-    html += `<div id="sel-form-group" class="mb-3 hidden">
+    html += `<div id="sel-form-group" data-wizard-step="2" class="wizard-step-panel wizard-inactive mb-3 hidden">
       <label class="block text-xs font-semibold text-gray-500 mb-2">형태</label>
       <div id="chips-form" class="flex flex-wrap gap-2"></div>
     </div>`;
 
     // 모델 B 배치유형 칩 (hidden)
-    html += `<div id="sel-layout-group" class="mb-3 hidden">
+    html += `<div id="sel-layout-group" data-wizard-step="2" class="wizard-step-panel wizard-inactive mb-3 hidden">
       <label class="block text-xs font-semibold text-gray-500 mb-2">배치유형</label>
       <div id="chips-layout" class="flex flex-wrap gap-2"></div>
     </div>`;
 
     // 규격 카드 영역 (hidden) — 모델 A/B 공통
-    html += `<div id="sel-spec-group" class="mb-3 hidden">
+    html += `<div id="sel-spec-group" data-wizard-step="2" class="wizard-step-panel wizard-inactive mb-3 hidden">
+      <div id="spec-dim-filters" class="hidden mb-2 space-y-2" aria-label="치수 단계 선택"></div>
       <div class="flex items-center justify-between mb-2">
         <label class="block text-xs font-semibold text-gray-500">규격 선택</label>
         <div class="flex gap-1">
           <button type="button" onclick="App.sortSpecs('spec')" id="sort-spec-btn"
-            class="text-[10px] px-2 py-0.5 rounded-full bg-[#1e3a5f] text-white">규격순</button>
+            class="text-[10px] px-2 py-0.5 rounded-full bg-primary text-white">규격순</button>
           <button type="button" onclick="App.sortSpecs('price')" id="sort-price-btn"
             class="text-[10px] px-2 py-0.5 rounded-full bg-gray-200 text-gray-600">가격순</button>
         </div>
       </div>
-      <div id="cards-spec" class="flex flex-col gap-1 max-h-[280px] overflow-y-auto overscroll-contain rounded-lg border border-gray-200"></div>
+      <div id="cards-spec" class="flex flex-col gap-px max-h-[280px] overflow-y-auto overscroll-contain rounded-xl border-0 border-[#2F6BFF] bg-[#2F6BFF]"></div>
+      <button type="button" id="toggle-unpriced-spec" onclick="App.toggleUnpriced()" class="unpriced-toggle hidden"></button>
     </div>`;
 
     // 선반 추가 옵션 (모델 A — hidden)
-    html += `<div id="sel-shelf-addon" class="mb-3 hidden">
+    html += `<div id="sel-shelf-addon" data-wizard-step="3" class="wizard-step-panel wizard-inactive mb-3 hidden">
       <div class="bg-blue-50 rounded-lg p-3">
         <label class="flex items-center gap-2 text-xs font-semibold text-gray-700">
           <input type="checkbox" id="chk-shelf-addon" onchange="App.onShelfAddonToggle()">
@@ -301,7 +390,7 @@ const App = (() => {
     </div>`;
 
     // 모델 C: 부품 조합 영역 (hidden)
-    html += `<div id="sel-parts-group" class="mb-3 hidden">
+    html += `<div id="sel-parts-group" data-wizard-step="2" class="wizard-step-panel wizard-inactive mb-3 hidden">
       <label class="block text-xs font-semibold text-gray-500 mb-2">부품 종류</label>
       <div id="chips-part-cat" class="flex flex-wrap gap-2 mb-3"></div>
       <div id="parts-thickness-area" class="hidden mb-3">
@@ -310,30 +399,34 @@ const App = (() => {
       </div>
       <div id="parts-list" class="hidden">
         <label class="block text-xs font-semibold text-gray-500 mb-2">길이별 단가</label>
-        <div id="cards-parts" class="flex flex-col gap-1 max-h-[280px] overflow-y-auto overscroll-contain rounded-lg border border-gray-200"></div>
+      <div id="cards-parts" class="flex flex-col gap-px max-h-[280px] overflow-y-auto overscroll-contain rounded-xl border-0 border-[#2F6BFF] bg-[#2F6BFF]"></div>
+      <button type="button" id="toggle-unpriced-parts" onclick="App.toggleUnpriced()" class="unpriced-toggle hidden"></button>
       </div>
     </div>`;
 
     // 모델 D: 세트/부품 선택 영역 (hidden)
-    html += `<div id="sel-sets-group" class="mb-3 hidden">
+    html += `<div id="sel-sets-group" data-wizard-step="2" class="wizard-step-panel wizard-inactive mb-3 hidden">
       <div class="flex gap-2 mb-3">
         <button type="button" onclick="App.onDModeSwitch('set')" id="d-mode-set"
           class="chip selected">세트 선택</button>
         <button type="button" onclick="App.onDModeSwitch('part')" id="d-mode-part"
           class="chip">부품 개별</button>
       </div>
-      <div id="d-set-cards" class="flex flex-col gap-1 max-h-[300px] overflow-y-auto overscroll-contain rounded-lg border border-gray-200"></div>
+      <div id="d-set-dim-filters" class="hidden mb-2 space-y-2" aria-label="세트 치수 단계 선택"></div>
+      <div id="d-set-cards" class="flex flex-col gap-px max-h-[300px] overflow-y-auto overscroll-contain rounded-xl border-0 border-[#2F6BFF] bg-[#2F6BFF]"></div>
+      <button type="button" id="toggle-unpriced-sets" onclick="App.toggleUnpriced()" class="unpriced-toggle hidden"></button>
       <div id="d-part-area" class="hidden">
         <label class="block text-xs font-semibold text-gray-500 mb-2">부품 종류</label>
         <div id="d-chips-part-cat" class="flex flex-wrap gap-2 mb-3"></div>
-        <div id="d-parts-list" class="flex flex-col gap-1 max-h-[280px] overflow-y-auto overscroll-contain rounded-lg border border-gray-200"></div>
+        <div id="d-parts-list" class="flex flex-col gap-px max-h-[280px] overflow-y-auto overscroll-contain rounded-xl border-0 border-[#2F6BFF] bg-[#2F6BFF]"></div>
+        <button type="button" id="toggle-unpriced-d-parts" onclick="App.toggleUnpriced()" class="unpriced-toggle hidden"></button>
       </div>
     </div>`;
 
     // 부속품 추가 영역 (모든 모델 공통 — hidden)
-    html += `<div id="sel-accessories" class="mb-3 hidden">
+    html += `<div id="sel-accessories" data-wizard-step="2" class="wizard-step-panel wizard-inactive mb-3 hidden">
       <label class="block text-xs font-semibold text-gray-500 mb-2">부속품 추가</label>
-      <div id="cards-accessories" class="flex flex-col gap-1 max-h-[200px] overflow-y-auto overscroll-contain rounded-lg border border-gray-200"></div>
+      <div id="cards-accessories" class="flex flex-col gap-px max-h-[200px] overflow-y-auto overscroll-contain rounded-xl border-0 border-[#2F6BFF] bg-[#2F6BFF]"></div>
     </div>`;
 
     container.innerHTML = html;
@@ -354,6 +447,227 @@ const App = (() => {
   let _selPartCat = ''; // 모델 C: 부품 카테고리
   let _selPartThickness = ''; // 모델 C: 두께
   let _dMode = 'set'; // 모델 D: set / part
+  let _specWidthFilter = ''; // 이전 U4 공개 핸들러 호환용
+  let _showUnpriced = false;
+  let _dimSelection = { W: '', D: '', H: '' };
+
+  function _isPriced(item) {
+    return Number(item && item.unitPrice) > 0;
+  }
+
+  function _priceVisible(items) {
+    return (items || []).filter(item => _showUnpriced || _isPriced(item));
+  }
+
+  function _dimensionNumbers(value) {
+    const matches = String(value || '').match(/\d[\d,]*/g) || [];
+    return matches.map(value => Number(value.replace(/,/g, ''))).filter(Number.isFinite);
+  }
+
+  function _parseSpecDimensions(item) {
+    if (!item) return null;
+    const type = String(item.type || '').trim();
+    const spec = String(item.spec || '').trim();
+    const specNums = _dimensionNumbers(spec);
+    const tierNums = _dimensionNumbers(item.tier);
+    let W = 0, D = 0, H = 0;
+
+    if (type.indexOf('하이퍼') >= 0) {
+      W = specNums[0] || 0;
+      if (spec.indexOf('*') >= 0 && specNums.length >= 2) {
+        D = specNums[1];
+      } else {
+        const depthMatch = spec.match(/깊이\s*(\d[\d,]*)/);
+        const oneSideDepth = depthMatch ? Number(depthMatch[1].replace(/,/g, '')) : 500;
+        D = String(item.layoutType || '').indexOf('중앙') >= 0 ? oneSideDepth * 2 : oneSideDepth;
+      }
+      H = tierNums[0] || specNums[2] || 0;
+    } else if (['고급경량랙', 'MD경량랙', 'MD중량랙', 'KD중량랙'].indexOf(type) >= 0) {
+      D = specNums[0] || 0;
+      W = specNums[1] || 0;
+      H = specNums[2] || tierNums[0] || 0;
+    } else if (specNums.length >= 3) {
+      W = specNums[0];
+      D = specNums[1];
+      H = specNums[2];
+    } else if (specNums.length >= 2 && tierNums.length) {
+      D = specNums[0];
+      W = specNums[1];
+      H = tierNums[0];
+    }
+
+    return W > 0 && D > 0 && H > 0
+      ? { W: String(W), D: String(D), H: String(H) }
+      : null;
+  }
+
+  function _parseDSetDimensions(item) {
+    if (!item) return null;
+    const text = String(item.setName || item.spec || '').trim();
+    const match = text.match(/^([^()]+)\(([^)]+)\)/);
+    if (!match) return null;
+    const nums = _dimensionNumbers(match[2]);
+    if (nums.length < 3) return null;
+    return {
+      layout: String(item.layoutType || match[1]).trim(),
+      W: String(nums[0]),
+      D: String(nums[1]),
+      H: String(nums[2])
+    };
+  }
+
+  function _restoreDimSelection(type) {
+    _dimSelection = { W: '', D: '', H: '' };
+    try {
+      const remembered = JSON.parse(_lsGet('yr_last_dims_' + type) || '{}');
+      ['W', 'D', 'H'].forEach(axis => {
+        _dimSelection[axis] = remembered[axis] ? String(remembered[axis]) : '';
+      });
+    } catch {}
+  }
+
+  function _saveDimSelection() {
+    if (_selType) _lsSet('yr_last_dims_' + _selType, JSON.stringify(_dimSelection));
+  }
+
+  function _dimensionValues(items, axis, parser) {
+    const values = [];
+    (items || []).forEach(item => {
+      const dims = parser(item);
+      if (!dims) return;
+      if (axis !== 'W' && _dimSelection.W && dims.W !== _dimSelection.W) return;
+      if (axis === 'H' && _dimSelection.D && dims.D !== _dimSelection.D) return;
+      values.push(dims[axis]);
+    });
+    return [...new Set(values)].sort((a, b) => Number(a) - Number(b));
+  }
+
+  function _normalizeDimSelection(items, parser) {
+    const widths = _dimensionValues(items, 'W', parser);
+    if (_dimSelection.W && !widths.includes(_dimSelection.W)) {
+      _dimSelection = { W: '', D: '', H: '' };
+    }
+    const depths = _dimensionValues(items, 'D', parser);
+    if (_dimSelection.D && !depths.includes(_dimSelection.D)) {
+      _dimSelection.D = '';
+      _dimSelection.H = '';
+    }
+    const heights = _dimensionValues(items, 'H', parser);
+    if (_dimSelection.H && !heights.includes(_dimSelection.H)) _dimSelection.H = '';
+  }
+
+  function _matchesDimensions(item, parser) {
+    const dims = parser(item);
+    if (!dims) return true;
+    return ['W', 'D', 'H'].every(axis =>
+      !_dimSelection[axis] || dims[axis] === _dimSelection[axis]
+    );
+  }
+
+  function _allDimensionsSelected() {
+    return Boolean(_dimSelection.W && _dimSelection.D && _dimSelection.H);
+  }
+
+  function _renderDimensionFilters(containerId, items, parser, scope) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const parsedCount = (items || []).filter(item => parser(item)).length;
+    if (parsedCount === 0) {
+      container.innerHTML = '';
+      container.classList.add('hidden');
+      return;
+    }
+
+    _normalizeDimSelection(items, parser);
+    const labels = { W: '폭(W) mm', D: '깊이(D) mm', H: '높이(H) mm' };
+    container.innerHTML = ['W', 'D', 'H'].map(axis => {
+      const values = _dimensionValues(items, axis, parser);
+      const buttons = ['', ...values].map(value => {
+        const selected = value === _dimSelection[axis];
+        const label = value || '전체';
+        return '<button type="button" class="dim-chip' + (selected ? ' is-selected' : '') +
+          '" aria-pressed="' + String(selected) + '" onclick="App.onDimensionChip(\'' +
+          scope + '\',\'' + axis + '\',\'' + value + '\')">' + label + '</button>';
+      }).join('');
+      return '<div class="dim-filter-row"><span class="pt-3 text-xs font-semibold text-gray-500">' +
+        labels[axis] + '</span><div class="dim-filter-options">' + buttons + '</div></div>';
+    }).join('');
+    container.classList.remove('hidden');
+  }
+
+  function onDimensionChip(scope, axis, value) {
+    if (['W', 'D', 'H'].indexOf(axis) < 0) return;
+    _dimSelection[axis] = String(value || '');
+    if (axis === 'W') {
+      _dimSelection.D = '';
+      _dimSelection.H = '';
+    } else if (axis === 'D') {
+      _dimSelection.H = '';
+    }
+    _saveDimSelection();
+    _clearCardSelection();
+    if (scope === 'set') _renderDSetCards(_selType);
+    else if (_getPricingModel(_selType) === 'B') _renderModelBSpecs();
+    else renderSpecCards(_selType, _selForm);
+  }
+
+  function _clearCardSelection() {
+    currentSelection = null;
+    const addSection = document.getElementById('add-section');
+    if (addSection) addSection.classList.add('hidden');
+    const shelfAddon = document.getElementById('sel-shelf-addon');
+    if (shelfAddon) shelfAddon.classList.add('hidden');
+  }
+
+  function _renderUnpricedToggle(id, items) {
+    const button = document.getElementById(id);
+    if (!button) return;
+    const count = (items || []).filter(item => !_isPriced(item)).length;
+    button.classList.toggle('hidden', count === 0);
+    button.textContent = _showUnpriced
+      ? '단가 미입력 규격 ' + count + '개 숨기기'
+      : '단가 미입력 규격 ' + count + '개 보기';
+    button.setAttribute('aria-pressed', String(_showUnpriced));
+  }
+
+  function _unpricedBadge(item) {
+    return _isPriced(item) ? '' : '<span class="v2-unpriced-badge">단가 미입력</span>';
+  }
+
+  function _setCardListOverflow(container, count) {
+    if (!container) return;
+    container.classList.toggle('overflow-y-auto', count > 3);
+    container.classList.toggle('overflow-y-visible', count <= 3);
+  }
+
+  function _rejectUnpriced(item) {
+    if (_isPriced(item)) return false;
+    UI.toast('단가가 입력되지 않은 규격입니다. 더보기 > 단가 관리에서 단가를 넣어주세요.', 'warning', 5000);
+    return true;
+  }
+
+  function toggleUnpriced() {
+    _showUnpriced = !_showUnpriced;
+    _clearCardSelection();
+    const model = _getPricingModel(_selType);
+    if (model === 'B') {
+      _renderModelBSpecs();
+    } else if (model === 'C') {
+      if (_selPartCat) _renderPartCards();
+    } else if (model === 'D') {
+      if (_dMode === 'set') _renderDSetCards(_selType);
+      else if (_selPartCat) onDPartCatChip(_selPartCat);
+    } else {
+      renderSpecCards(_selType, _selForm);
+    }
+  }
+
+  function _autoSelectForm(type, forms) {
+    if (!forms || forms.length === 0) return;
+    const remembered = forms.length > 1 ? _lsGet('yr_last_form_' + type) : '';
+    const nextForm = forms.length === 1 ? forms[0] : remembered;
+    if (nextForm && forms.includes(nextForm)) onFormChip(nextForm);
+  }
 
   function onTypeChip(type) {
     _selType = type;
@@ -361,6 +675,9 @@ const App = (() => {
     _selLayout = '';
     _selPartCat = '';
     _selPartThickness = '';
+    _specWidthFilter = '';
+    _showUnpriced = false;
+    _restoreDimSelection(type);
     currentSelection = null;
     _hideAllSubGroups();
 
@@ -370,6 +687,7 @@ const App = (() => {
     });
 
     const model = _getPricingModel(type);
+    _wizardCall('onTypeSelected', type);
 
     switch (model) {
       case 'B': _renderModelB(type); break;
@@ -401,6 +719,7 @@ const App = (() => {
       `<span class="chip chip-form" onclick="App.onFormChip('${f}')">${f}</span>`
     ).join('');
     formGroup.classList.remove('hidden');
+    _autoSelectForm(type, allForms);
   }
 
   // ======== 모델 B: 배치 → 형태 → 규격 ========
@@ -427,14 +746,19 @@ const App = (() => {
       `<span class="chip chip-form" onclick="App.onFormChip('${f}')">${f}</span>`
     ).join('');
     formGroup.classList.remove('hidden');
+    _autoSelectForm(type, forms);
+    const rememberedLayout = _lsGet('yr_last_layout_' + type);
+    if (rememberedLayout && layouts.includes(rememberedLayout)) onLayoutChip(rememberedLayout);
   }
 
   function onLayoutChip(layout) {
     _selLayout = layout;
+    if (_selType && layout) _lsSet('yr_last_layout_' + _selType, layout);
     document.querySelectorAll('#chips-layout .chip').forEach(el => {
       el.classList.toggle('selected', el.textContent === layout);
     });
-    if (_selForm) _renderModelBSpecs();
+    if (_getPricingModel(_selType) === 'D') _renderDSetCards(_selType);
+    else if (_selForm) _renderModelBSpecs();
   }
 
   // ======== 모델 C: 부품 카테고리 → 두께 → 길이별 카드 ========
@@ -490,13 +814,15 @@ const App = (() => {
     if (_selPartThickness) parts = parts.filter(p => p.partThickness === _selPartThickness);
 
     parts.sort((a, b) => (a.partLength || 0) - (b.partLength || 0));
+    _renderUnpricedToggle('toggle-unpriced-parts', parts);
+    parts = _priceVisible(parts);
 
     cardsContainer.innerHTML = parts.map((p, i) => {
       const label = p.spec || (p.partLength ? p.partLength + 'mm' : '');
       return `<button type="button" onclick="App.onPartCard('${_selPartCat}','${_selPartThickness}',${i})" data-idx="${i}"
-        class="part-card flex items-center justify-between px-3 py-2.5 bg-white border-b border-gray-100 text-left active:bg-purple-50 transition-colors">
-        <span class="text-sm font-bold text-gray-800">${label}</span>
-        <span class="text-sm font-extrabold text-purple-600">${UI.formatCurrency(p.unitPrice)}</span>
+        class="part-card min-h-16 flex items-center justify-between px-4 py-3 ${_isPriced(p) ? 'bg-white' : 'v2-unpriced-card'} border-b border-gray-200 text-left transition-colors">
+        <span class="text-sm font-bold text-gray-800">${label}</span>${_unpricedBadge(p)}
+        <span class="v2-money text-sm font-bold text-[#2F6BFF]">${UI.formatCurrency(p.unitPrice)}</span>
       </button>`;
     }).join('') || '<p class="text-gray-400 text-xs text-center py-3">등록된 부품이 없습니다</p>';
     listArea.classList.remove('hidden');
@@ -506,19 +832,25 @@ const App = (() => {
     let parts = getPartsForType(_selType).filter(p => p.partCategory === cat);
     if (thickness) parts = parts.filter(p => p.partThickness === thickness);
     parts.sort((a, b) => (a.partLength || 0) - (b.partLength || 0));
+    parts = _priceVisible(parts);
     currentSelection = parts[index] || null;
     if (!currentSelection) return;
+    if (_rejectUnpriced(currentSelection)) {
+      currentSelection = null;
+      return;
+    }
 
     document.querySelectorAll('.part-card').forEach(el => {
       const isSelected = parseInt(el.dataset.idx) === index;
-      el.classList.toggle('bg-purple-50', isSelected);
+      el.classList.toggle('v2-selected', isSelected);
       el.classList.toggle('bg-white', !isSelected);
-      el.classList.toggle('border-l-[3px]', isSelected);
-      el.classList.toggle('border-l-purple-600', isSelected);
+      el.classList.toggle('v2-selected-outline', isSelected);
+      el.classList.toggle('v2-selected-check', isSelected);
     });
 
     const addSection = document.getElementById('add-section');
     if (addSection) addSection.classList.remove('hidden');
+    if (typeof EstimateWizard !== 'undefined') EstimateWizard.onSpecSelected(currentSelection);
   }
 
   // ======== 모델 D: 세트 선택 / 부품 개별 ========
@@ -526,28 +858,71 @@ const App = (() => {
     const setsGroup = document.getElementById('sel-sets-group');
     setsGroup.classList.remove('hidden');
     _dMode = 'set';
+    const layouts = [...new Set(getSetsForType(type).map(item => {
+      const dims = _parseDSetDimensions(item);
+      return String(item.layoutType || (dims && dims.layout) || '').trim();
+    }).filter(Boolean))];
+    const layoutGroup = document.getElementById('sel-layout-group');
+    const layoutChips = document.getElementById('chips-layout');
+    if (layouts.length) {
+      layoutChips.innerHTML = layouts.map(layout =>
+        '<span class="chip" onclick="App.onLayoutChip(\'' + layout + '\')">' + layout + '</span>'
+      ).join('');
+      layoutGroup.classList.remove('hidden');
+      const rememberedLayout = _lsGet('yr_last_layout_' + type);
+      const nextLayout = layouts.length === 1 ? layouts[0] : rememberedLayout;
+      if (nextLayout && layouts.includes(nextLayout)) {
+        _selLayout = nextLayout;
+        Array.from(layoutChips.children).forEach(chip => {
+          chip.classList.toggle('selected', chip.textContent === nextLayout);
+        });
+      }
+    }
     _renderDSetCards(type);
   }
 
   function onDModeSwitch(mode) {
     _dMode = mode;
+    const layoutGroup = document.getElementById('sel-layout-group');
     document.getElementById('d-mode-set').classList.toggle('selected', mode === 'set');
     document.getElementById('d-mode-part').classList.toggle('selected', mode === 'part');
 
     if (mode === 'set') {
+      if (layoutGroup && document.getElementById('chips-layout').children.length) layoutGroup.classList.remove('hidden');
       document.getElementById('d-set-cards').classList.remove('hidden');
       document.getElementById('d-part-area').classList.add('hidden');
       _renderDSetCards(_selType);
     } else {
+      if (layoutGroup) layoutGroup.classList.add('hidden');
       document.getElementById('d-set-cards').classList.add('hidden');
       document.getElementById('d-part-area').classList.remove('hidden');
       _renderDPartCats(_selType);
     }
   }
 
+  function _getDSetContext(type) {
+    let sets = getSetsForType(type);
+    if (_selLayout) {
+      sets = sets.filter(item => {
+        const dims = _parseDSetDimensions(item);
+        return String(item.layoutType || (dims && dims.layout) || '').trim() === _selLayout;
+      });
+    }
+    return sets;
+  }
+
+  function _getVisibleDSets(type) {
+    return _priceVisible(_getDSetContext(type))
+      .filter(item => _matchesDimensions(item, _parseDSetDimensions));
+  }
+
   function _renderDSetCards(type) {
     const container = document.getElementById('d-set-cards');
-    const sets = getSetsForType(type);
+    const contextSets = _getDSetContext(type);
+    const dimensionSets = _priceVisible(contextSets);
+    _renderUnpricedToggle('toggle-unpriced-sets', contextSets);
+    _renderDimensionFilters('d-set-dim-filters', dimensionSets, _parseDSetDimensions, 'set');
+    const sets = _getVisibleDSets(type);
 
     if (sets.length === 0) {
       container.innerHTML = '<p class="text-gray-400 text-xs text-center py-3">등록된 세트가 없습니다</p>';
@@ -558,32 +933,39 @@ const App = (() => {
       const layoutBadge = s.layoutType ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">${s.layoutType}</span>` : '';
       const formBadge = s.form ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-700">${s.form}</span>` : '';
       return `<button type="button" onclick="App.onDSetCard(${i})" data-idx="${i}"
-        class="d-set-card flex items-center justify-between px-3 py-3 bg-white border-b border-gray-100 text-left active:bg-amber-50 transition-colors">
+        class="d-set-card min-h-16 flex items-center justify-between px-4 py-3 ${_isPriced(s) ? 'bg-white' : 'v2-unpriced-card'} border-b border-gray-200 text-left transition-colors">
         <div>
-          <div class="flex items-center gap-1 mb-0.5">${layoutBadge}${formBadge}</div>
+          <div class="flex items-center gap-1 mb-0.5">${layoutBadge}${formBadge}${_unpricedBadge(s)}</div>
           <span class="text-sm font-bold text-gray-800">${s.setName || s.spec || '세트'}</span>
           <span class="text-[10px] text-gray-400 ml-1">${s.spec || ''}</span>
         </div>
-        <span class="text-sm font-extrabold text-amber-600">${UI.formatCurrency(s.unitPrice)}</span>
+        <span class="v2-money text-sm font-bold text-[#2F6BFF]">${UI.formatCurrency(s.unitPrice)}</span>
       </button>`;
     }).join('');
+    _setCardListOverflow(container, sets.length);
+    if (_allDimensionsSelected() && sets.length === 1 && _isPriced(sets[0])) onDSetCard(0);
   }
 
   function onDSetCard(index) {
-    const sets = getSetsForType(_selType);
+    const sets = _getVisibleDSets(_selType);
     currentSelection = sets[index] || null;
     if (!currentSelection) return;
+    if (_rejectUnpriced(currentSelection)) {
+      currentSelection = null;
+      return;
+    }
 
     document.querySelectorAll('.d-set-card').forEach(el => {
       const isSelected = parseInt(el.dataset.idx) === index;
-      el.classList.toggle('bg-amber-50', isSelected);
+      el.classList.toggle('v2-selected', isSelected);
       el.classList.toggle('bg-white', !isSelected);
-      el.classList.toggle('border-l-[3px]', isSelected);
-      el.classList.toggle('border-l-amber-500', isSelected);
+      el.classList.toggle('v2-selected-outline', isSelected);
+      el.classList.toggle('v2-selected-check', isSelected);
     });
 
     const addSection = document.getElementById('add-section');
     if (addSection) addSection.classList.remove('hidden');
+    if (typeof EstimateWizard !== 'undefined') EstimateWizard.onSpecSelected(currentSelection);
   }
 
   function _renderDPartCats(type) {
@@ -605,13 +987,15 @@ const App = (() => {
     const container = document.getElementById('d-parts-list');
     let parts = getPartsForType(_selType).filter(p => p.partCategory === cat);
     parts.sort((a, b) => (a.partLength || a.unitPrice || 0) - (b.partLength || b.unitPrice || 0));
+    _renderUnpricedToggle('toggle-unpriced-d-parts', parts);
+    parts = _priceVisible(parts);
 
     container.innerHTML = parts.map((p, i) => {
       const label = p.spec || (p.partLength ? p.partLength + 'mm' : p.partCategory);
       return `<button type="button" onclick="App.onDPartCard('${cat}',${i})" data-idx="${i}"
-        class="d-part-card flex items-center justify-between px-3 py-2.5 bg-white border-b border-gray-100 text-left active:bg-amber-50 transition-colors">
-        <span class="text-sm font-bold text-gray-800">${label}</span>
-        <span class="text-sm font-extrabold text-amber-600">${UI.formatCurrency(p.unitPrice)}</span>
+        class="d-part-card min-h-16 flex items-center justify-between px-4 py-3 ${_isPriced(p) ? 'bg-white' : 'v2-unpriced-card'} border-b border-gray-200 text-left transition-colors">
+        <span class="text-sm font-bold text-gray-800">${label}</span>${_unpricedBadge(p)}
+        <span class="v2-money text-sm font-bold text-[#2F6BFF]">${UI.formatCurrency(p.unitPrice)}</span>
       </button>`;
     }).join('') || '<p class="text-gray-400 text-xs text-center py-3">등록된 부품이 없습니다</p>';
     container.classList.remove('hidden');
@@ -620,17 +1004,23 @@ const App = (() => {
   function onDPartCard(cat, index) {
     let parts = getPartsForType(_selType).filter(p => p.partCategory === cat);
     parts.sort((a, b) => (a.partLength || a.unitPrice || 0) - (b.partLength || b.unitPrice || 0));
+    parts = _priceVisible(parts);
     currentSelection = parts[index] || null;
     if (!currentSelection) return;
+    if (_rejectUnpriced(currentSelection)) {
+      currentSelection = null;
+      return;
+    }
 
     document.querySelectorAll('.d-part-card').forEach(el => {
       const isSelected = parseInt(el.dataset.idx) === index;
-      el.classList.toggle('bg-amber-50', isSelected);
+      el.classList.toggle('v2-selected', isSelected);
       el.classList.toggle('bg-white', !isSelected);
     });
 
     const addSection = document.getElementById('add-section');
     if (addSection) addSection.classList.remove('hidden');
+    if (typeof EstimateWizard !== 'undefined') EstimateWizard.onSpecSelected(currentSelection);
   }
 
   // ======== 부속품 공통 ========
@@ -646,9 +1036,9 @@ const App = (() => {
       const cat = a.accessoryCategory || a.partCategory || '';
       const label = cat + (a.spec ? ' ' + a.spec : '') + (a.partLength ? ' ' + a.partLength + 'mm' : '');
       return `<button type="button" onclick="App.onAccessoryCard(${i})" data-idx="${i}"
-        class="acc-card flex items-center justify-between px-3 py-2 bg-white border-b border-gray-100 text-left active:bg-green-50 transition-colors">
+        class="acc-card min-h-16 flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 text-left transition-colors">
         <span class="text-xs font-bold text-gray-700">${label || '부속품'}</span>
-        <span class="text-xs font-extrabold text-green-600">${UI.formatCurrency(a.unitPrice)}</span>
+        <span class="v2-money text-xs font-bold text-[#2F6BFF]">${UI.formatCurrency(a.unitPrice)}</span>
       </button>`;
     }).join('');
     accGroup.classList.remove('hidden');
@@ -673,6 +1063,7 @@ const App = (() => {
     updateTotal();
     saveDraft();
     UI.toast('부속품이 추가되었습니다', 'success');
+    notifyItemAdded(items[items.length - 1]);
   }
 
   // ======== 선반 추가 옵션 (모델 A) ========
@@ -692,6 +1083,7 @@ const App = (() => {
 
   function onFormChip(form) {
     _selForm = form;
+    if (_selType && form) _lsSet('yr_last_form_' + _selType, form);
     currentSelection = null;
     const addSection = document.getElementById('add-section');
     if (addSection) addSection.classList.add('hidden');
@@ -717,12 +1109,16 @@ const App = (() => {
     const specGroup = document.getElementById('sel-spec-group');
     const cardsContainer = document.getElementById('cards-spec');
 
-    const specs = priceData.filter(p =>
+    const contextSpecs = priceData.filter(p =>
       p.type === _selType &&
       (p.form || '') === _selForm &&
       (p.layoutType || '') === _selLayout &&
       !p.isAccessory
     );
+    _renderUnpricedToggle('toggle-unpriced-spec', contextSpecs);
+    const dimensionSpecs = _priceVisible(contextSpecs);
+    _renderDimensionFilters('spec-dim-filters', dimensionSpecs, _parseSpecDimensions, 'spec');
+    const specs = dimensionSpecs.filter(item => _matchesDimensions(item, _parseSpecDimensions));
 
     if (specs.length === 0) {
       specGroup.classList.remove('hidden');
@@ -734,46 +1130,52 @@ const App = (() => {
       if (_specSortMode === 'price') return (a.unitPrice || 0) - (b.unitPrice || 0);
       return (a.tier || 0) - (b.tier || 0);
     });
-
     specGroup.classList.remove('hidden');
     cardsContainer.innerHTML = sorted.map((p, i) => {
       const heightStr = p.spec || '';
       const tierStr = p.tier ? `${p.tier}단` : '';
       const panelStr = p.panelType ? `<span class="text-[10px] text-gray-400">${p.panelType}</span>` : '';
       return `<button type="button" onclick="App.onModelBSpecCard(${i})" data-idx="${i}"
-        class="spec-card flex items-center justify-between px-3 py-2.5 bg-white border-b border-gray-100 text-left active:bg-green-50 transition-colors">
-        <div class="flex items-center gap-2">
-          <span class="text-sm font-bold text-gray-800">${heightStr}</span>
+        class="v2-spec-card spec-card min-h-16 flex items-center justify-between px-4 py-3 ${_isPriced(p) ? 'bg-white' : 'v2-unpriced-card'} border-b border-gray-200 text-left transition-colors">
+        <div class="v2-spec-copy flex items-center gap-2">
+          <span class="text-sm font-bold text-gray-800">${heightStr}</span>${_unpricedBadge(p)}
           <span class="text-[10px] text-gray-400">${tierStr}</span>
           ${panelStr}
         </div>
-        <span class="text-sm font-extrabold text-green-600">${UI.formatCurrency(p.unitPrice)}</span>
+        <span class="v2-money v2-spec-price text-sm font-bold text-[#2F6BFF]">${UI.formatCurrency(p.unitPrice)}</span>
       </button>`;
     }).join('');
+    _setCardListOverflow(cardsContainer, sorted.length);
+    if (_allDimensionsSelected() && sorted.length === 1 && _isPriced(sorted[0])) onModelBSpecCard(0);
   }
 
   function onModelBSpecCard(index) {
-    const specs = priceData.filter(p =>
+    const specs = _priceVisible(priceData.filter(p =>
       p.type === _selType &&
       (p.form || '') === _selForm &&
       (p.layoutType || '') === _selLayout &&
       !p.isAccessory
-    );
+    )).filter(item => _matchesDimensions(item, _parseSpecDimensions));
     const sorted = [...specs].sort((a, b) => {
       if (_specSortMode === 'price') return (a.unitPrice || 0) - (b.unitPrice || 0);
       return (a.tier || 0) - (b.tier || 0);
     });
     currentSelection = sorted[index] || null;
     if (!currentSelection) return;
+    if (_rejectUnpriced(currentSelection)) {
+      currentSelection = null;
+      return;
+    }
 
     document.querySelectorAll('.spec-card').forEach(el => {
       const isSelected = parseInt(el.dataset.idx) === index;
-      el.classList.toggle('bg-green-50', isSelected);
+      el.classList.toggle('v2-selected', isSelected);
       el.classList.toggle('bg-white', !isSelected);
     });
 
     const addSection = document.getElementById('add-section');
     if (addSection) addSection.classList.remove('hidden');
+    if (typeof EstimateWizard !== 'undefined') EstimateWizard.onSpecSelected(currentSelection);
   }
 
   function onFormChipCustom() {
@@ -784,13 +1186,67 @@ const App = (() => {
 
     document.querySelectorAll('#chips-form .chip').forEach(el => {
       el.classList.remove('selected');
-      if (el.textContent === '기타 ✏️') el.classList.add('selected');
+      if (el.textContent === '기타') el.classList.add('selected');
     });
 
-    renderSpecCards(_selType, _selForm);
+    if (_getPricingModel(_selType) === 'B') _renderModelBSpecs();
+    else renderSpecCards(_selType, _selForm);
   }
 
   let _specSortMode = 'spec'; // 'spec' or 'price'
+
+  function _getSpecWidth(item) {
+    const dims = _parseSpecDimensions(item);
+    return dims ? dims.W : '';
+  }
+
+  function _matchesSpecWidth(item) {
+    return !_specWidthFilter || _getSpecWidth(item) === _specWidthFilter;
+  }
+
+  function _renderSpecWidthFilters(items) {
+    let container = document.getElementById('spec-width-filters');
+    if (!container) {
+      const sortButton = document.getElementById('sort-spec-btn');
+      if (!sortButton || !sortButton.parentElement || !sortButton.parentElement.parentElement) return;
+      container = document.createElement('div');
+      container.id = 'spec-width-filters';
+      container.className = 'hidden flex flex-wrap gap-2';
+      container.setAttribute('aria-label', '폭 빠른 필터');
+      sortButton.parentElement.parentElement.insertBefore(container, sortButton.parentElement);
+    }
+    const model = _getPricingModel(_selType);
+    if (model !== 'A' && model !== 'B') {
+      container.innerHTML = '';
+      container.classList.add('hidden');
+      return;
+    }
+    const widths = [...new Set(items.map(_getSpecWidth).filter(Boolean))]
+      .sort((a, b) => Number(a) - Number(b));
+    if (_specWidthFilter && !widths.includes(_specWidthFilter)) _specWidthFilter = '';
+    container.classList.toggle('hidden', widths.length === 0);
+    container.innerHTML = '';
+    ['', ...widths].forEach(width => {
+      const button = document.createElement('button');
+      const selected = width === _specWidthFilter;
+      button.type = 'button';
+      button.className = 'spec-width-chip' + (selected ? ' is-selected' : '');
+      button.textContent = width ? 'W ' + width : '전체';
+      button.setAttribute('aria-pressed', String(selected));
+      button.addEventListener('click', () => filterSpecsByWidth(width));
+      container.appendChild(button);
+    });
+  }
+
+  function filterSpecsByWidth(width) {
+    _specWidthFilter = String(width || '');
+    _dimSelection.W = _specWidthFilter;
+    _dimSelection.D = '';
+    _dimSelection.H = '';
+    _saveDimSelection();
+    if (_getPricingModel(_selType) === 'B') _renderModelBSpecs();
+    else renderSpecCards(_selType, _selForm);
+  }
 
   function sortSpecs(mode) {
     _specSortMode = mode;
@@ -799,13 +1255,14 @@ const App = (() => {
     const priceBtn = document.getElementById('sort-price-btn');
     if (specBtn && priceBtn) {
       specBtn.className = mode === 'spec'
-        ? 'text-[10px] px-2 py-0.5 rounded-full bg-[#1e3a5f] text-white'
+        ? 'text-[10px] px-2 py-0.5 rounded-full bg-primary text-white'
         : 'text-[10px] px-2 py-0.5 rounded-full bg-gray-200 text-gray-600';
       priceBtn.className = mode === 'price'
-        ? 'text-[10px] px-2 py-0.5 rounded-full bg-[#1e3a5f] text-white'
+        ? 'text-[10px] px-2 py-0.5 rounded-full bg-primary text-white'
         : 'text-[10px] px-2 py-0.5 rounded-full bg-gray-200 text-gray-600';
     }
-    renderSpecCards(_selType, _selForm);
+    if (_getPricingModel(_selType) === 'B') _renderModelBSpecs();
+    else renderSpecCards(_selType, _selForm);
   }
 
   function _parseSpecDims(spec) {
@@ -817,7 +1274,11 @@ const App = (() => {
   function renderSpecCards(type, form) {
     const specGroup = document.getElementById('sel-spec-group');
     const cardsContainer = document.getElementById('cards-spec');
-    const items = getSpecsForTypeAndForm(type, form);
+    const allItems = getSpecsForTypeAndForm(type, form);
+    _renderUnpricedToggle('toggle-unpriced-spec', allItems);
+    const dimensionItems = _priceVisible(allItems);
+    _renderDimensionFilters('spec-dim-filters', dimensionItems, _parseSpecDimensions, 'spec');
+    const items = dimensionItems.filter(item => _matchesDimensions(item, _parseSpecDimensions));
 
     if (items.length === 0) {
       specGroup.classList.remove('hidden');
@@ -839,31 +1300,38 @@ const App = (() => {
       const tierStr = p.tier ? `${p.tier}단` : '';
       const feeStr = p.installFee ? `<span class="text-gray-400 text-[10px]">(+${UI.formatCurrency(p.installFee)})</span>` : '';
       return `<button type="button" onclick="App.onSpecCard(${idxMap[si]})" data-idx="${idxMap[si]}"
-        class="spec-card flex items-center justify-between px-3 py-2.5 bg-white border-b border-gray-100 text-left active:bg-blue-50 transition-colors"
-        ><div class="flex items-center gap-2 min-w-0">
-          <span class="text-sm font-bold text-gray-800 truncate">${p.spec || '규격 없음'}</span>
+        class="v2-spec-card spec-card min-h-16 flex items-center justify-between px-4 py-3 ${_isPriced(p) ? 'bg-white' : 'v2-unpriced-card'} border-b border-gray-200 text-left transition-colors"
+        ><div class="v2-spec-copy flex items-center gap-2 min-w-0">
+          <span class="text-sm font-bold text-gray-800">${p.spec || '규격 없음'}</span>${_unpricedBadge(p)}
           ${tierStr ? `<span class="text-[10px] text-gray-400 shrink-0">${tierStr}</span>` : ''}
         </div>
-        <div class="flex items-center gap-1 shrink-0 ml-2">
-          <span class="text-sm font-extrabold text-[#1e3a5f]">${UI.formatCurrency(p.unitPrice || 0)}</span>
+        <div class="v2-spec-price flex items-center gap-1 shrink-0 ml-2">
+          <span class="v2-money text-sm font-bold text-[#2F6BFF]">${UI.formatCurrency(p.unitPrice || 0)}</span>
           ${feeStr}
         </div>
       </button>`;
     }).join('');
+    _setCardListOverflow(cardsContainer, sorted.length);
+    if (_allDimensionsSelected() && sorted.length === 1 && _isPriced(sorted[0])) onSpecCard(idxMap[0]);
   }
 
   function onSpecCard(index) {
-    const items = getSpecsForTypeAndForm(_selType, _selForm);
+    const items = _priceVisible(getSpecsForTypeAndForm(_selType, _selForm))
+      .filter(item => _matchesDimensions(item, _parseSpecDimensions));
     currentSelection = items[index] || null;
     if (!currentSelection) return;
+    if (_rejectUnpriced(currentSelection)) {
+      currentSelection = null;
+      return;
+    }
 
     // 행 활성 상태
     document.querySelectorAll('.spec-card').forEach(el => {
       const isSelected = parseInt(el.dataset.idx) === index;
-      el.classList.toggle('bg-blue-50', isSelected);
+      el.classList.toggle('v2-selected', isSelected);
       el.classList.toggle('bg-white', !isSelected);
-      el.classList.toggle('border-l-[3px]', isSelected);
-      el.classList.toggle('border-l-[#1e3a5f]', isSelected);
+      el.classList.toggle('v2-selected-outline', isSelected);
+      el.classList.toggle('v2-selected-check', isSelected);
     });
 
     // 모델 A: 선반 추가 옵션 표시
@@ -885,15 +1353,30 @@ const App = (() => {
 
     const addSection = document.getElementById('add-section');
     if (addSection) addSection.classList.remove('hidden');
+    if (typeof EstimateWizard !== 'undefined') EstimateWizard.onSpecSelected(currentSelection);
   }
 
   function addRecentQuick(index) {
-    // topItems(빈도 기반) 또는 recentItems에서 선택
-    var topItems = getTopItems(3);
-    var quickItems = topItems.length > 0 ? topItems : getRecentItems();
-    const r = quickItems[index];
+    const r = getRecentItems()[index];
     if (!r) return;
     _addQuickItem(r);
+  }
+
+  function addFrequentlyUsedQuick(index) {
+    const r = getTopItems(6)[index];
+    if (!r) return;
+    _addQuickItem(r);
+  }
+
+  function toggleRecentItems() {
+    _recentItemsExpanded = !_recentItemsExpanded;
+    var section = document.getElementById('quick-recent-section');
+    var button = document.getElementById('recent-items-toggle');
+    if (section) section.classList.toggle('hidden', !_recentItemsExpanded);
+    if (button) {
+      button.textContent = _recentItemsExpanded ? '최근 사용 접기' : '최근 사용 보기';
+      button.setAttribute('aria-expanded', String(_recentItemsExpanded));
+    }
   }
 
   function _addPatternItem(index) {
@@ -922,13 +1405,53 @@ const App = (() => {
     updateTotal();
     saveDraft();
     UI.toast('품목이 추가되었습니다', 'success');
+    notifyItemAdded(items[items.length - 1]);
+  }
+
+  // 음성 입력처럼 단가표 행이 이미 확정된 진입점에서 기존 담기 효과를 그대로 재사용한다.
+  function addItemFromPrice(row, quantity) {
+    if (!row || Number(row.unitPrice) <= 0) {
+      UI.toast('단가가 입력된 품목만 담을 수 있습니다', 'warning');
+      return null;
+    }
+    const newItem = {
+      type: row.type,
+      form: row.form || '',
+      spec: String(row.spec || ''),
+      tier: row.tier,
+      unitPrice: Number(row.unitPrice) || 0,
+      installFee: Number(row.installFee) || 0,
+      vat: row.vat || '별도',
+      quantity: Math.max(1, Math.min(9999, parseInt(quantity, 10) || 1)),
+      pricingModel: row.pricingModel || _getPricingModel(row.type),
+      layoutType: row.layoutType || '',
+      setName: row.setName || '',
+      partCategory: row.partCategory || '',
+    };
+    items.push(newItem);
+    addRecentItem(newItem);
+    addItemFrequency(newItem);
+    renderItems();
+    updateTotal();
+    saveDraft();
+    UI.toast('품목이 추가되었습니다', 'success');
+    notifyItemAdded(newItem);
+    return newItem;
   }
 
   // --- 수량 ---
+  function updateQuantitySubtotal() {
+    const subtotal = document.getElementById('quantity-subtotal');
+    if (!subtotal) return;
+    const unitPrice = Number(currentSelection?.unitPrice) || 0;
+    subtotal.textContent = '소계 ' + UI.formatCurrency(unitPrice * currentQuantity);
+  }
+
   function setQuantity(q) {
     currentQuantity = Math.max(1, Math.min(9999, parseInt(q) || 1));
     const input = document.getElementById('qty-input');
     if (input) input.value = currentQuantity;
+    updateQuantitySubtotal();
   }
 
   function changeQuantity(delta) {
@@ -999,6 +1522,7 @@ const App = (() => {
     // 최근 사용 다시 렌더
     renderRackSelector();
     UI.toast('품목이 추가되었습니다', 'success');
+    _wizardCall('onItemAdded', newItem);
   }
 
   // --- 자유 항목 추가 ---
@@ -1029,6 +1553,7 @@ const App = (() => {
     updateTotal();
     saveDraft();
     UI.toast(`'${name}' 추가됨`, 'success');
+    notifyItemAdded(items[items.length - 1]);
   }
 
   // Hide all preset toggle areas, optionally show one by id
@@ -1105,6 +1630,7 @@ const App = (() => {
     updateTotal();
     saveDraft();
     UI.toast(`D/C -${UI.formatCurrency(amount)} 적용됨`, 'success');
+    notifyItemAdded(items[items.length - 1]);
   }
 
   function addMargin() {
@@ -1129,6 +1655,7 @@ const App = (() => {
     updateTotal();
     saveDraft();
     UI.toast(`마진(${pct}%) ${UI.formatCurrency(amount)} 추가됨`, 'success');
+    notifyItemAdded(items[items.length - 1]);
   }
 
   function removeItem(index) {
@@ -1150,12 +1677,17 @@ const App = (() => {
     }
 
     if (items.length === 0) {
-      container.innerHTML = '';
+      container.innerHTML = `
+        <div class="wizard-empty-cart">
+          <p>담은 품목이 없습니다 · 1단계에서 담아주세요</p>
+          <button type="button" onclick="EstimateWizard.go(1)">품목 담기</button>
+        </div>
+      `;
       return;
     }
 
     container.innerHTML = `
-      <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div class="bg-white rounded-xl border-0 border-[#2F6BFF] overflow-hidden">
         <h3 class="text-sm font-bold text-gray-700 px-4 pt-4 pb-2">추가된 품목 (${items.length}건)</h3>
         ${items.map((item, i) => {
           const isCustom = item.itemType === 'custom';
@@ -1167,14 +1699,14 @@ const App = (() => {
           if (isCustom || item.itemType === 'accessory') {
             const label = item.name || item.type || '항목';
             return `
-              <div class="px-4 py-3 border-t border-gray-100 flex items-center gap-3 ${isNegative ? 'bg-red-50/50' : ''}">
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-bold ${isNegative ? 'text-red-600' : 'text-gray-800'}">${label}</p>
-                  <p class="text-xs text-gray-500">${item.quantity > 1 ? `@${UI.formatNumber(item.unitPrice)} × ${item.quantity}` : ''}</p>
-                  <p class="text-sm font-bold ${isNegative ? 'text-red-600' : 'text-[#1e3a5f]'} mt-0.5">${UI.formatCurrency(itemTotal)}</p>
+              <div class="v2-estimate-item min-h-16 px-4 py-3 border-t border-gray-200 ${isNegative ? 'bg-red-50/50' : ''}">
+                <div class="v2-estimate-item-copy">
+                  <p class="v2-estimate-item-name text-sm font-bold ${isNegative ? 'text-red-600' : 'text-gray-800'}">${label}</p>
+                  <p class="v2-estimate-item-meta text-xs text-gray-500">@${UI.formatNumber(item.unitPrice)} × ${item.quantity}</p>
                 </div>
+                <p class="v2-estimate-item-amount v2-money text-sm font-bold ${isNegative ? 'text-red-600' : 'text-[#2F6BFF]'}">${UI.formatCurrency(itemTotal)}</p>
                 <button onclick="App.removeItem(${i})"
-                  class="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 active:bg-red-50 text-lg flex-shrink-0">✕</button>
+                  class="v2-estimate-item-remove flex items-center justify-center text-red-400 active:bg-red-50 text-lg flex-shrink-0">✕</button>
               </div>
             `;
           }
@@ -1187,19 +1719,25 @@ const App = (() => {
           const feeStr = (Number(item.installFee) || 0) > 0 ? ` + 시공비 ${UI.formatCurrency((Number(item.installFee) || 0) * item.quantity)}` : '';
           const unitLabel = (model === 'C') ? '개' : '대';
           return `
-            <div class="px-4 py-3 border-t border-gray-100 flex items-center gap-3">
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold text-gray-800 truncate">${itemLabel}</p>
-                <p class="text-xs text-gray-500">@${UI.formatNumber(item.unitPrice)} × ${item.quantity}${unitLabel}${feeStr}</p>
-                <p class="text-sm font-bold text-[#1e3a5f] mt-0.5">${UI.formatCurrency(itemTotal)}</p>
+            <div class="v2-estimate-item min-h-16 px-4 py-3 border-t border-gray-200">
+              <div class="v2-estimate-item-copy">
+                <p class="v2-estimate-item-name text-sm font-bold text-gray-800">${itemLabel}</p>
+                <p class="v2-estimate-item-meta text-xs text-gray-500">@${UI.formatNumber(item.unitPrice)} × ${item.quantity}${unitLabel}${feeStr}</p>
               </div>
+              <p class="v2-estimate-item-amount v2-money text-sm font-bold text-[#2F6BFF]">${UI.formatCurrency(itemTotal)}</p>
               <button onclick="App.removeItem(${i})"
-                class="w-8 h-8 flex items-center justify-center rounded-lg text-red-400 active:bg-red-50 text-lg flex-shrink-0">✕</button>
+                class="v2-estimate-item-remove flex items-center justify-center text-red-400 active:bg-red-50 text-lg flex-shrink-0">✕</button>
             </div>
           `;
         }).join('')}
       </div>
     `;
+  }
+
+  function loadItems(nextItems) {
+    items = Array.isArray(nextItems) ? nextItems.map(item => ({ ...item })) : [];
+    renderItems();
+    updateTotal();
   }
 
   // --- 계산 (공급가액 + 세액) ---
@@ -1237,6 +1775,7 @@ const App = (() => {
     if (saveBtn) {
       saveBtn.disabled = !calcItems || calcItems.length === 0;
     }
+    _wizardCall('sync');
   }
 
   // --- 폼 상태 localStorage 임시 저장 ---
@@ -1244,8 +1783,12 @@ const App = (() => {
     clearTimeout(draftTimer);
     draftTimer = setTimeout(() => {
       const draft = {
+        clientId: draftClientId,
         items,
         customer: getCustomerInfo(),
+        wizard: typeof window !== 'undefined' && window.EstimateWizard?.getDraftState
+          ? window.EstimateWizard.getDraftState()
+          : null,
         timestamp: Date.now(),
       };
       _lsSet(DRAFT_KEY, JSON.stringify(draft));
@@ -1258,6 +1801,7 @@ const App = (() => {
       if (!raw) return null;
       const data = JSON.parse(raw);
       if (data && Date.now() - data.timestamp < 86400000) {
+        draftClientId = data.clientId || null;
         return data;
       }
     } catch {}
@@ -1265,7 +1809,10 @@ const App = (() => {
   }
 
   function clearDraft() {
+    clearTimeout(draftTimer);
+    draftTimer = null;
     _lsRemove(DRAFT_KEY);
+    draftClientId = null;
   }
 
   // --- 고객 정보 ---
@@ -1286,7 +1833,12 @@ const App = (() => {
   }
 
   // --- 견적 저장 ---
-  async function saveEstimate() {
+  function saveEstimate() {
+    if (savePromise) return savePromise;
+    savePromise = performSaveEstimate().finally(() => { savePromise = null; });
+    return savePromise;
+  }
+  async function performSaveEstimate() {
     const { supplyTotal, vat, total, items: calcItems } = calculate();
     if (!calcItems || calcItems.length === 0) {
       UI.toast('품목을 추가하세요', 'warning');
@@ -1297,7 +1849,11 @@ const App = (() => {
     const randomPart = (typeof crypto !== 'undefined' && crypto.getRandomValues)
       ? Array.from(crypto.getRandomValues(new Uint8Array(4)), b => b.toString(36)).join('').substr(0, 6)
       : Math.random().toString(36).substr(2, 6);
-    const clientId = 'est-' + Date.now() + '-' + randomPart;
+    const clientId = draftClientId || ('est-' + Date.now() + '-' + randomPart);
+    draftClientId = clientId;
+    // 응답 유실·새로고침 후에도 동일한 저장으로 처리하도록 송신 전에 저장.
+    clearTimeout(draftTimer);
+    _lsSet(DRAFT_KEY, JSON.stringify({ clientId, items, customer, timestamp: Date.now() }));
     const data = {
       items: calcItems,
       supplyTotal,
@@ -1310,11 +1866,17 @@ const App = (() => {
     const result = await API.saveEstimate(data);
     if (result && result.estimateId) {
       try {
+        if (result.duplicate) {
+          sessionStorage.removeItem('yr-estimate-' + result.estimateId);
+          UI.toast('앞선 요청에서 저장된 견적을 확인합니다. 추가 변경은 견적 수정에서 진행하세요.', 'info', 5000);
+        } else {
         sessionStorage.setItem('yr-estimate-' + result.estimateId, JSON.stringify({
           ...data,
           estimateId: result.estimateId,
         }));
+        }
       } catch(e) {}
+      _wizardCall('markSaved');
       clearDraft();
       items = [];
     }
@@ -1346,16 +1908,18 @@ const App = (() => {
     const customerForm = document.getElementById('customer-form');
     if (customerForm) customerForm.classList.add('hidden');
     UI.toast('초기화되었습니다', 'info');
+    _wizardCall('resetState');
+    _wizardCall('go', 1);
   }
 
   return {
-    loadPrices, setQuantity, changeQuantity,
-    addItem, addCustomItem, addPresetItem, setActivePreset,
+    loadPrices, setQuantity, changeQuantity, updateQuantitySubtotal,
+    addItem, addItemFromPrice, addCustomItem, addPresetItem, setActivePreset,
     calcMarginFromPct, addMargin, addDiscount,
-    removeItem, renderItems,
+    removeItem, renderItems, loadItems,
     calculate, updateTotal, saveEstimate, resetEstimate,
-    loadDraft, clearDraft, getCustomerInfo,
-    onTypeChip, onFormChip, onFormChipCustom, onSpecCard, addRecentQuick, sortSpecs, _addPatternItem, setCustomerPatternItems, renderRackSelector,
+    loadDraft, saveDraft, clearDraft, getCustomerInfo, notifyItemAdded,
+    onTypeChip, onFormChip, onFormChipCustom, onSpecCard, addRecentQuick, addFrequentlyUsedQuick, toggleRecentItems, sortSpecs, filterSpecsByWidth, onDimensionChip, toggleUnpriced, _addPatternItem, setCustomerPatternItems, renderRackSelector,
     // 모델 B
     onLayoutChip, onModelBSpecCard,
     // 모델 C
@@ -1366,6 +1930,7 @@ const App = (() => {
     onAccessoryCard, onShelfAddonToggle, updateShelfAddonPreview,
     get priceData() { return priceData; },
     get items() { return items; },
+    get currentSelection() { return currentSelection; },
     set items(v) { items = v; },
   };
 })();

@@ -15,32 +15,97 @@
 
 const SPREADSHEET_ID = '1azkq97HM29dyI-d4YC3FamsudWhuUC7FSPB_rGH8aZg';
 
-// 서버 PIN 해시 조회 (캐시 — 동일 요청 내 중복 IO 방지)
-var _cachedServerPinHash = undefined;
-function _getServerPinHash() {
-  if (_cachedServerPinHash !== undefined) return _cachedServerPinHash;
-  _cachedServerPinHash = '';
-  try {
-    var sheet = getSheet('설정');
-    var data = sheet.getDataRange().getValues();
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][0] === 'pinHash') {
-        _cachedServerPinHash = String(data[i][1]).trim();
-        break;
-      }
-    }
-  } catch (e) {}
-  return _cachedServerPinHash;
-}
-
-function _hasServerPin() {
-  return !!_getServerPinHash();
-}
-
 function _verifyAuthToken(token) {
-  if (!token) return false;
-  var serverHash = _getServerPinHash();
-  return serverHash && serverHash === String(token).trim();
+  if (!/^[a-f0-9]{64}$/.test(String(token || ''))) return false;
+  var session = CacheService.getScriptCache().get('session:' + _authHash(token));
+  if (!session) return false;
+  var data = JSON.parse(session);
+  return data.expiresAt > Date.now() && data.version === _authProperties().getProperty('authVersion');
+}
+
+function _authProperties() { return PropertiesService.getScriptProperties(); }
+// 소유자 편집기/실행 API 전용. 웹 액션으로는 노출하지 않는다.
+function backupBeforeSecurityRelease() {
+  var props = _authProperties();
+  var previous = props.getProperty('releaseBackupV71');
+  if (previous) return JSON.parse(previous);
+  var stamp = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyyMMdd-HHmmss');
+  var spreadsheet = DriveApp.getFileById(SPREADSHEET_ID).makeCopy('중용랙-배포전-시트백업-' + stamp);
+  var values = props.getProperties();
+  delete values.ADMIN_INITIAL_PIN;
+  var propertyFile = DriveApp.createFile('중용랙-배포전-설정백업-' + stamp + '.json', JSON.stringify(values), 'application/json');
+  var result = { spreadsheetBackupId: spreadsheet.getId(), propertiesBackupId: propertyFile.getId(), createdAt: stamp };
+  props.setProperty('releaseBackupV71', JSON.stringify(result));
+  return result;
+}
+function _authHash(value) {
+  return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(value), Utilities.Charset.UTF_8)
+    .map(function(b) { return ('0' + ((b + 256) % 256).toString(16)).slice(-2); }).join('');
+}
+function _issueSession() {
+  var token = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '');
+  var expiresAt = Date.now() + 21600000;
+  CacheService.getScriptCache().put('session:' + _authHash(token), JSON.stringify({
+    expiresAt: expiresAt, version: _authProperties().getProperty('authVersion')
+  }), 21600);
+  return { result: 'success', token: token, expiresAt: expiresAt };
+}
+// 최초 설정/노출된 PIN 교체는 소유자가 GAS 스크립트 속성에 ADMIN_INITIAL_PIN을
+// 설정한 뒤 편집기에서 이 함수를 실행한다. 웹 API로는 호출할 수 없다.
+function initializeAdminPin() {
+  var props = _authProperties();
+  var pin = props.getProperty('ADMIN_INITIAL_PIN');
+  if (!/^\d{4}$/.test(String(pin || ''))) throw new Error('ADMIN_INITIAL_PIN에 숫자 4자리를 설정하세요.');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    _storeAdminPin(pin);
+    props.deleteProperty('ADMIN_INITIAL_PIN');
+    props.deleteProperty('pinAttempts');
+    props.deleteProperty('adminPushSubscriptions');
+  } finally { lock.releaseLock(); }
+}
+function _storeAdminPin(pin) {
+  var salt = Utilities.getUuid();
+  _authProperties().setProperties({ adminPinSalt: salt, adminPinHash: _authHash(salt + ':' + pin), authVersion: Utilities.getUuid() });
+}
+function authenticateAdmin(body) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var props = _authProperties();
+    if (!props.getProperty('adminPinHash')) return { error: '관리자가 서버에서 PIN 초기 설정을 완료해야 합니다.' };
+    // GAS는 신뢰할 수 있는 호출자 IP를 제공하지 않으므로 서버 전체에 제한 적용.
+    var attempts = JSON.parse(props.getProperty('pinAttempts') || '{}');
+    if (attempts.lockedUntil > Date.now()) return { error: 'PIN 입력이 잠겼습니다. 15분 후 다시 시도하세요.' };
+    var hash = _authHash(props.getProperty('adminPinSalt') + ':' + String(body.pin || ''));
+    if (!/^\d{4}$/.test(String(body.pin || '')) || hash !== props.getProperty('adminPinHash')) {
+      var count = attempts.lockedUntil ? 1 : (attempts.count || 0) + 1;
+      props.setProperty('pinAttempts', JSON.stringify({ count: count, lockedUntil: count >= 5 ? Date.now() + 900000 : 0 }));
+      return { error: 'PIN이 올바르지 않습니다.', code: 'INVALID_PIN' };
+    }
+    props.deleteProperty('pinAttempts');
+    return _issueSession();
+  } finally { lock.releaseLock(); }
+}
+function changeAdminPin(body) {
+  if (!/^\d{4}$/.test(String(body.pin || ''))) return { error: 'PIN은 숫자 4자리여야 합니다.' };
+  _storeAdminPin(body.pin);
+  return _issueSession();
+}
+function adminPushSubscription(body) {
+  var id = String(body.subscriptionId || '');
+  if (!/^[a-f0-9-]{36}$/i.test(id)) return { error: '알림 구독 ID를 확인할 수 없습니다.' };
+  var props = _authProperties();
+  var ids = JSON.parse(props.getProperty('adminPushSubscriptions') || '[]');
+  if (body.action === 'getPushRegistration') return { registered: ids.indexOf(id) >= 0 };
+  ids = ids.filter(function(value) { return value !== id; });
+  if (body.action === 'registerPush') {
+    if (ids.length >= 20) return { error: '등록 기기가 너무 많습니다. 기존 기기를 해제하세요.' };
+    ids.push(id);
+  }
+  props.setProperty('adminPushSubscriptions', JSON.stringify(ids));
+  return { result: 'success' };
 }
 
 // ============================================================
@@ -50,7 +115,13 @@ function doGet(e) {
   const action = (e && e.parameter && e.parameter.action) || '';
 
   try {
+    // 관리 데이터는 URL 토큰 노출/브라우저 GET 캐시를 피하도록 POST로만 조회.
+    if (['getEstimateByToken', 'getPublicSettings', 'getBlogPosts'].indexOf(action) < 0) {
+      return jsonResponse({ error: '로그인이 필요합니다.', code: 'UNAUTHORIZED' });
+    }
     switch (action) {
+      case 'getPublicSettings':
+        return jsonResponse(getPublicSettings());
       case 'getPrices':
         return jsonResponse(getPrices());
       case 'getEstimate':
@@ -89,13 +160,18 @@ function doPost(e) {
     const body = JSON.parse(e.postData.contents);
     const action = body.action || '';
 
-    // 인증: PIN 해시 토큰 검증 (고객 요청 제외)
-    if (action === 'submitRequest') {
-      // 공개 요청 — 인증 불필요
-    } else if (action === 'saveSettings' && !_hasServerPin()) {
-      // 최초 온보딩 — 서버에 PIN이 없으므로 인증 불필요
-    } else if (!_verifyAuthToken(body.authToken)) {
-      return jsonResponse({ error: 'Unauthorized' });
+    if (action === 'authenticate') return jsonResponse(authenticateAdmin(body));
+    if (action !== 'submitRequest' && !_verifyAuthToken(body.authToken)) {
+      return jsonResponse({ error: '로그인이 필요합니다.', code: 'UNAUTHORIZED' });
+    }
+
+    var readers = { getPrices: getPrices, getEstimates: getEstimates, getDashboard: getDashboard,
+      getRequests: getRequests, getPortfolio: getPortfolio, getSettings: getSettings, getBlogPosts: getBlogPosts };
+    if (Object.prototype.hasOwnProperty.call(readers, action)) return jsonResponse(readers[action]());
+    if (action === 'getEstimate') return jsonResponse(getEstimate(body.id));
+    if (action === 'logout') {
+      CacheService.getScriptCache().remove('session:' + _authHash(body.authToken));
+      return jsonResponse({ result: 'success' });
     }
 
     // 사진 업로드는 Lock 없이 처리 (Drive 작업이 오래 걸림)
@@ -117,7 +193,14 @@ function doPost(e) {
 
     let result;
     try {
+      // PIN変更待機中に無効になったセッションも拒否する。
+      if (action !== 'submitRequest' && !_verifyAuthToken(body.authToken)) return jsonResponse({ error: 'ログインし直してください。', code: 'UNAUTHORIZED' });
       switch (action) {
+        case 'changePin': result = changeAdminPin(body); break;
+        case 'registerPush':
+        case 'unregisterPush':
+        case 'getPushRegistration': result = adminPushSubscription(body); break;
+        case 'testPush': result = sendNewRequestNotification('', '', '', '', true); break;
         case 'saveEstimate':
           result = saveEstimate(body);
           break;
@@ -366,6 +449,10 @@ function saveEstimate(body) {
     const data = sheet.getDataRange().getValues();
     for (let i = 1; i < data.length; i++) {
       if (data[i][9] === body.clientId) {
+        if (String(data[i][6]) !== JSON.stringify(body.items || []) || Number(data[i][7]) !== Number(body.total) ||
+            [body.name, body.company, body.phone, body.address].some(function(value, index) { return String(value || '') !== String(data[i][index + 2] || ''); })) {
+          return { error: '앞선 요청이 이미 저장되었습니다 (' + data[i][1] + '). 견적 내역에서 확인한 뒤 해당 견적을 수정하세요.', code: 'SAVE_CONFLICT' };
+        }
         return { result: 'success', estimateId: data[i][1], duplicate: true };
       }
     }
@@ -529,6 +616,8 @@ var SHARE_TOKEN_EXPIRY_DAYS = 30; // 공유 토큰 만료 기간
 
 function createShareToken(body) {
   if (!body.estimateId) return { error: 'Missing estimateId' };
+  var estimate = getEstimate(body.estimateId);
+  if (estimate.error) return estimate;
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('공유토큰');
   if (!sheet) {
@@ -567,7 +656,7 @@ function createShareToken(body) {
 }
 
 function getEstimateByToken(token) {
-  if (!token) return { error: 'Missing token' };
+  if (!/^[a-f0-9]{32}$/i.test(String(token || ''))) return { error: '올바른 공유 링크가 아닙니다. 새 링크를 요청하세요.' };
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('공유토큰');
   if (!sheet) return { error: 'Token not found' };
@@ -590,9 +679,7 @@ function getEstimateByToken(token) {
       var docType = data[i][3] || 'formal';
       var estimate = getEstimate(estimateId);
       if (estimate.error) return estimate;
-      estimate.hideMargin = hideMargin;
-      estimate.docType = docType;
-      return estimate;
+      return customerQuote(estimate, docType);
     }
   }
   return { error: 'Token not found' };
@@ -714,13 +801,31 @@ function getDashboard() {
 // 고객 견적 요청
 // ============================================================
 function submitRequest(body) {
+  body.phone = String(body.phone || '').replace(/[\s()-]/g, '');
+  if (!String(body.name || '').trim() || !/^0\d{8,10}$/.test(body.phone)) return { error: '이름과 연락 가능한 전화번호를 확인해주세요.' };
+  var limits = { name: 50, phone: 20, company: 50, address: 200, rackType: 30, memo: 500, bizNumber: 20, bizType: 30, bizItem: 30,
+    spaceWidth: 10, spaceDepth: 10, spaceHeight: 10, spacePurpose: 30, cargoType: 50, cargoWeight: 30 };
+  for (var field in limits) {
+    var value = String(body[field] || '').trim();
+    if (value.length > limits[field]) return { error: '입력 내용이 너무 깁니다: ' + field };
+    body[field] = /^[=+@-]/.test(value) ? "'" + value : value;
+  }
+  if (body.quantity && (!Number.isInteger(Number(body.quantity)) || Number(body.quantity) < 0 || Number(body.quantity) > 9999)) return { error: '수량을 확인해주세요.' };
+  var attachments = body.images || (body.imageBase64 ? [{ base64: body.imageBase64, mimeType: body.imageMimeType || 'image/jpeg' }] : []);
+  if (!Array.isArray(attachments) || attachments.length > 5) return { error: '사진은 최대 5장까지 첨부하세요.' };
+  for (var ai = 0; ai < attachments.length; ai++) {
+    var attachment = attachments[ai];
+    if (!attachment || attachment.mimeType !== 'image/jpeg' || typeof attachment.base64 !== 'string' || attachment.base64.length > 2000000 || !/^\/9j\/[A-Za-z0-9+/=\r\n]+$/.test(attachment.base64)) {
+      return { error: '사진 형식 또는 크기를 확인해주세요. JPG 사진으로 다시 요청하세요.' };
+    }
+  }
   const sheet = getSheet('견적요청');
   // NOTE: 대규모 데이터셋에서는 getDataRange 대신 특정 범위만 읽는 최적화 가능
   const data = sheet.getDataRange().getValues();
   const oneHourAgo = new Date(Date.now() - 3600000);
   let recentCount = 0;
   for (let i = 1; i < data.length; i++) {
-    if (data[i][2] === body.phone && new Date(data[i][0]) > oneHourAgo) {
+    if (String(data[i][2]).replace(/\D/g, '') === body.phone && new Date(data[i][0]) > oneHourAgo) {
       recentCount++;
     }
   }
@@ -774,7 +879,7 @@ function submitRequest(body) {
  * 새 견적 요청 알림 (OneSignal 푸시)
  * admin-push.html에서 관리자 기기 등록 필요
  */
-function sendNewRequestNotification(name, phone, rackType, memo) {
+function sendNewRequestNotification(name, phone, rackType, memo, test) {
   // 설정 시트에서 OneSignal 키를 한 번에 읽기 (GitHub에 노출 방지)
   var settingsData = getSheet('설정').getDataRange().getValues();
   var ONESIGNAL_APP_ID = '';
@@ -785,30 +890,32 @@ function sendNewRequestNotification(name, phone, rackType, memo) {
     else if (key === 'onesignalApiKey') ONESIGNAL_API_KEY = String(settingsData[s][1]).trim();
     if (ONESIGNAL_APP_ID && ONESIGNAL_API_KEY) break; // 두 키 모두 찾으면 조기 종료
   }
-  if (!ONESIGNAL_APP_ID || !ONESIGNAL_API_KEY) return;
-
-  var message = '고객: ' + (name || '미입력') + '\n연락처: ' + (phone || '미입력');
-  if (rackType) message += '\n랙종류: ' + rackType;
-  if (memo) message += '\n메모: ' + memo;
+  if (!ONESIGNAL_APP_ID || !ONESIGNAL_API_KEY) return { error: '서버에 알림 키를 설정하세요.' };
+  var ids = JSON.parse(_authProperties().getProperty('adminPushSubscriptions') || '[]');
+  if (!ids.length) return { error: '등록된 관리자 기기가 없습니다.' };
+  var message = test ? '관리자 알림 연결 테스트입니다.' : '관리자 앱에 로그인하여 요청 내용을 확인하세요.';
 
   try {
-    UrlFetchApp.fetch('https://onesignal.com/api/v1/notifications', {
+    var response = UrlFetchApp.fetch('https://api.onesignal.com/notifications', {
       method: 'post',
       headers: {
-        'Authorization': 'Basic ' + ONESIGNAL_API_KEY,
+        'Authorization': 'Key ' + ONESIGNAL_API_KEY,
         'Content-Type': 'application/json; charset=utf-8'
       },
       payload: JSON.stringify({
         app_id: ONESIGNAL_APP_ID,
-        filters: [{ field: 'tag', key: 'role', relation: '=', value: 'admin' }],
+        include_subscription_ids: ids,
         headings: { en: '새 견적 요청이 도착했습니다' },
         contents: { en: message },
         url: 'https://yongin-rack.com/requests.html'
       }),
       muteHttpExceptions: true
     });
+    var sent = JSON.parse(response.getContentText());
+    return response.getResponseCode() < 300 && sent.id ? { result: 'success' } : { error: '알림을 발송하지 못했습니다. 서버 키와 기기 구독 상태를 확인하세요.' };
   } catch (e) {
     // OneSignal 전송 실패 시 요청 처리에 영향 없도록 무시
+    return { error: '알림 서버에 연결하지 못했습니다.' };
   }
 }
 
@@ -994,9 +1101,56 @@ function getSettings() {
   const data = sheet.getDataRange().getValues();
   const settings = {};
   for (let i = 1; i < data.length; i++) {
-    settings[data[i][0]] = data[i][1];
+    if (PUBLIC_SETTING_KEYS.indexOf(String(data[i][0])) >= 0 || data[i][0] === 'adminEmail') settings[data[i][0]] = data[i][1];
+    if (data[i][0] === 'geminiApiKey') settings.hasGeminiApiKey = !!data[i][1];
   }
   return { settings };
+}
+
+var PUBLIC_SETTING_KEYS = ['company', 'phone', 'bizNumber', 'tagline', 'address', 'representative', 'bizType', 'bankAccount'];
+function getPublicSettings() {
+  var result = getSettings().settings;
+  delete result.adminEmail;
+  delete result.hasGeminiApiKey;
+  return { settings: result, pinConfigured: !!_authProperties().getProperty('adminPinHash') };
+}
+
+// 고객용 데이터: 내부 메타데이터/원단가 없이 표시에 필요한 필드만 반환.
+function customerQuote(estimate, docType) {
+  var items = customerQuoteItems(estimate.items);
+  if (!items) return { error: '금액을 안전하게 표시할 수 없습니다. 새 견적 링크를 요청하세요.' };
+  var result = { items: items, docType: docType === 'transaction' ? 'transaction' : 'formal', hideMargin: false };
+  ['estimateId', 'date', 'customerName', 'company', 'phone', 'address', 'bizNumber', 'bizType', 'bizItem', 'total', 'supplyTotal', 'vat'].forEach(function(key) { result[key] = estimate[key]; });
+  result.branding = getPublicSettings().settings;
+  return result;
+}
+function customerQuoteItems(source) {
+  var items = (Array.isArray(source) ? source : []).map(function(item) {
+    var clean = {};
+    ['itemType', 'name', 'type', 'form', 'spec', 'tier', 'unitPrice', 'installFee', 'quantity'].forEach(function(key) { if (item[key] != null) clean[key] = item[key]; });
+    return clean;
+  });
+  var margins = items.filter(function(i) { return i.itemType === 'custom' && String(i.name || '').indexOf('마진') >= 0; });
+  var margin = margins.reduce(function(sum, i) { return sum + (Number(i.unitPrice) || 0) * (Number(i.quantity) || 1); }, 0);
+  var racks = items.filter(function(i) { return i.itemType !== 'custom'; });
+  var base = racks.reduce(function(sum, i) { return sum + ((Number(i.unitPrice) || 0) + (Number(i.installFee) || 0)) * Number(i.quantity); }, 0);
+  if (margins.length && (!base || !racks.length)) return null;
+  var remaining = margin;
+  var adjusted = [];
+  racks.forEach(function(item, index) {
+    var qty = Number(item.quantity);
+    if (!Number.isSafeInteger(qty) || qty <= 0) { adjusted = null; return; }
+    if (!adjusted) return;
+    var price = (Number(item.unitPrice) || 0) + (Number(item.installFee) || 0);
+    var share = index === racks.length - 1 ? remaining : Math.round(margin * price * qty / base);
+    remaining -= share;
+    // 원 단위 오차 없이 합계를 보존: 나머지 수량만 단가가 1원 높은 행으로 분리.
+    var per = Math.floor(share / qty), extra = share - per * qty;
+    if (qty - extra) adjusted.push(Object.assign({}, item, { unitPrice: price + per, installFee: 0, quantity: qty - extra }));
+    if (extra) adjusted.push(Object.assign({}, item, { unitPrice: price + per + 1, installFee: 0, quantity: extra }));
+  });
+  if (!adjusted) return null;
+  return adjusted.concat(items.filter(function(i) { return i.itemType === 'custom' && margins.indexOf(i) < 0; }));
 }
 
 function saveSettings(body) {
@@ -1004,6 +1158,9 @@ function saveSettings(body) {
   // NOTE: 대규모 데이터셋에서는 getDataRange 대신 특정 열만 읽는 최적화 가능
   const data = sheet.getDataRange().getValues();
   const keys = Object.keys(body).filter(k => k !== 'action' && k !== 'authToken');
+  if (keys.some(function(key) { return PUBLIC_SETTING_KEYS.concat(['adminEmail', 'geminiApiKey']).indexOf(key) < 0; })) {
+    return { error: '이 설정은 웹에서 변경할 수 없습니다.' };
+  }
 
   // 메모리에서 업데이트할 행과 새로 추가할 행을 분류
   var updates = []; // { row, value }

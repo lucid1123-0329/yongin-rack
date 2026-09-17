@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <title>시공 사례 - 중용랙</title>
+  <meta name="description" content="시공 후기 초안을 만들고 최근 시공 사례를 공유합니다.">
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = { theme: { extend: {
+      colors: { primary: '#2F6BFF', accent: '#FF6B00' },
+      fontFamily: { sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'] },
+    } } };
+  </script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <link rel="stylesheet" href="/css/design.css?v=71">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1e3a5f">
+  <link rel="icon" type="image/png" href="/assets/favicon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="/assets/icon-192.png">
+  <style>
+    :root{--bg:#F2F4F6;--canvas:#F2F4F6;--surface:#FFFFFF;--fill:#F2F4F6;--fill-2:#E5E8EB;--line:#EEF0F2;--rule:#EEF0F2;--text:#191F28;--ink:#191F28;--text-2:#4E5968;--ink-2:#4E5968;--text-3:#8B95A1;--brand:#2F6BFF;--brand-weak:#E8F0FF;--accent:#FF6B00;--ok:#1FA36B;--ok-weak:#E6F7EF;--danger:#F04452;--danger-weak:#FEECEE;--r-card:20px;--r-ctl:14px;--r-chip:999px;--r-sheet:24px;--shadow-card:0 2px 12px rgba(25,31,40,.06);--s1:8px;--s2:12px;--s3:16px;--s4:20px;--s5:24px;--s6:32px}
+    body{font-family:'Pretendard',sans-serif;padding-bottom:104px;color:var(--text)}
+    .cases-section{margin:16px;border-radius:var(--r-card);background:var(--surface);box-shadow:var(--shadow-card);overflow:hidden}
+    .cases-section-head{padding:20px 20px 0}.cases-section-head h2{font-size:20px;font-weight:800;letter-spacing:-.02em}.cases-section-head p{margin-top:6px;color:var(--text-2);font-size:15px;line-height:1.5}
+    .cases-card{margin:16px;border-radius:var(--r-ctl);background:var(--fill);padding:16px}.cases-label{display:block;margin-bottom:8px;color:var(--text-2);font-size:14px;font-weight:700}
+    .cases-input{box-sizing:border-box;width:100%;min-height:52px;border:0;border-radius:var(--r-ctl);background:var(--surface);padding:0 14px;color:var(--text);font-size:17px;outline:none}.cases-input:focus{box-shadow:0 0 0 2px var(--brand)}
+    .cases-chip-row{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none}.cases-chip-row::-webkit-scrollbar{display:none}.cases-chip{min-height:44px;flex:0 0 auto;border:0;border-radius:var(--r-chip);background:var(--surface);padding:0 15px;color:var(--text-2);font-size:15px;font-weight:700;box-shadow:var(--shadow-card)}.cases-chip.is-selected{background:var(--brand);color:var(--surface);box-shadow:none}
+    .estimate-choice{width:100%;min-height:82px;border:0;border-bottom:1px solid var(--line);background:var(--surface);padding:14px 16px;text-align:left}.estimate-choice:last-child{border-bottom:0}.estimate-choice.is-selected{background:var(--brand-weak)}.estimate-choice-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:16px;font-weight:750}.estimate-choice-meta{margin-top:5px;color:var(--text-2);font-size:14px;line-height:1.45}
+    .cases-primary{width:100%;height:56px;border:0;border-radius:var(--r-ctl);background:var(--brand);color:var(--surface);font-size:17px;font-weight:800}.draft-title{width:100%;min-height:56px;border:0;border-radius:var(--r-ctl);background:var(--surface);padding:12px 14px;color:var(--text);font-size:16px;font-weight:700;line-height:1.45;text-align:left}.draft-title.is-selected{background:var(--brand-weak);color:var(--brand);box-shadow:inset 0 0 0 2px var(--brand)}
+    #draft-body{min-height:348px;padding:16px;font:500 17px/1.7 'Pretendard',sans-serif;resize:vertical}.draft-hashtags{white-space:pre-wrap;word-break:break-word;color:var(--brand);font-size:16px;font-weight:650;line-height:1.7}.draft-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.draft-actions button,.draft-actions a{display:flex;min-height:52px;align-items:center;justify-content:center;border:0;border-radius:var(--r-ctl);background:var(--surface);color:var(--text);font-size:15px;font-weight:750;text-align:center;text-decoration:none}.draft-actions .is-primary{grid-column:1/-1;background:var(--brand);color:var(--surface)}
+    .blog-row{display:grid;grid-template-columns:72px minmax(0,1fr);gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}.blog-row:last-child{border-bottom:0}.blog-thumb{width:72px;height:72px;border-radius:12px;background:var(--fill);object-fit:cover}.blog-thumb{grid-column:1;grid-row:1 / span 2;align-self:center}.blog-copy{min-width:0;grid-column:2}.blog-actions{grid-column:2}.blog-title{display:-webkit-box;overflow:hidden;color:var(--text);font-size:15px;font-weight:750;line-height:1.4;-webkit-box-orient:vertical;-webkit-line-clamp:2}.blog-badge{display:inline-flex;max-width:100%;margin-bottom:5px;border-radius:var(--r-chip);background:var(--brand-weak);padding:3px 8px;color:var(--brand);font-size:12px;font-weight:700}.blog-actions{display:flex;gap:8px;margin-top:10px}.blog-actions button,.blog-actions a{display:flex;min-height:40px;align-items:center;justify-content:center;border:0;border-radius:var(--r-chip);background:var(--fill);padding:0 13px;color:var(--text-2);font-size:14px;font-weight:700;text-decoration:none}.blog-actions button{background:var(--brand-weak);color:var(--brand)}
+    @media(min-width:560px){.cases-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.cases-grid>div{margin:0!important}}
+  </style>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script src="/js/onesignal-init.js?v=71" defer></script>
+  <script src="/js/version-check.js" defer></script>
+</head>
+<body class="bg-[#F2F4F6] min-h-screen">
+  <header class="yr-page-header bg-white text-[#2F6BFF] px-4 py-3 sticky top-0 z-40">
+    <div class="max-w-lg mx-auto flex items-center min-h-12"><h1 class="text-[22px] font-bold">시공 사례</h1></div>
+  </header>
+  <main class="max-w-lg mx-auto">
+    <section class="cases-section" aria-labelledby="draft-heading">
+      <div class="cases-section-head">
+        <h2 id="draft-heading">후기 초안 만들기</h2>
+        <p>시공 정보를 고르면 블로그에 바로 붙여넣을 초안을 만듭니다.</p>
+      </div>
+      <div id="recent-drafts-wrap" class="hidden px-5 pt-4">
+        <span class="cases-label">최근 초안</span>
+        <div id="recent-drafts" class="cases-chip-row" aria-label="최근 초안"></div>
+      </div>
+      <div class="cases-card">
+        <span class="cases-label">최근 시공완료·계약 견적에서 고르기</span>
+        <div id="estimate-list" class="overflow-hidden rounded-[14px] bg-white"><p class="p-4 text-sm text-gray-500">견적을 불러오는 중입니다.</p></div>
+      </div>
+      <form id="draft-form" class="px-4 pb-5 space-y-4" novalidate>
+        <div class="cases-grid">
+          <div><label for="store-name" class="cases-label">매장/현장 이름</label><input id="store-name" name="storeName" class="cases-input" type="text" placeholder="오프뷰티 울산점" required></div>
+          <div><label for="site-location" class="cases-label">시공 장소</label><input id="site-location" name="location" class="cases-input" type="text" placeholder="울산 중구 성남동" required></div>
+        </div>
+        <div><label for="site-date" class="cases-label">시공 날짜</label><input id="site-date" name="date" class="cases-input" type="date" required></div>
+        <div>
+          <span class="cases-label">주요 랙 종류</span>
+          <div id="rack-chips" class="cases-chip-row" role="group" aria-label="주요 랙 종류">
+            <button type="button" class="cases-chip is-selected" data-rack="경량랙" aria-pressed="true">경량랙</button>
+            <button type="button" class="cases-chip" data-rack="중량랙" aria-pressed="false">중량랙</button>
+            <button type="button" class="cases-chip" data-rack="파렛트랙" aria-pressed="false">파렛트랙</button>
+            <button type="button" class="cases-chip" data-rack="하이퍼 진열대" aria-pressed="false">하이퍼 진열대</button>
+            <button type="button" class="cases-chip" data-rack="곤도라 진열대" aria-pressed="false">곤도라 진열대</button>
+            <button type="button" class="cases-chip" data-rack="무볼트앵글" aria-pressed="false">무볼트앵글</button>
+            <button type="button" class="cases-chip" data-rack="아연랙" aria-pressed="false">아연랙</button>
+          </div>
+        </div>
+        <div>
+          <span class="cases-label">현장 종류</span>
+          <div id="site-chips" class="cases-chip-row" role="group" aria-label="현장 종류">
+            <button type="button" class="cases-chip is-selected" data-site="매장" aria-pressed="true">매장</button>
+            <button type="button" class="cases-chip" data-site="약국" aria-pressed="false">약국</button>
+            <button type="button" class="cases-chip" data-site="문구점" aria-pressed="false">문구점</button>
+            <button type="button" class="cases-chip" data-site="뷰티매장" aria-pressed="false">뷰티매장</button>
+            <button type="button" class="cases-chip" data-site="창고·물류" aria-pressed="false">창고·물류</button>
+            <button type="button" class="cases-chip" data-site="공장" aria-pressed="false">공장</button>
+            <button type="button" class="cases-chip" data-site="사무실" aria-pressed="false">사무실</button>
+            <button type="button" class="cases-chip" data-site="낚시매장" aria-pressed="false">낚시매장</button>
+            <button type="button" class="cases-chip" data-site="기타" aria-pressed="false">기타</button>
+          </div>
+        </div>
+        <div><label for="feature-note" class="cases-label">특징 메모 <span class="font-normal text-gray-400">선택</span></label><input id="feature-note" name="note" class="cases-input" type="text" placeholder="3차 추가 설치, 6m 높이"></div>
+        <button id="build-draft" type="submit" class="cases-primary">초안 만들기</button>
+      </form>
+      <div id="draft-result" class="hidden cases-card mt-0" aria-live="polite">
+        <span class="cases-label">제목 후보</span><div id="draft-titles" class="space-y-2"></div>
+        <label for="draft-body" class="cases-label mt-5">본문</label><textarea id="draft-body" class="cases-input" rows="12"></textarea>
+        <span class="cases-label mt-5">해시태그</span><p id="draft-hashtags" class="draft-hashtags"></p>
+        <div class="draft-actions mt-4">
+          <button id="copy-draft" type="button">제목+본문 복사</button><button id="copy-hashtags" type="button">해시태그 복사</button>
+          <a class="is-primary" href="https://blog.naver.com/yongin_rack" target="_blank" rel="noopener">네이버 블로그 열기</a>
+        </div>
+      </div>
+    </section>
+    <section class="cases-section" aria-labelledby="send-heading">
+      <div class="cases-section-head"><h2 id="send-heading">시공 사례 보내기</h2><p>최근 블로그 글을 골라 고객에게 바로 보냅니다.</p></div>
+      <div class="px-5 pt-4">
+        <div id="blog-filters" class="cases-chip-row" aria-label="랙 종류 필터">
+          <button type="button" class="cases-chip is-selected" data-blog-filter="전체" aria-pressed="true">전체</button>
+          <button type="button" class="cases-chip" data-blog-filter="경량랙" aria-pressed="false">경량랙</button>
+          <button type="button" class="cases-chip" data-blog-filter="중량랙" aria-pressed="false">중량랙</button>
+          <button type="button" class="cases-chip" data-blog-filter="파렛트랙" aria-pressed="false">파렛트랙</button>
+          <button type="button" class="cases-chip" data-blog-filter="하이퍼" aria-pressed="false">하이퍼 진열대</button>
+          <button type="button" class="cases-chip" data-blog-filter="곤도라" aria-pressed="false">곤도라 진열대</button>
+          <button type="button" class="cases-chip" data-blog-filter="무볼트" aria-pressed="false">무볼트앵글</button>
+          <button type="button" class="cases-chip" data-blog-filter="아연랙" aria-pressed="false">아연랙</button>
+        </div>
+      </div>
+      <div id="blog-list" class="mt-3"><p class="p-5 text-sm text-gray-500">블로그 글을 불러오는 중입니다.</p></div>
+    </section>
+  </main>
+  <script src="/js/api.js?v=71"></script>
+  <script src="/js/auth.js?v=71"></script>
+  <script src="/js/ui.js?v=71"></script>
+  <script src="/js/blog-draft.js?v=71"></script>
+  <script>
+    const BLOG_RSS_URL = 'https://api.rss2json.com/v1/api.json?rss_url=https://rss.blog.naver.com/yongin_rack.xml';
+    const ESTIMATE_CACHE_KEY = 'yr_estimates_cache';
+    const ESTIMATE_CACHE_TS_KEY = 'yr_estimates_cache_ts';
+    const ESTIMATE_CACHE_TTL = 2 * 60 * 1000;
+    const BLOG_CACHE_KEY = 'yr_blog_posts_cache';
+    const BLOG_CACHE_TTL = 60 * 60 * 1000;
+    const DRAFTS_KEY = 'yr_blog_drafts';
+    let recentEstimates = [], blogPosts = [], blogFilter = '전체', currentDraft = null, selectedTitleIndex = 0;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!Auth.guard()) { window.addEventListener('yr-authenticated', init); return; }
+      init();
+    });
+
+    function init() {
+      UI.renderTabBar('cases');
+      document.getElementById('site-date').value = localDateValue(new Date());
+      bindChips('rack-chips', 'rack'); bindChips('site-chips', 'site'); bindBlogFilters();
+      document.getElementById('draft-form').addEventListener('submit', handleBuildDraft);
+      document.getElementById('copy-draft').addEventListener('click', copyDraft);
+      document.getElementById('copy-hashtags').addEventListener('click', copyHashtags);
+      document.getElementById('estimate-list').addEventListener('click', event => { const button = event.target.closest('[data-estimate-index]'); if (button) selectEstimate(Number(button.dataset.estimateIndex)); });
+      document.getElementById('recent-drafts').addEventListener('click', event => { const button = event.target.closest('[data-draft-index]'); if (button) openRecentDraft(Number(button.dataset.draftIndex)); });
+      document.getElementById('blog-list').addEventListener('click', event => { const button = event.target.closest('[data-share-post]'); if (button) shareBlogPost(Number(button.dataset.sharePost)); });
+      renderRecentDrafts(); loadRecentEstimates(); loadBlogPosts();
+    }
+
+    function localDateValue(date) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
+    function bindChips(containerId, dataName) {
+      document.getElementById(containerId).addEventListener('click', event => { const button = event.target.closest(`[data-${dataName}]`); if (button) selectChip(containerId, button.dataset[dataName]); });
+    }
+    function selectChip(containerId, value) {
+      const attribute = containerId === 'rack-chips' ? 'rack' : 'site';
+      document.querySelectorAll(`#${containerId} [data-${attribute}]`).forEach(button => { const selected = button.dataset[attribute] === value; button.classList.toggle('is-selected', selected); button.setAttribute('aria-pressed', String(selected)); });
+    }
+    function selectedChip(containerId, attribute) { const selected = document.querySelector(`#${containerId} [data-${attribute}].is-selected`); return selected ? selected.dataset[attribute] : ''; }
+    function parseEstimateCache(raw) { if (!raw) return []; const parsed = JSON.parse(raw); return Array.isArray(parsed) ? parsed : (parsed.estimates || []); }
+    async function loadRecentEstimates() {
+      let cached = [];
+      try { cached = parseEstimateCache(localStorage.getItem(ESTIMATE_CACHE_KEY)); if (cached.length) renderEstimates(cached); } catch {}
+      const cacheTs = Number(localStorage.getItem(ESTIMATE_CACHE_TS_KEY)) || 0;
+      if (cached.length && Date.now() - cacheTs < ESTIMATE_CACHE_TTL) return;
+      try {
+        const data = await API.getEstimates();
+        const estimates = data && Array.isArray(data.estimates) ? data.estimates : [];
+        localStorage.setItem(ESTIMATE_CACHE_KEY, JSON.stringify(estimates)); localStorage.setItem(ESTIMATE_CACHE_TS_KEY, String(Date.now())); renderEstimates(estimates);
+      } catch { if (!cached.length) renderEstimateEmpty('견적을 불러올 수 없습니다. 직접 입력해 주세요.'); }
+    }
+    function estimateDateValue(estimate) {
+      const value = String(estimate.date || estimate.statusChangedAt || ''); const matched = value.match(/\d{4}-\d{2}-\d{2}/);
+      if (matched) return matched[0]; const parsed = new Date(value); return Number.isNaN(parsed.getTime()) ? '' : localDateValue(parsed);
+    }
+    function renderEstimates(estimates) {
+      recentEstimates = estimates.filter(estimate => ['시공완료', '계약', '시공중'].includes(estimate.status)).sort((a, b) => String(b.statusChangedAt || b.date || '').localeCompare(String(a.statusChangedAt || a.date || ''))).slice(0, 8);
+      if (!recentEstimates.length) { renderEstimateEmpty('최근 시공완료·계약 견적이 없습니다. 직접 입력해 주세요.'); return; }
+      document.getElementById('estimate-list').innerHTML = recentEstimates.map((estimate, index) => {
+        const customer = UI.escapeHtml(estimate.customerName || '고객명 없음');
+        const company = estimate.company ? ` · ${UI.escapeHtml(estimate.company)}` : '';
+        const address = UI.escapeHtml(estimate.address || '주소 없음'); const summary = UI.escapeHtml(estimate.itemSummary || summarizeItems(estimate.items)); const date = UI.escapeHtml(estimateDateValue(estimate));
+        return `<button type="button" class="estimate-choice" data-estimate-index="${index}" data-estimate-id="${UI.escapeHtml(estimate.estimateId || '')}"><span class="estimate-choice-title"><span class="truncate">${customer}${company}</span><span class="shrink-0 text-sm text-primary">${UI.escapeHtml(estimate.status || '')}</span></span><span class="estimate-choice-meta block">${address}</span><span class="estimate-choice-meta block">${summary || '품목 정보 없음'}${date ? ` · ${date}` : ''}</span></button>`;
+      }).join('');
+    }
+    function renderEstimateEmpty(message) { document.getElementById('estimate-list').innerHTML = `<p class="p-4 text-sm text-gray-500">${UI.escapeHtml(message)}</p>`; }
+    function summarizeItems(items) { const parsed = parseItems(items); if (!parsed.length) return ''; return parsed.length > 1 ? `${parsed[0].type || '품목'} 외 ${parsed.length - 1}종` : (parsed[0].type || ''); }
+    function parseItems(items) { if (Array.isArray(items)) return items; try { return JSON.parse(items || '[]'); } catch { return []; } }
+    function normalizeRackType(type) {
+      const value = String(type || '');
+      if (value.includes('파렛트')) return '파렛트랙'; if (value.includes('하이퍼')) return '하이퍼 진열대'; if (value.includes('곤도라')) return '곤도라 진열대';
+      if (value.includes('무볼트') || value.includes('앵글')) return '무볼트앵글'; if (value.includes('아연')) return '아연랙'; if (value.includes('중량')) return '중량랙'; return '경량랙';
+    }
+    function inferSiteType(estimate, rackType) {
+      const text = `${estimate.customerName || ''} ${estimate.company || ''} ${estimate.address || ''}`;
+      if (text.includes('약국')) return '약국'; if (text.includes('문구')) return '문구점'; if (/뷰티|화장품|미용/.test(text)) return '뷰티매장'; if (/낚시/.test(text)) return '낚시매장';
+      if (/공장|산업/.test(text)) return '공장'; if (/사무실|오피스/.test(text)) return '사무실'; if (/창고|물류/.test(text) || rackType === '파렛트랙' || rackType === '중량랙') return '창고·물류'; return '매장';
+    }
+    function selectEstimate(index) {
+      const estimate = recentEstimates[index]; if (!estimate) return;
+      const rackType = normalizeRackType(parseItems(estimate.items)[0]?.type || estimate.itemSummary);
+      document.getElementById('store-name').value = estimate.company || estimate.customerName || '';
+      document.getElementById('site-location').value = estimate.address || '';
+      document.getElementById('site-date').value = estimateDateValue(estimate) || localDateValue(new Date());
+      selectChip('rack-chips', rackType); selectChip('site-chips', inferSiteType(estimate, rackType));
+      document.querySelectorAll('[data-estimate-index]').forEach(button => button.classList.toggle('is-selected', Number(button.dataset.estimateIndex) === index));
+      document.getElementById('store-name').focus();
+    }
+    function draftInput() {
+      return { storeName: document.getElementById('store-name').value.trim(), location: document.getElementById('site-location').value.trim(), date: document.getElementById('site-date').value, rackType: selectedChip('rack-chips', 'rack'), siteType: selectedChip('site-chips', 'site'), note: document.getElementById('feature-note').value.trim() };
+    }
+    function readBranding() { try { return JSON.parse(localStorage.getItem('yr_branding') || '{}'); } catch { return {}; } }
+    function handleBuildDraft(event) {
+      event.preventDefault();
+      const input = draftInput();
+      const missing = [['store-name', input.storeName], ['site-location', input.location]].filter(pair => !String(pair[1] || '').trim());
+      document.querySelectorAll('.cases-input.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+      if (missing.length) { missing.forEach(pair => document.getElementById(pair[0]).classList.add('is-invalid')); document.getElementById(missing[0][0]).focus(); UI.toast('매장 이름과 시공 장소를 입력하세요', 'warning'); return; }
+      currentDraft = BlogDraft.build(input, readBranding()); selectedTitleIndex = 0; renderDraft(currentDraft); saveDraft(input, currentDraft);
+    }
+    function renderDraft(draft) {
+      document.getElementById('draft-titles').innerHTML = draft.titles.map((title, index) => `<button type="button" class="draft-title${index === selectedTitleIndex ? ' is-selected' : ''}" data-title-index="${index}" aria-pressed="${index === selectedTitleIndex}">${UI.escapeHtml(title)}</button>`).join('');
+      document.getElementById('draft-titles').querySelectorAll('[data-title-index]').forEach(button => button.addEventListener('click', () => selectTitle(Number(button.dataset.titleIndex))));
+      document.getElementById('draft-body').value = draft.body; document.getElementById('draft-hashtags').textContent = draft.hashtags.join(' '); document.getElementById('draft-result').classList.remove('hidden');
+      document.getElementById('draft-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    function selectTitle(index) {
+      selectedTitleIndex = index;
+      document.querySelectorAll('[data-title-index]').forEach(button => { const selected = Number(button.dataset.titleIndex) === index; button.classList.toggle('is-selected', selected); button.setAttribute('aria-pressed', String(selected)); });
+    }
+    function readDrafts() { try { const drafts = JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]'); return Array.isArray(drafts) ? drafts.slice(0, 10) : []; } catch { return []; } }
+    function saveDraft(input, output) {
+      const drafts = readDrafts(); drafts.unshift({ id: String(Date.now()), createdAt: new Date().toISOString(), input, output }); localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts.slice(0, 10))); renderRecentDrafts();
+    }
+    function renderRecentDrafts() {
+      const drafts = readDrafts(), wrap = document.getElementById('recent-drafts-wrap');
+      if (!drafts.length) { wrap.classList.add('hidden'); return; }
+      document.getElementById('recent-drafts').innerHTML = drafts.map((draft, index) => `<button type="button" class="cases-chip" data-draft-index="${index}">${UI.escapeHtml(draft.input?.storeName || '시공 현장')} · ${UI.escapeHtml(draft.input?.date || '')}</button>`).join(''); wrap.classList.remove('hidden');
+    }
+    function openRecentDraft(index) {
+      const saved = readDrafts()[index]; if (!saved || !saved.input || !saved.output) return;
+      document.getElementById('store-name').value = saved.input.storeName || ''; document.getElementById('site-location').value = saved.input.location || ''; document.getElementById('site-date').value = saved.input.date || localDateValue(new Date()); document.getElementById('feature-note').value = saved.input.note || '';
+      selectChip('rack-chips', saved.input.rackType || '경량랙'); selectChip('site-chips', saved.input.siteType || '기타'); currentDraft = saved.output; selectedTitleIndex = 0; renderDraft(currentDraft);
+    }
+    async function writeClipboard(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) { try { await navigator.clipboard.writeText(text); return true; } catch {} }
+      const textarea = document.createElement('textarea'); textarea.value = text; textarea.style.position = 'fixed'; textarea.style.opacity = '0'; document.body.appendChild(textarea); textarea.select(); const copied = document.execCommand('copy'); textarea.remove(); return copied;
+    }
+    async function copyDraft() {
+      if (!currentDraft) return; const title = currentDraft.titles[selectedTitleIndex] || currentDraft.titles[0]; await writeClipboard(`${title}\n\n${document.getElementById('draft-body').value}`); UI.toast('복사했어요. 블로그 앱에 붙여넣고 사진만 올리세요', 'success');
+    }
+    async function copyHashtags() { if (!currentDraft) return; await writeClipboard(document.getElementById('draft-hashtags').textContent); UI.toast('복사했어요. 블로그 앱에 붙여넣고 사진만 올리세요', 'success'); }
+    function bindBlogFilters() {
+      document.getElementById('blog-filters').addEventListener('click', event => {
+        const button = event.target.closest('[data-blog-filter]'); if (!button) return; blogFilter = button.dataset.blogFilter;
+        document.querySelectorAll('[data-blog-filter]').forEach(item => { const selected = item === button; item.classList.toggle('is-selected', selected); item.setAttribute('aria-pressed', String(selected)); }); renderBlogPosts();
+      });
+    }
+    async function loadBlogPosts() {
+      let cached = null; try { cached = JSON.parse(localStorage.getItem(BLOG_CACHE_KEY) || 'null'); } catch {}
+      if (cached && Array.isArray(cached.items) && cached.items.length) { blogPosts = cached.items.slice(0, 20); renderBlogPosts(); if (Date.now() - Number(cached.ts || 0) < BLOG_CACHE_TTL) return; }
+      try {
+        const response = await fetch(BLOG_RSS_URL), data = await response.json(); if (data.status !== 'ok' || !Array.isArray(data.items)) throw new Error('rss');
+        blogPosts = data.items.slice(0, 20); localStorage.setItem(BLOG_CACHE_KEY, JSON.stringify({ ts: Date.now(), items: blogPosts })); renderBlogPosts();
+      } catch { if (!blogPosts.length) renderBlogFallback(); }
+    }
+    function postCategories(post) { return Array.isArray(post.categories) ? post.categories.filter(Boolean) : []; }
+    function safeHttpUrl(value) { try { const url = new URL(String(value || ''), location.href); return /^https?:$/.test(url.protocol) ? url.href : ''; } catch { return ''; } }
+    function renderBlogPosts() {
+      const filtered = blogPosts.filter(post => blogFilter === '전체' || postCategories(post).join(' ').includes(blogFilter));
+      if (!filtered.length) { document.getElementById('blog-list').innerHTML = '<p class="p-5 text-sm text-gray-500">선택한 종류의 최근 글이 없습니다.</p>'; return; }
+      document.getElementById('blog-list').innerHTML = filtered.map(post => {
+        const index = blogPosts.indexOf(post), link = safeHttpUrl(post.link), thumbnail = safeHttpUrl(post.thumbnail), category = postCategories(post)[0] || '시공 사례', parsedDate = new Date(post.pubDate || ''), date = Number.isNaN(parsedDate.getTime()) ? '' : parsedDate.toLocaleDateString('ko-KR');
+        return `<article class="blog-row">${thumbnail ? `<img class="blog-thumb" src="${UI.escapeHtml(thumbnail)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="var d=document.createElement('div');d.className='blog-thumb';d.setAttribute('aria-hidden','true');this.replaceWith(d)">` : '<div class="blog-thumb" aria-hidden="true"></div>'}<div class="blog-copy"><span class="blog-badge">${UI.escapeHtml(category)}</span><h3 class="blog-title">${UI.escapeHtml(post.title || '시공 사례')}</h3>${date ? `<p class="mt-1 text-xs text-gray-400">${UI.escapeHtml(date)}</p>` : ''}<div class="blog-actions"><button type="button" data-share-post="${index}">카톡으로 보내기</button>${link ? `<a href="${UI.escapeHtml(link)}" target="_blank" rel="noopener">열기</a>` : ''}</div></div></article>`;
+      }).join('');
+    }
+    async function shareBlogPost(index) {
+      const post = blogPosts[index]; if (!post) return; const url = safeHttpUrl(post.link); if (!url) return;
+      if (navigator.share) { try { await navigator.share({ title: post.title || '시공 사례', url }); return; } catch (error) { if (error && error.name === 'AbortError') return; } }
+      await writeClipboard(url); UI.toast('링크를 복사했어요', 'success');
+    }
+    function renderBlogFallback() {
+      document.getElementById('blog-list').innerHTML = `<div class="cases-card text-center"><p class="text-base font-bold text-gray-800">최근 글을 불러올 수 없습니다.</p><a class="mt-3 inline-flex min-h-12 items-center justify-center rounded-[14px] bg-primary px-5 text-sm font-bold text-white" href="https://blog.naver.com/yongin_rack" target="_blank" rel="noopener">블로그에서 보기</a></div>`;
+    }
+  </script>
+  <script src="/js/sw-register.js"></script>
+</body>
+</html>
