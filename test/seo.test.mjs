@@ -16,6 +16,7 @@ test('public pages have unique titles, descriptions, canonical URLs and absolute
  for(const p of publicPages){const html=read(p),url='https://yongin-rack.com/'+(p==='index.html'?'':p);
  assert.match(html,/<html lang="ko">/);
  const title=html.match(/<title>([^<]+)<\/title>/)[1],desc=html.match(/name="description" content="([^"]+)"/)[1];
+ assert.ok([...desc].length<=80,p+' description must be within 80 characters');
  assert.ok(!titles.has(title));titles.add(title);assert.ok(!descs.has(desc));descs.add(desc);
  assert.equal((html.match(/rel="canonical"/g)||[]).length,1);assert.ok(html.includes('rel="canonical" href="'+url+'"'));
  assert.ok(html.includes('property="og:url" content="'+url+'"'));

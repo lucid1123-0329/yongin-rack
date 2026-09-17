@@ -195,7 +195,7 @@ const themeProblems = [];
 for (const file of htmlFiles) {
   const html = current(file);
   const tailwindAt = html.indexOf('cdn.tailwindcss.com');
-  const designAt = html.search(/href=["']\/?css\/design\.css\?v=75["']/);
+  const designAt = html.search(/href=["']\/?css\/design\.css\?v=76["']/);
   const styleAt = html.indexOf('<style');
   if (designAt < 0 || designAt < tailwindAt || (styleAt >= 0 && designAt > styleAt)) {
     themeProblems.push(file + ' link order');
@@ -213,18 +213,18 @@ for (const file of htmlFiles) {
     themeProblems.push(file + ' theme colors');
   }
   const cacheVersions = [...html.matchAll(/\?v=(\d+)/g)].map((match) => match[1]);
-  if (cacheVersions.length === 0 || cacheVersions.some((version) => version !== '75')) {
+  if (cacheVersions.length === 0 || cacheVersions.some((version) => version !== '76')) {
     themeProblems.push(file + ' cache version');
   }
 }
-report('HTML v3 theme wiring', themeProblems, htmlFiles.length + ' files use Pretendard, v3 colors, and v75');
+report('HTML v3 theme wiring', themeProblems, htmlFiles.length + ' files use Pretendard, v3 colors, and v76');
 
 const emojiProblems = htmlFiles.filter((file) => /[\p{Extended_Pictographic}\uFE0F\u200D]/u.test(current(file)));
 report('HTML inline SVG icons', emojiProblems, htmlFiles.length + ' files contain no emoji glyphs');
 
 const versionData = JSON.parse(current('version.json'));
-if (String(versionData.version) === '75') pass('version.json cache version', 'version is 75');
-else fail('version.json cache version', 'expected 75, found ' + versionData.version);
+if (String(versionData.version) === '76') pass('version.json cache version', 'version is 76');
+else fail('version.json cache version', 'expected 76, found ' + versionData.version);
 
 function normalizeChangedLine(line) {
   return line
@@ -313,7 +313,7 @@ const swBefore = baseline('sw.js');
 const swAfter = current('sw.js');
 const staticListRe = /const STATIC_ASSETS = \[[\s\S]*?\];/;
 const expectedSw = swBefore
-  .replace("const CACHE_NAME = 'yr-v64';", "const CACHE_NAME = 'yr-v75';")
+  .replace("const CACHE_NAME = 'yr-v64';", "const CACHE_NAME = 'yr-v76';")
   .replace(staticListRe, (swAfter.match(staticListRe) || [''])[0]);
 const swListOk = (swAfter.match(staticListRe) || [''])[0].split('\n').every((line) =>
   !/^\s+'/.test(line) || /^\s+'\/(app\/[\w-]+\.html|index\.html|view\.html|request\.html|portfolio-public\.html|css\/design\.css|js\/[\w-]+\.js|OneSignalSDKWorker\.js|manifest\.json)?',$/.test(line));
