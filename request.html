@@ -5,9 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
-  <title>중용 - 견적 요청</title>
-  <meta name="description" content="경량랙, 중량랙 설치 견적을 요청하세요.">
-  <meta property="og:title" content="중용랙 - 견적 요청">
+  <title>랙·진열대 설치 견적 요청 | 중용랙 용인 랙 시공</title>
+  <meta name="description" content="매장 진열대와 창고 선반 설치 견적을 중용랙에 요청하세요. 현장 지역·공간 크기·보관 물품·사진을 남기면 경량랙·중량랙·파렛트랙 등 현장에 맞는 구성을 상담합니다.">
+  <link rel="canonical" href="https://yongin-rack.com/request.html">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="중용랙">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:url" content="https://yongin-rack.com/request.html">
+  <meta property="og:image" content="https://yongin-rack.com/assets/og-image.jpg">
+  <meta property="og:image:alt" content="중용랙 랙 설치 견적 상담">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta property="og:title" content="랙·진열대 설치 견적 요청 | 중용랙">
   <meta property="og:description" content="용인 랙(선반) 전문 시공, 현장에 맞는 견적을 요청하세요.">
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script>
@@ -16,7 +25,7 @@
     };
   </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="css/design.css?v=71">
+  <link rel="stylesheet" href="css/design.css?v=72">
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <meta name="theme-color" content="#1e3a5f">
   <style>
@@ -199,8 +208,8 @@
     </div>
   </div>
 
-  <script src="js/api.js?v=71"></script>
-  <script src="js/ui.js?v=71"></script>
+  <script src="js/api.js?v=72"></script>
+  <script src="js/ui.js?v=72"></script>
   <script>
     // 현장 사진 미리보기
     document.getElementById('req-space-photo').addEventListener('change', function(e) {
@@ -266,15 +275,18 @@
       }
       if (!/^0\d{8,10}$/.test(phone)) { UI.toast('연락 가능한 전화번호를 확인해주세요.', 'warning'); return; }
       const selectedFiles = Array.from(document.getElementById('req-space-photo').files);
-      if (selectedFiles.length > 5 || selectedFiles.some(file => !/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 10 * 1024 * 1024)) {
-        UI.toast('사진은 JPG·PNG·WebP로 최대 5장, 장당 10MB까지 첨부하세요.', 'warning'); return;
+      if (new URLSearchParams(location.search).has('layout') && typeof RequestLayout === 'undefined') { UI.toast('배치 첨부 기능을 불러오지 못했습니다. 새로고침 후 다시 확인해 주세요.', 'warning'); return; }
+      if (typeof RequestLayout !== 'undefined' && RequestLayout.blocked()) { UI.toast('배치 전달 상태를 먼저 확인해 주세요.', 'warning'); return; }
+      const layoutPhoto = typeof RequestLayout !== 'undefined' ? RequestLayout.photo() : null;
+      if (selectedFiles.length + (layoutPhoto ? 1 : 0) > 5 || selectedFiles.some(file => !/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 10 * 1024 * 1024)) {
+        UI.toast(layoutPhoto ? '배치도 포함 최대 5장입니다. 현장 사진은 JPG·PNG·WebP로 최대 4장, 장당 10MB까지 첨부하세요.' : '사진은 JPG·PNG·WebP로 최대 5장, 장당 10MB까지 첨부하세요.', 'warning'); return;
       }
 
       UI.setLoading(btn, true);
       try {
         // 현장 사진 인코딩 (여러 장)
         const photoInput = document.getElementById('req-space-photo');
-        const photos = [];
+        const photos = layoutPhoto ? [layoutPhoto] : [];
         for (let i = 0; i < photoInput.files.length; i++) {
           photos.push(await resizeAndEncode(photoInput.files[i], 1024));
         }
@@ -305,6 +317,7 @@
         } else {
           document.getElementById('request-form').classList.add('hidden');
           document.getElementById('success-msg').classList.remove('hidden');
+          if (typeof RequestLayout !== 'undefined') RequestLayout.clear();
           // 푸시 알림은 GAS에서 OneSignal로 직접 발송
         }
       } catch (err) {
@@ -326,5 +339,9 @@
       } catch (e) {}
     })();
   </script>
+  <script src="/js/landing-planner.js?v=72"></script>
+  <script src="/js/landing-editor.js?v=72"></script>
+  <script src="/js/landing-plan-export.js?v=72"></script>
+  <script src="/js/request-layout.js?v=72"></script>
 </body>
 </html>

@@ -4,10 +4,15 @@
  */
 importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 
-const CACHE_NAME = 'yr-v71';
+const CACHE_NAME = 'yr-v72';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/js/landing-planner.js',
+  '/js/landing-showrooms.js',
+  '/js/landing-editor.js',
+  '/js/landing-plan-export.js',
+  '/js/request-layout.js',
   '/app/index.html',
   '/app/history.html',
   '/app/dashboard.html',

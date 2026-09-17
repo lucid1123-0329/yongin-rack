@@ -190,9 +190,17 @@ detailNodes = [newDetail];
 aiNodes = [newAi];
 elements.set('ai-result-2', newAi);
 context.__requests.restoreRequestViewState(savedView);
-assert.equal(newAi.innerHTML, '<div>saved analysis</div>');
-assert.equal(newAi.classList.contains('hidden'), false);
+assert.equal(newAi.innerHTML, '', 'never restore raw analysis HTML by a movable sheet row number');
+assert.equal(newAi.classList.contains('hidden'), true);
 assert.deepEqual(restoredScroll, { x: 0, y: 420 });
+
+context.__setFilter('전체');
+context.__setRequests([{...injected, estimateId:'Q-SAVED', aiAnalysis:{savedAt:'2026-09-17T05:00:00Z', result:{analysis:'저장한 요약 <script>',reasoning:'통로 폭 확인',recommendedType:'경량랙'}}}]);
+context.__requests.renderRequests();
+assert.match(requestList.innerHTML, /저장된 분석/);
+assert.match(requestList.innerHTML, /저장한 요약 &lt;script&gt;/);
+assert.match(requestList.innerHTML, /AI 다시 분석/);
+assert.doesNotMatch(requestList.innerHTML, /id="ai-result-5" class="hidden/);
 
 assert.match(appSource, /setInterval\(loadRequests, 60000\)/, 'poll interval stays at 60 seconds');
 

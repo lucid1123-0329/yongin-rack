@@ -15,8 +15,8 @@ Disallow: /admin.html
 Disallow: /admin-push.html
 Disallow: /portfolio.html
 Disallow: /estimate-preview.html
-Disallow: /js/
-Disallow: /css/
+Allow: /js/
+Allow: /css/
 Disallow: /test/
 Disallow: /mockup/
 Disallow: /docs/

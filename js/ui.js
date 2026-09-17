@@ -276,7 +276,7 @@ const UI = (() => {
   }
 
 
-  // 가로 스크롤 행에 좌우 화살표 버튼과 끝단 페이드를 붙인다 (필터 칩 행 등)
+  // 화살표를 칩 바깥에 배치해 터치 영역이 겹치지 않도록 한다.
   function enhanceScrollRow(el) {
     if (!el || el.dataset.scrollRow === '1') return;
     el.dataset.scrollRow = '1';
@@ -287,7 +287,8 @@ const UI = (() => {
     var mk = function (dir) {
       var b = document.createElement('button');
       b.type = 'button';
-      b.className = 'v2-scroll-row__btn v2-scroll-row__btn--' + dir;
+      b.className = 'v2-scroll-row__btn is-hidden v2-scroll-row__btn--' + dir;
+      b.disabled = true;
       b.setAttribute('aria-label', dir === 'left' ? '왼쪽으로 이동' : '오른쪽으로 이동');
       b.innerHTML = dir === 'left'
         ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>'
@@ -305,6 +306,8 @@ const UI = (() => {
       var canL = el.scrollLeft > 4, canR = el.scrollLeft < max - 4;
       left.classList.toggle('is-hidden', !canL);
       right.classList.toggle('is-hidden', !canR);
+      left.disabled = !canL;
+      right.disabled = !canR;
       wrap.classList.toggle('can-left', canL);
       wrap.classList.toggle('can-right', canR);
       wrap.classList.toggle('is-scrollable', max > 4);
@@ -312,6 +315,7 @@ const UI = (() => {
     el.addEventListener('scroll', update, { passive: true });
     window.addEventListener('resize', update);
     if (window.MutationObserver) new MutationObserver(update).observe(el, { childList: true, subtree: true });
+    if (window.ResizeObserver) new ResizeObserver(update).observe(el);
     setTimeout(update, 0);
     setTimeout(update, 400);
   }

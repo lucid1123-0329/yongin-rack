@@ -928,9 +928,13 @@ function getRequests() {
   if (data.length <= 1) return { requests: [] };
 
   const requests = [];
+  var analysisColumn = data[0].indexOf('AI분석JSON');
   for (let i = data.length - 1; i >= 1; i--) {
+    var requestKey = _requestAnalysisKey(data[i]);
     requests.push({
       rowIndex: i + 1,
+      requestKey: requestKey,
+      aiAnalysis: _readRequestAnalysis(analysisColumn < 0 ? '' : data[i][analysisColumn], requestKey),
       date: data[i][0], name: data[i][1], phone: String(data[i][2]),
       rackType: data[i][3], quantity: Number(data[i][4]),
       memo: data[i][5], status: data[i][6],
@@ -1629,7 +1633,7 @@ function _callGemini(prompt, options) {
   var apiKey = _getGeminiApiKey();
   if (!apiKey) return { error: 'Gemini API 키가 설정되지 않았습니다. 설정 페이지에서 입력하세요.' };
 
-  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=' + apiKey;
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=' + apiKey;
 
   var parts = [];
   if (options && options.imageBase64) {
@@ -1704,7 +1708,73 @@ function _callGemini(prompt, options) {
 }
 
 // ─── 견적 요청 AI 분석 ───
+function _requestAnalysisKey(row) {
+  // Exclude mutable workflow status and linked estimate; include the customer's input.
+  return _authHash(JSON.stringify(row.slice(0, 6).concat(row.slice(7, 12), row.slice(13, 20))));
+}
+
+function _readRequestAnalysis(value, key) {
+  try {
+    var saved = JSON.parse(value || 'null');
+    return saved && saved.version === 1 && saved.requestKey === key && saved.result &&
+      typeof saved.result.analysis === 'string' ? saved : null;
+  } catch (err) { return null; }
+}
+
+function _findAnalysisRequest(data, key) {
+  var matches = [];
+  for (var i = 1; i < data.length; i++) {
+    if (_requestAnalysisKey(data[i]) === key) matches.push(i);
+  }
+  if (matches.length !== 1) throw new Error('요청이 변경되었거나 삭제되었습니다. 목록을 새로고침해주세요.');
+  return matches[0];
+}
+
 function analyzeRequest(body) {
+  // Legacy callers can still analyze free text, but cannot claim it has been saved.
+  if (!body.requestKey) return _generateRequestAnalysis(body);
+  if (!/^[a-f0-9]{64}$/.test(String(body.requestKey))) return { error:'잘못된 요청 식별값입니다.' };
+  var sheet = getSheet('견적요청');
+  var data = sheet.getDataRange().getValues();
+  var index = _findAnalysisRequest(data, body.requestKey);
+  var column = data[0].indexOf('AI분석JSON');
+  var previous = _readRequestAnalysis(column < 0 ? '' : data[index][column], body.requestKey);
+  if (previous && body.reanalyze !== true) return { savedAnalysis:previous };
+
+  var row = data[index];
+  var result = _generateRequestAnalysis({memo:row[5], rackType:row[3], quantity:row[4]});
+  if (!result || result.error) return result || { error:'AI 응답이 없습니다.' };
+  if (typeof result.analysis !== 'string' || !result.analysis.trim()) return { error:'AI 분석 형식을 확인할 수 없습니다. 다시 시도해주세요.' };
+  var clean = {};
+  ['analysis','recommendedType','recommendedForm','recommendedSpec','estimatedPriceRange','reasoning','confidence'].forEach(function(key) {
+    clean[key] = String(result[key] || '').slice(0, 5000);
+  });
+  clean.recommendedQty = Math.max(0, Math.min(9999, Math.floor(Number(result.recommendedQty) || 0)));
+
+  // Gemini runs outside the lock. Re-find the request after possible row deletion/movement.
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    data = sheet.getDataRange().getValues();
+    index = _findAnalysisRequest(data, body.requestKey);
+    column = data[0].indexOf('AI분석JSON');
+    var current = _readRequestAnalysis(column < 0 ? '' : data[index][column], body.requestKey);
+    if (current && (!body.reanalyze || JSON.stringify(current) !== JSON.stringify(previous))) return { savedAnalysis:current };
+    if (column < 0) {
+      column = data[0].length;
+      if (column >= sheet.getMaxColumns()) sheet.insertColumnsAfter(sheet.getMaxColumns(), 1);
+      sheet.getRange(1, column + 1).setValue('AI분석JSON');
+    }
+    var saved = {version:1, requestKey:body.requestKey, savedAt:new Date().toISOString(), result:clean};
+    var serialized = JSON.stringify(saved);
+    if (serialized.length > 45000) return { error:'분석 내용이 너무 길어 저장할 수 없습니다.' };
+    sheet.getRange(index + 1, column + 1).setValue(serialized);
+    _clearCache('cache_requests');
+    return { savedAnalysis:saved };
+  } finally { lock.releaseLock(); }
+}
+
+function _generateRequestAnalysis(body) {
   var memo = body.memo || '';
   var rackType = body.rackType || '';
   var quantity = body.quantity || 0;

@@ -51,7 +51,7 @@ export function prepareRelease() {
   return {directory,version,publicFiles:files.length,serverFiles:2};
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  for (const args of [['tools/verify-no-secrets.mjs'],['tools/verify-reskin.mjs'],['--test','test/security-regression.test.mjs','test/quote-integrity.test.mjs','test/script-syntax.test.mjs','test/release-package.test.mjs']]) {
+  for (const args of [['tools/verify-no-secrets.mjs'],['tools/verify-reskin.mjs'],['--test','test/security-regression.test.mjs','test/quote-integrity.test.mjs','test/script-syntax.test.mjs','test/release-package.test.mjs','test/request-analysis.test.mjs','test/requests-dom.test.mjs','test/landing-planner.test.mjs','test/landing-editor.test.mjs','test/seo.test.mjs','test/landing-export.test.mjs']]) {
     const result=spawnSync(process.execPath,args,{cwd:root,stdio:'inherit'});
     if(result.status!==0) process.exit(result.status || 1);
   }

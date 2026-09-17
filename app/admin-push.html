@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="robots" content="noindex, nofollow">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>관리자 푸시 알림 설정</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <script>tailwind.config={theme:{extend:{colors:{primary:'#2F6BFF',accent:'#FF6B00'},fontFamily:{sans:['Pretendard','-apple-system','BlinkMacSystemFont','sans-serif']}}}}</script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/design.css?v=71">
+  <link rel="stylesheet" href="/css/design.css?v=72">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1e3a5f">
   <link rel="icon" type="image/png" href="/assets/favicon.png">
@@ -20,7 +20,7 @@
   <script src="/js/onesignal-init.js" defer></script>
   <script src="/js/version-check.js" defer></script>
 </head>
-<body class="bg-[#f7fafc] min-h-screen">
+<body class="yr-admin-app bg-[#f7fafc] min-h-screen">
 
   <header class="bg-primary text-white px-4 py-4 sticky top-0 z-40 flex items-center gap-3">
     <a href="more.html" class="w-8 h-8 flex items-center justify-center rounded-lg active:bg-white/20">
@@ -68,8 +68,8 @@
     </div>
   </main>
 
-  <script src="/js/api.js?v=71"></script>
-  <script src="/js/auth.js?v=71"></script>
+  <script src="/js/api.js?v=72"></script>
+  <script src="/js/auth.js?v=72"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => { if (Auth.guard()) updateStatus(); });
     window.addEventListener('yr-authenticated', updateStatus);

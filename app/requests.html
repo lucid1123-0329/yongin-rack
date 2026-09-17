@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="robots" content="noindex, nofollow">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <title>견적 요청 확인 - 중용</title>
@@ -17,7 +17,7 @@
     };
   </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/design.css?v=71">
+  <link rel="stylesheet" href="/css/design.css?v=72">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#1e3a5f">
   <link rel="icon" type="image/png" href="/assets/favicon.png">
@@ -27,10 +27,10 @@
 
   <style>:root{--bg:#F2F4F6;--canvas:#F2F4F6;--surface:#FFFFFF;--fill:#F2F4F6;--fill-2:#E5E8EB;--line:#EEF0F2;--rule:#EEF0F2;--text:#191F28;--ink:#191F28;--text-2:#4E5968;--ink-2:#4E5968;--text-3:#8B95A1;--brand:#2F6BFF;--brand-weak:#E8F0FF;--accent:#FF6B00;--ok:#1FA36B;--ok-weak:#E6F7EF;--danger:#F04452;--danger-weak:#FEECEE;--r-card:20px;--r-ctl:14px;--r-chip:999px;--r-sheet:24px;--shadow-card:0 2px 12px rgba(25,31,40,.06);--s1:8px;--s2:12px;--s3:16px;--s4:20px;--s5:24px;--s6:32px}body { font-family: 'Pretendard', sans-serif; padding-bottom: 80px; }</style>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <script src="/js/onesignal-init.js?v=71" defer></script>
+  <script src="/js/onesignal-init.js?v=72" defer></script>
   <script src="/js/version-check.js" defer></script>
 </head>
-<body class="bg-[#f7fafc] min-h-screen">
+<body class="yr-admin-app bg-[#f7fafc] min-h-screen">
   <header class="bg-primary text-white px-4 py-4 sticky top-0 z-40">
     <h1 class="text-lg font-bold">견적 요청</h1>
   </header>
@@ -55,9 +55,9 @@
   </main>
 
   <!-- Scripts -->
-  <script src="/js/api.js?v=71"></script>
-  <script src="/js/auth.js?v=71"></script>
-  <script src="/js/ui.js?v=71"></script>
+  <script src="/js/api.js?v=72"></script>
+  <script src="/js/auth.js?v=72"></script>
+  <script src="/js/ui.js?v=72"></script>
   <script>
     let allRequests = [];
     let currentFilter = '전체';
@@ -231,22 +231,13 @@
 
     function captureRequestViewState() {
       const openDetails = Array.from(document.querySelectorAll('.v2-request-detail:not(.hidden)')).map(el => el.id);
-      const aiResults = Array.from(document.querySelectorAll('[id^="ai-result-"]:not(.hidden)')).map(el => ({ id: el.id, html: el.innerHTML }));
-      return { scrollY: window.scrollY || 0, openDetails, aiResults };
+      return { scrollY: window.scrollY || 0, openDetails };
     }
 
     function restoreRequestViewState(state) {
       if (!state) return;
       requestAnimationFrame(() => {
         document.querySelectorAll('.v2-request-detail').forEach(el => el.classList.toggle('hidden', !state.openDetails.includes(el.id)));
-        state.aiResults.forEach(saved => {
-          const result = document.getElementById(saved.id);
-          if (!result) return;
-          result.innerHTML = saved.html;
-          result.classList.remove('hidden');
-          const button = document.getElementById(saved.id.replace('ai-result-', 'btn-ai-'));
-          if (button) button.classList.add('hidden');
-        });
         window.scrollTo(0, state.scrollY);
       });
     }
@@ -338,14 +329,15 @@
               ${contentRows.length > 0 ? contentRows.join('') : '<p class="v2-request-content-empty">남긴 내용이 없습니다</p>'}
             </div>
           </section>
-          ${r.memo && !r.estimateId ? `
+          ${(r.memo && !r.estimateId) || r.aiAnalysis ? `
           <div class="v2-request-ai">
             <button onclick="aiAnalyzeRequest(${r.rowIndex})" id="btn-ai-${r.rowIndex}"
+              ${pendingAnalyses.has(r.requestKey) ? 'disabled' : ''}
               class="v2-ai-button w-full h-9 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 active:scale-[0.98]">
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-              AI 분석
+              ${pendingAnalyses.has(r.requestKey) ? '분석 및 저장 중...' : r.aiAnalysis ? 'AI 다시 분석' : 'AI 분석'}
             </button>
-            <div id="ai-result-${r.rowIndex}" class="hidden mt-2"></div>
+            <div id="ai-result-${r.rowIndex}" class="${r.aiAnalysis ? '' : 'hidden'} mt-2">${r.aiAnalysis ? renderAiResult(r.aiAnalysis.result, r) : ''}</div>
           </div>
           ` : ''}
           <!-- 액션 버튼 -->
@@ -475,34 +467,52 @@
     }
 
     // --- AI 분석 ---
+    const pendingAnalyses = new Set();
     async function aiAnalyzeRequest(rowIndex) {
       var req = allRequests.find(r => r.rowIndex === rowIndex);
       if (!req) return;
+      if (!req.requestKey) { UI.toast('요청 목록을 새로고침한 뒤 다시 시도해주세요.', 'warning'); return; }
+      if (pendingAnalyses.has(req.requestKey)) return;
+      if (req.aiAnalysis) {
+        UI.confirm('AI 다시 분석', '새 분석이 저장되면 이전 결과를 교체합니다. 다시 분석할까요?', () => runRequestAnalysis(req));
+        return;
+      }
+      await runRequestAnalysis(req);
+    }
+
+    async function runRequestAnalysis(req) {
+      if (pendingAnalyses.has(req.requestKey)) return;
+      pendingAnalyses.add(req.requestKey);
+      var rowIndex = req.rowIndex;
 
       var btn = document.getElementById('btn-ai-' + rowIndex);
-      btn.disabled = true;
-      btn.innerHTML = '<div class="animate-spin w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full"></div> 분석 중...';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '분석 및 저장 중...';
+      }
 
       try {
         var result = await API.analyzeRequest({
-          memo: req.memo, rackType: req.rackType, quantity: req.quantity
+          requestKey:req.requestKey, reanalyze:!!req.aiAnalysis
         });
 
-        if (result.error) {
-          UI.toast(result.error, 'error');
-          btn.disabled = false;
-          btn.innerHTML = 'AI 분석';
-          return;
-        }
-
-        var container = document.getElementById('ai-result-' + rowIndex);
-        container.classList.remove('hidden');
-        container.innerHTML = renderAiResult(result, req);
-        btn.classList.add('hidden');
+        if (result.error) throw new Error(result.error);
+        if (!result.savedAnalysis || result.savedAnalysis.requestKey !== req.requestKey) throw new Error('저장이 확인되지 않았습니다. 서버 업데이트를 확인해주세요.');
+        var current = allRequests.find(r => r.requestKey === req.requestKey);
+        if (current) current.aiAnalysis = result.savedAnalysis;
+        try { localStorage.setItem('yr_requests_cache', JSON.stringify({ requests:allRequests })); } catch {}
+        renderRequests(captureRequestViewState());
+        UI.toast('AI 분석 결과가 저장되었습니다', 'success');
       } catch (e) {
         UI.toast('AI 분석 실패: ' + e.message, 'error');
-        btn.disabled = false;
-        btn.innerHTML = 'AI 분석';
+      } finally {
+        pendingAnalyses.delete(req.requestKey);
+        var current = allRequests.find(r => r.requestKey === req.requestKey);
+        var button = current && document.getElementById('btn-ai-' + current.rowIndex);
+        if (button) {
+          button.disabled = false;
+          button.textContent = current.aiAnalysis ? 'AI 다시 분석' : 'AI 분석';
+        }
       }
     }
 
@@ -525,6 +535,8 @@
 
       return `
         <div class="v2-ai-result p-3 bg-purple-50 rounded-lg space-y-2" aria-label="AI 분석 결과">
+          ${req.aiAnalysis ? `<p class="v2-ai-saved">저장된 분석 · ${requestValue(new Date(req.aiAnalysis.savedAt).toLocaleString('ko-KR'))}</p>` : ''}
+          <section class="v2-ai-summary"><h4>분석 요약</h4><p>${requestValue(ai.analysis || '')}</p></section>
           <section class="v2-ai-questions">
             <h4>전화로 확인할 질문</h4>
             <ul>${questions.map(question => `<li>${requestValue(question)}</li>`).join('')}</ul>
