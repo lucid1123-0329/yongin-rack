@@ -51,7 +51,12 @@ export function prepareRelease() {
   return {directory,version,publicFiles:files.length,serverFiles:2};
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const tests = fs.readdirSync(path.join(root, 'test')).filter(file => file.endsWith('.mjs')).sort().map(file => 'test/' + file);
+  // These pre-existing browser fixtures require the Windows desktop runtime.
+  // Run them locally before publishing; all portable regressions also run in CI.
+  const desktopTests = new Set(['cases-dom.test.mjs', 'tabbar-alignment-dom.test.mjs']);
+  const tests = fs.readdirSync(path.join(root, 'test')).filter(file => file.endsWith('.mjs'))
+    .filter(file => process.platform === 'win32' || !desktopTests.has(file)).sort().map(file => 'test/' + file);
+  if (process.platform !== 'win32') console.log('Windows-only browser fixtures require local validation: ' + [...desktopTests].join(', '));
   for (const args of [['tools/verify-no-secrets.mjs'],['tools/verify-reskin.mjs'],['--test', ...tests]]) {
     const result=spawnSync(process.execPath,args,{cwd:root,stdio:'inherit'});
     if(result.status!==0) process.exit(result.status || 1);
