@@ -6,8 +6,9 @@ const publicPages=['index.html','request.html','portfolio-public.html'];
 test('public pages show call labels instead of phone digits while preserving dial links',()=>{
  for(const p of publicPages){
   const html=read(p),visible=html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g,'').replace(/<[^>]*>/g,'');
-  assert.doesNotMatch(visible,/010[-\s]?3776[-\s]?1230/);
-  assert.match(html,/href="tel:010-?3776-?1230"/);
+  assert.doesNotMatch(visible,/010[-\s]?3776[-\s]?1230|0507[-\s]?1482[-\s]?1708/);
+  assert.match(html,/href="tel:0507-1482-1708"/);
+  assert.doesNotMatch(html,/010-?3776-?1230|82-10-3776-1230/);
  }
 });
 test('public pages have unique titles, descriptions, canonical URLs and absolute social images',()=>{
@@ -34,7 +35,7 @@ test('sitemap contains canonical public pages only and crawler can load renderin
 test('structured data is linked, factual and services remain readable without JavaScript',()=>{
  const html=read('index.html'),json=JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1]);
  const graph=json['@graph'],business=graph.find(n=>n['@type']==='LocalBusiness');
- assert.equal(business.name,'중용랙');assert.equal(business.telephone,'+82-10-3776-1230');assert.equal(business.address.streetAddress,'백옥대로 1117');
+ assert.equal(business.name,'중용랙');assert.equal(business.telephone,'0507-1482-1708');assert.equal(business.address.streetAddress,'백옥대로 1117');
  assert.equal(business.hasOfferCatalog.itemListElement.length,5);
  assert.ok(graph.find(n=>n['@type']==='WebSite'));assert.ok(graph.find(n=>n['@type']==='WebPage'));
  assert.doesNotMatch(JSON.stringify(json),/aggregateRating|reviewCount|openingHours|priceRange/);
