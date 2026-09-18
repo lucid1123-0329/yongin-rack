@@ -11,6 +11,7 @@ const storage = () => { const data = new Map(); return {
 const prices = [900, 1200].map(width => ({ type: '경량랙', form: '독립', spec: `${width}*450*1800`, tier: 4, unitPrice: width === 900 ? 75000 : 90000, installFee: 10000 }));
 prices.push({type:'하이퍼 진열대',form:'독립',layoutType:'벽면',spec:'900*450*1800',tier:1800,unitPrice:120000});
 prices.push({type:'곤도라 진열대',form:'독립',layoutType:'벽면',setName:'벽면(900*450*1800)',spec:'900*450*1800',unitPrice:130000});
+prices.push({type:'곤도라 진열대',partCategory:'선반',spec:'900*450',unitPrice:15000});
 prices.push({type:'파렛트랙',partCategory:'기둥',partThickness:'2.2',partLength:3000,spec:'기둥 3000',unitPrice:65000});
 prices.push({type:'무볼트앵글',partCategory:'기둥',partLength:1800,spec:'기둥 1800',unitPrice:12000});
 prices.push({type:'무볼트앵글',isAccessory:true,accessoryCategory:'고무발',spec:'4개 세트',unitPrice:4000});
@@ -200,4 +201,68 @@ test('width changes invalidate selected item; voice/catalog add keeps non-modal 
   assert.equal(payload.total,517000);assert.equal(payload.items.length,2);
   assert.equal(payload.items[0].quantity,2);assert.equal(payload.items[1].quantity,3);
   assert.equal(a.items.length,0);assert.equal(a.loadDraft(),null);
+});
+
+for (const [label,type,pick] of routes) {
+  test(`${label}: missing price entry, selected price edit, cart price edit never modify catalog`,async()=>{
+    const {c,element,timers}=await fixture();const a=c.App,w=c.Wizard;
+    const row=a.priceData.find(p=>p.type===type&&!p.isAccessory);row.unitPrice=0;
+    a.onTypeChip(type);a.toggleUnpriced();pick(a);
+    assert.equal(element('quote-price-sheet').classList.contains('hidden'),false);
+    assert.equal(a.currentSelection,null);
+    for(const value of ['', '0','-1','1.5','Infinity','9007199254740992']){
+      element('quote-price-input').value=value;a.confirmPriceEdit();assert.equal(a.currentSelection,null);
+      assert.notEqual(element('quote-price-error').textContent,'');
+    }
+    element('quote-price-input').value='20000';a.confirmPriceEdit();
+    assert.equal(w.step,3);assert.equal(a.currentSelection.unitPrice,20000);assert.equal(row.unitPrice,0);
+    a.editSelectedPrice();element('quote-price-input').value='25000';a.confirmPriceEdit();
+    assert.equal(a.currentSelection.unitPrice,25000);element('qty-input').value='2';w.next();
+    assert.equal(w.step,4);assert.equal(a.items[0].unitPrice,25000);assert.equal(a.items[0].quantity,2);
+    a.editItemPrice(0);element('quote-price-input').value='30000';a.confirmPriceEdit();
+    assert.equal(a.items[0].unitPrice,30000);assert.equal(row.unitPrice,0);
+    for(const fn of [...timers.values()])fn();assert.equal(a.loadDraft().items[0].unitPrice,30000);
+    let sent;c.API.saveEstimate=async data=>{sent=data;return {estimateId:'PRICE-TEST'};};await a.saveEstimate();
+    assert.equal(sent.items[0].unitPrice,30000);
+  });
+}
+
+test('price editor cancellation, navigation, reset and removed-row safeguards',async()=>{
+  const {c,element}=await fixture();const a=c.App,w=c.Wizard;
+  a.onTypeChip('경량랙');a.onFormChip('독립');a.onSpecCard(0);a.editSelectedPrice();a.closePriceEditor();
+  assert.equal(a.currentSelection.unitPrice,75000);
+  a.editSelectedPrice();w.previous();element('quote-price-input').value='1';a.confirmPriceEdit();
+  assert.equal(a.currentSelection.unitPrice,75000,'navigation cancels pending edit');
+  a.addItem();a.editItemPrice(0);a.removeItem(0);element('quote-price-input').value='2';a.confirmPriceEdit();assert.equal(a.items.length,0);
+  a.onTypeChip('경량랙');a.onFormChip('독립');a.onSpecCard(0);a.editSelectedPrice();a.resetEstimate();
+  element('quote-price-input').value='3';a.confirmPriceEdit();assert.equal(a.currentSelection,null);
+});
+
+test('unpriced accessories accept quote-only price and cart editing preserves quantity',async()=>{
+  const {c,element}=await fixture();const a=c.App,row=a.priceData.find(p=>p.isAccessory);row.unitPrice=0;
+  a.onTypeChip('무볼트앵글');a.onAccessoryCard(0);assert.equal(a.items.length,0);
+  element('quote-price-input').value='5000';a.confirmPriceEdit();assert.equal(a.items.length,1);
+  assert.equal(element('item-added-sheet').classList.contains('hidden'),false);
+  a.editItemPrice(0);element('quote-price-input').value='6000';a.confirmPriceEdit();
+  assert.equal(a.calculate().total,6600);assert.equal(a.items[0].quantity,1);assert.equal(row.unitPrice,0);
+});
+
+test('previous/next navigation handles empty, adding and skipping additional products without silent additions',async()=>{
+  const {c,element}=await fixture();const a=c.App,w=c.Wizard;
+  w.previous();w.next();assert.equal(w.step,1);
+  a.onTypeChip('경량랙');w.next();assert.equal(w.step,2);
+  a.onFormChip('독립');a.onSpecCard(0);element('qty-input').value='2';w.next();
+  assert.equal(a.items.length,1);assert.equal(w.step,4);assert.equal(element('item-added-sheet').classList.contains('hidden'),true);
+  w.go(1);w.next();assert.equal(w.step,4);assert.equal(a.items.length,1);
+  w.next();assert.equal(w.step,5);w.next();assert.equal(w.step,6);w.previous();assert.equal(w.step,5);
+  a.onTypeChip('경량랙');w.next();assert.equal(w.step,4);assert.equal(a.items.length,1);
+});
+
+test('unpriced gondola parts preserve category when retrying after price entry',async()=>{
+  const {c,element}=await fixture();const a=c.App;
+  const row=a.priceData.find(p=>p.type==='곤도라 진열대'&&p.partCategory);row.unitPrice=0;
+  a.onTypeChip('곤도라 진열대');a.onDModeSwitch('part');a.onDPartCatChip('선반');a.toggleUnpriced();a.onDPartCard('선반',0);
+  element('quote-price-input').value='19000';a.confirmPriceEdit();
+  assert.equal(a.currentSelection.partCategory,'선반');assert.equal(a.currentSelection.unitPrice,19000);
+  a.addItem();assert.equal(a.items[0].unitPrice,19000);assert.equal(row.unitPrice,0);
 });

@@ -232,7 +232,7 @@ assert.match(appSource, /_wizardCall\('onTypeSelected', type\)/);
 assert.ok((appSource.match(/onSpecSelected\(currentSelection\)/g) || []).length >= 5,
   'all rack pricing models must connect selection to step 3');
 assert.match(appSource, /_wizardCall\('onItemAdded', newItem\)/);
-assert.match(indexSource, /class="wizard-step-fixed-actions wizard-inactive"[\s\S]*onclick="App\.addItem\(\)"/);
+assert.match(indexSource, /class="wizard-step-fixed-actions wizard-inline-action wizard-inactive"[\s\S]*onclick="App\.addItem\(\)"/);
 assert.match(indexSource, /data-step-link="6"/);
 
 console.log('PASS H1–H3/H7 wizard tabs, summaries, add sheet, save enable, edit entry, browser back');

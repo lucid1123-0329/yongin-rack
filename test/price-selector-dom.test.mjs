@@ -62,6 +62,10 @@ const fixture = [
 ];
 
 const source = [
+  'let quotePrices = new WeakMap();',
+  'let pendingPriceEdit = null;',
+  functionSource('withQuotePrice'),
+  functionSource('openPriceEditor'),
   "let _dimSelection = { W: '', D: '', H: '' };",
   'let _showUnpriced = false;',
   "let _selType = '경량랙';",
@@ -159,7 +163,7 @@ assert.equal(elements.get('cards-spec').innerHTML.includes('단가 미입력'), 
 context.select(4);
 assert.equal(context.getSelection(), null, 'zero-price card must not become a cart selection');
 assert.equal(elements.get('add-section').classList.contains('hidden'), true);
-assert.equal(toasts.at(-1), '단가가 입력되지 않은 규격입니다. 더보기 > 단가 관리에서 단가를 넣어주세요.');
+assert.equal(context.getSelection(), null, 'an unpriced row must wait for explicit price entry');
 context.setShowUnpriced(false);
 
 assert.deepEqual(

@@ -35,7 +35,7 @@
 
   <!-- Pretendard -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
-  <link rel="stylesheet" href="/css/design.css?v=83">
+  <link rel="stylesheet" href="/css/design.css?v=84">
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json">
@@ -56,7 +56,7 @@
     #chips-part-cat, #d-chips-part-cat { flex-wrap:wrap; overflow-x:visible; }
   </style>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <script src="/js/onesignal-init.js?v=83" defer></script>
+  <script src="/js/onesignal-init.js?v=84" defer></script>
   <script src="/js/version-check.js" defer></script>
 </head>
 <body class="yr-admin-app bg-[#f7fafc] min-h-screen">
@@ -178,6 +178,7 @@
       <div data-wizard-step="3" class="wizard-step-panel wizard-inactive selected-spec-summary" id="selected-spec-summary">
         <span id="selected-spec-title">선택한 규격을 확인하세요</span>
         <span id="selected-spec-meta" class="hidden"></span>
+        <button type="button" class="quote-price-edit" onclick="App.editSelectedPrice()">단가 입력·수정</button>
       </div>
 
       <!-- 수량 + 추가 버튼 (랙 선택 완료 시 표시) -->
@@ -196,7 +197,7 @@
             <p id="quantity-subtotal" class="quantity-subtotal">소계 0원</p>
           </div>
           <button onclick="App.addItem()"
-            class="wizard-inline-action v2-add-item v2-accent-action h-10 px-5 bg-accent text-white rounded-xl font-bold text-sm active:scale-[0.98] transition-transform flex-shrink-0">
+            class="v2-add-item v2-accent-action h-10 px-5 bg-accent text-white rounded-xl font-bold text-sm active:scale-[0.98] transition-transform flex-shrink-0">
             + 추가
           </button>
         </div>
@@ -408,27 +409,46 @@
     </div>
   </main>
 
-  <div data-wizard-step="3" class="wizard-step-fixed-actions wizard-inactive">
+  <div data-wizard-step="3" class="wizard-step-fixed-actions wizard-inline-action wizard-inactive">
     <button type="button" class="v2-accent-action" onclick="App.addItem()">+ 추가</button>
   </div>
-  <div data-wizard-step="4" class="wizard-step-fixed-actions wizard-inactive">
+  <div data-wizard-step="4" class="wizard-step-fixed-actions wizard-inline-action wizard-inactive">
     <button type="button" onclick="EstimateWizard.go(5)">다음</button>
   </div>
-  <div data-wizard-step="5" class="wizard-step-fixed-actions wizard-inactive">
+  <div data-wizard-step="5" class="wizard-step-fixed-actions wizard-inline-action wizard-inactive">
     <button type="button" onclick="EstimateWizard.go(6)">다음</button>
   </div>
 
   <!-- 기존 저장 버튼을 그대로 위임하는 빠른 저장 바 -->
+  <div data-wizard-range="1-5" class="wizard-range-panel wizard-step-fixed-actions quote-step-navigation wizard-inactive">
+    <button id="quote-step-previous" type="button" onclick="EstimateWizard.previous()">이전 단계</button>
+    <button id="quote-step-next" type="button" onclick="EstimateWizard.next()">다음 단계</button>
+  </div>
   <div id='estimate-fixed-bar' class='ux-fixed-bar wizard-inactive fixed left-0 right-0 z-50'>
     <div class='max-w-lg mx-auto h-full px-4 flex items-center'>
       <p id='fixed-save-empty' class='w-full text-center text-lg font-semibold text-gray-700'>품목을 추가하세요</p>
       <div id='fixed-save-ready' class='hidden w-full items-center gap-3'>
+        <button type="button" class="quote-price-edit" onclick="EstimateWizard.previous()">이전 단계</button>
         <span id='fixed-total-amount' class='tnum flex-1 text-lg font-semibold text-gray-800'>총액 0원</span>
         <button id='btn-save-fixed' type='button' disabled onclick='document.getElementById(&quot;btn-save&quot;).click()'
           data-mirror-class='save-state' class='is-disabled h-12 px-4 border border-gray-800 bg-primary text-white text-lg font-semibold disabled:bg-gray-200 disabled:text-gray-500 disabled:border-transparent'>
           견적 저장
         </button>
       </div>
+    </div>
+  </div>
+
+  <div id="quote-price-sheet" class="wizard-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="quote-price-title">
+    <button type="button" class="wizard-sheet-backdrop" onclick="App.closePriceEditor()" aria-label="단가 수정 취소"></button>
+    <div class="wizard-sheet-panel">
+      <h2 id="quote-price-title">이 견적의 단가 입력·수정</h2>
+      <p id="quote-price-item"></p>
+      <p>현재 견적에만 적용됩니다. 기준 단가표와 시공비는 변경하지 않습니다.</p>
+      <label for="quote-price-input">개당 단가 (원, 부가세 별도)</label>
+      <input id="quote-price-input" type="number" inputmode="numeric" min="1" step="1" class="quote-price-input">
+      <p id="quote-price-error" role="alert"></p>
+      <button type="button" class="wizard-sheet-primary" onclick="App.confirmPriceEdit()">단가 적용</button>
+      <button type="button" onclick="App.closePriceEditor()">취소</button>
     </div>
   </div>
 
@@ -479,9 +499,9 @@
   </div>
 
   <!-- Scripts -->
-  <script src="/js/api.js?v=83"></script>
-  <script src="/js/auth.js?v=83"></script>
-  <script src="/js/ui.js?v=83"></script>
+  <script src="/js/api.js?v=84"></script>
+  <script src="/js/auth.js?v=84"></script>
+  <script src="/js/ui.js?v=84"></script>
   <div id="cart-sheet" class="wizard-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="cart-sheet-title">
     <button type="button" class="wizard-sheet-backdrop" onclick="EstimateWizard.closeCartSheet()" aria-label="닫기"></button>
     <div class="wizard-sheet-panel cart-sheet-panel">
@@ -499,11 +519,11 @@
     </div>
   </div>
 
-  <script src="/js/calc.js?v=83"></script>
-  <script src="/js/app.js?v=83"></script>
-  <script src="/js/estimate.js?v=83"></script>
-  <script src='/js/voice.js?v=83'></script>
-  <script src='/js/precheck.js?v=83'></script>
+  <script src="/js/calc.js?v=84"></script>
+  <script src="/js/app.js?v=84"></script>
+  <script src="/js/estimate.js?v=84"></script>
+  <script src='/js/voice.js?v=84'></script>
+  <script src='/js/precheck.js?v=84'></script>
   <script>
     const EstimateWizard = (() => {
       let currentStep = 1;
@@ -675,9 +695,14 @@
           App.updateQuantitySubtotal();
         }
         if (typeof syncEstimateFixedBar === 'function') syncEstimateFixedBar();
+        const nextButton = document.getElementById('quote-step-next');
+        if (nextButton) nextButton.textContent = currentStep === 3 && selection ? '담고 다음 단계' : '다음 단계';
+        const previousButton = document.getElementById('quote-step-previous');
+        if (previousButton) previousButton.disabled = currentStep === 1;
       }
 
       function applyStep(step) {
+        if (typeof App !== 'undefined' && App.closePriceEditor) App.closePriceEditor();
         document.getElementById('item-added-sheet')?.classList.add('hidden');
         document.getElementById('cart-sheet')?.classList.add('hidden');
         currentStep = Math.max(1, Math.min(6, Number(step) || 1));
@@ -747,6 +772,23 @@
 
       function previous() {
         if (currentStep > 1) go(currentStep - 1);
+      }
+
+      function next() {
+        const app = typeof App !== 'undefined' ? App : null;
+        if (!app) return;
+        if (currentStep <= 2) {
+          if (currentStep === 2 && app.currentSelection) return go(3);
+          if (app.items.length) return go(4);
+          return go(currentStep + 1);
+        }
+        if (currentStep === 3 && app.currentSelection) {
+          const count = app.items.length;
+          app.addItem();
+          if (app.items.length > count) chooseAfterAdd(4);
+          return;
+        }
+        if (currentStep < 6) go(currentStep + 1);
       }
 
       function init(step) {
@@ -884,7 +926,7 @@
 
       function onSelectionCleared() { lastSelection = null; }
 
-      return { init, go, previous, sync, onTypeSelected, onSpecSelected, onCartItemAdded, onItemAdded,
+      return { init, go, previous, next, sync, onTypeSelected, onSpecSelected, onCartItemAdded, onItemAdded,
         closeAddedSheet, chooseAfterAdd, openCartSheet, closeCartSheet, goToReview,
         getDraftState, restoreDraftState, markSaved, resetState, onSelectionCleared,
         get step() { return currentStep; } };

@@ -9,6 +9,60 @@ const App = (() => {
   let items = [];           // 추가된 품목 배열 (rack + custom)
   let currentSelection = null;
   let currentQuantity = 1;
+  let quotePrices = new WeakMap();
+  let pendingPriceEdit = null;
+
+  function withQuotePrice(row) {
+    return row && quotePrices.has(row) ? { ...row, unitPrice: quotePrices.get(row) } : row;
+  }
+
+  function openPriceEditor(row, apply) {
+    pendingPriceEdit = apply;
+    const input = document.getElementById('quote-price-input');
+    if (!input) return;
+    input.value = _isPriced(row) ? String(row.unitPrice) : '';
+    document.getElementById('quote-price-item').textContent = [row.name || row.type, row.form, row.spec].filter(Boolean).join(' · ');
+    document.getElementById('quote-price-error').textContent = '';
+    document.getElementById('quote-price-sheet').classList.remove('hidden');
+    input.focus();
+  }
+
+  function closePriceEditor() {
+    pendingPriceEdit = null;
+    document.getElementById('quote-price-sheet')?.classList.add('hidden');
+  }
+
+  function confirmPriceEdit() {
+    const value = Number(document.getElementById('quote-price-input')?.value);
+    if (!Number.isSafeInteger(value) || value <= 0) {
+      document.getElementById('quote-price-error').textContent = '단가는 1원 이상의 정수로 입력하세요.';
+      return;
+    }
+    const apply = pendingPriceEdit;
+    closePriceEditor();
+    if (apply) apply(value);
+  }
+
+  function editSelectedPrice() {
+    const selected = currentSelection;
+    if (!selected) return;
+    openPriceEditor(selected, value => {
+      if (currentSelection !== selected) return;
+      currentSelection = { ...selected, unitPrice: value };
+      _wizardCall('sync');
+      updateQuantitySubtotal();
+    });
+  }
+
+  function editItemPrice(index) {
+    const selected = items[index];
+    if (!selected || selected.itemType === 'custom') return;
+    openPriceEditor(selected, value => {
+      if (!items.includes(selected)) return;
+      selected.unitPrice = value;
+      renderItems(); updateTotal(); saveDraft();
+    });
+  }
 
   const DRAFT_KEY = 'yr_draft_estimate';
   const RECENT_KEY = 'yr_recent_items';
@@ -641,8 +695,12 @@ const App = (() => {
     container.classList.toggle('overflow-y-visible', count <= 3);
   }
 
-  function _rejectUnpriced(item) {
+  function _rejectUnpriced(item, retry) {
     if (_isPriced(item)) return false;
+    if (item && retry) {
+      openPriceEditor(item, value => { quotePrices.set(item, value); retry(); });
+      return true;
+    }
     UI.toast('단가가 입력되지 않은 규격입니다. 더보기 > 단가 관리에서 단가를 넣어주세요.', 'warning', 5000);
     return true;
   }
@@ -838,9 +896,9 @@ const App = (() => {
     if (thickness) parts = parts.filter(p => p.partThickness === thickness);
     parts.sort((a, b) => (a.partLength || 0) - (b.partLength || 0));
     parts = _priceVisible(parts);
-    currentSelection = parts[index] || null;
+    currentSelection = withQuotePrice(parts[index]) || null;
     if (!currentSelection) return;
-    if (_rejectUnpriced(currentSelection)) {
+    if (_rejectUnpriced(currentSelection, () => onPartCard(cat, thickness, index))) {
       currentSelection = null;
       return;
     }
@@ -954,9 +1012,9 @@ const App = (() => {
 
   function onDSetCard(index) {
     const sets = _getVisibleDSets(_selType);
-    currentSelection = sets[index] || null;
+    currentSelection = withQuotePrice(sets[index]) || null;
     if (!currentSelection) return;
-    if (_rejectUnpriced(currentSelection)) {
+    if (_rejectUnpriced(currentSelection, () => onDSetCard(index))) {
       currentSelection = null;
       return;
     }
@@ -1012,9 +1070,9 @@ const App = (() => {
     let parts = getPartsForType(_selType).filter(p => p.partCategory === cat);
     parts.sort((a, b) => (a.partLength || a.unitPrice || 0) - (b.partLength || b.unitPrice || 0));
     parts = _priceVisible(parts);
-    currentSelection = parts[index] || null;
+    currentSelection = withQuotePrice(parts[index]) || null;
     if (!currentSelection) return;
-    if (_rejectUnpriced(currentSelection)) {
+    if (_rejectUnpriced(currentSelection, () => onDPartCard(cat, index))) {
       currentSelection = null;
       return;
     }
@@ -1053,9 +1111,9 @@ const App = (() => {
 
   function onAccessoryCard(index) {
     const accessories = getAccessoriesForType(_selType);
-    const acc = accessories[index];
+    const acc = withQuotePrice(accessories[index]);
     if (!acc) return;
-    if (_rejectUnpriced(acc)) return;
+    if (_rejectUnpriced(acc, () => onAccessoryCard(index))) return;
 
     items.push({
       type: acc.type,
@@ -1168,9 +1226,9 @@ const App = (() => {
       if (_specSortMode === 'price') return (a.unitPrice || 0) - (b.unitPrice || 0);
       return (a.tier || 0) - (b.tier || 0);
     });
-    currentSelection = sorted[index] || null;
+    currentSelection = withQuotePrice(sorted[index]) || null;
     if (!currentSelection) return;
-    if (_rejectUnpriced(currentSelection)) {
+    if (_rejectUnpriced(currentSelection, () => onModelBSpecCard(index))) {
       currentSelection = null;
       return;
     }
@@ -1327,9 +1385,9 @@ const App = (() => {
   function onSpecCard(index) {
     const items = _priceVisible(getSpecsForTypeAndForm(_selType, _selForm))
       .filter(item => _matchesDimensions(item, _parseSpecDimensions));
-    currentSelection = items[index] || null;
+    currentSelection = withQuotePrice(items[index]) || null;
     if (!currentSelection) return;
-    if (_rejectUnpriced(currentSelection)) {
+    if (_rejectUnpriced(currentSelection, () => onSpecCard(index))) {
       currentSelection = null;
       return;
     }
@@ -1733,6 +1791,7 @@ const App = (() => {
                 <div class="v2-estimate-item-copy">
                   <p class="v2-estimate-item-name text-sm font-bold ${isNegative ? 'text-red-600' : 'text-gray-800'}">${label}</p>
                   <p class="v2-estimate-item-meta text-xs text-gray-500">@${UI.formatNumber(item.unitPrice)} × ${item.quantity}</p>
+                  ${!isCustom ? `<button type="button" class="quote-price-edit" onclick="App.editItemPrice(${i})">단가 수정</button>` : ''}
                 </div>
                 <p class="v2-estimate-item-amount v2-money text-sm font-bold ${isNegative ? 'text-red-600' : 'text-[#2F6BFF]'}">${UI.formatCurrency(itemTotal)}</p>
                 <button onclick="App.removeItem(${i})"
@@ -1753,6 +1812,7 @@ const App = (() => {
               <div class="v2-estimate-item-copy">
                 <p class="v2-estimate-item-name text-sm font-bold text-gray-800">${itemLabel}</p>
                 <p class="v2-estimate-item-meta text-xs text-gray-500">@${UI.formatNumber(item.unitPrice)} × ${item.quantity}${unitLabel}${feeStr}</p>
+                <button type="button" class="quote-price-edit" onclick="App.editItemPrice(${i})">단가 수정</button>
               </div>
               <p class="v2-estimate-item-amount v2-money text-sm font-bold text-[#2F6BFF]">${UI.formatCurrency(itemTotal)}</p>
               <button onclick="App.removeItem(${i})"
@@ -1917,6 +1977,8 @@ const App = (() => {
     if ((items.length > 0 || currentSelection || Object.values(getCustomerInfo()).some(Boolean)) && !confirm('현재 작성 중인 견적을 초기화하시겠습니까?')) return;
     items = [];
     currentSelection = null;
+    quotePrices = new WeakMap();
+    closePriceEditor();
     _selType = _selForm = _selLayout = _selPartCat = _selPartThickness = '';
     _dimSelection = { W: '', D: '', H: '' };
     _specWidthFilter = '';
@@ -1966,6 +2028,7 @@ const App = (() => {
   }
 
   return {
+    editSelectedPrice, editItemPrice, confirmPriceEdit, closePriceEditor,
     loadPrices, setQuantity, changeQuantity, updateQuantitySubtotal,
     addItem, addItemFromPrice, addCustomItem, addPresetItem, setActivePreset,
     calcMarginFromPct, addMargin, addDiscount,

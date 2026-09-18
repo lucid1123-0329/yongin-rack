@@ -435,6 +435,12 @@ body:has(.ux-fixed-bar) { padding-bottom:calc(168px + env(safe-area-inset-bottom
 .wizard-inline-action { display:none !important; }
 .wizard-step-fixed-actions { position:fixed; right:0; bottom:80px; left:0; z-index:45; box-sizing:border-box; height:72px; margin:0 auto; border-top:1px solid var(--line); background:var(--surface); padding:var(--s1) var(--s4); }
 .wizard-step-fixed-actions > button { display:block; width:100%; max-width:472px; height:56px; margin:0 auto; border:none; border-radius:var(--r-ctl); background:var(--brand); color:var(--surface); font-size:17px; font-weight:700; }
+.quote-step-navigation { display:flex; gap:var(--s2); max-width:512px; }
+.quote-step-navigation > button { flex:1; min-width:0; }
+.quote-step-navigation > button:first-child { background:var(--fill-2); color:var(--text); }
+.quote-step-navigation > button:disabled { opacity:.4; }
+.quote-price-edit { min-height:44px; padding:8px 12px; color:var(--brand); font-size:14px; font-weight:700; }
+.quote-price-input { width:100%; min-height:48px; margin:12px 0; padding:12px; border:1px solid var(--line); border-radius:var(--r-ctl); font-size:18px; }
 .wizard-added-banner { max-height:0; overflow:hidden; background:var(--surface); transition:max-height .22s ease; }
 .wizard-added-banner.is-visible { max-height:56px; }
 .wizard-added-banner-inner { display:flex; width:calc(100% - 32px); max-width:480px; height:48px; margin:var(--s1) auto 0; align-items:center; border-radius:var(--r-chip); background:var(--ok-weak); color:var(--ok); }
